@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
+
+class EventoParticipante extends Model
+{
+    use HasFactory;
+    public $timestamps = false;
+    protected $table = 'evento_participantes';
+    protected $fillable = [
+        'evento_participantes_id',
+        'evento_id',
+        'participante_id',
+        'url',
+        'qrcode',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->evento_participantes_id)) {
+                $model->evento_participantes_id = (string) Str::uuid();
+            }
+        });
+    }
+
+    public function evento()
+    {
+        return $this->belongsTo(Evento::class, 'evento_id');
+    }
+
+    public function participante()
+    {
+        return $this->belongsTo(Participante::class, 'participante_id');
+    }
+}
