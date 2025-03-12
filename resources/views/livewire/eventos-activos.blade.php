@@ -8,6 +8,7 @@
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Fecha de Inicio
                     </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Partipantes</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Acciones</th>
                 </tr>
             </thead>
@@ -21,21 +22,29 @@
                         <td class="px-6 py-2 whitespace-nowrap text-sm font-medium">
                             <a wire:click="get_inscriptos({{ $evento }})"
                                 class="text-green-600 hover:text-green-800 cursor-pointer mx-2" title="Ver Incriptos">
-                                <i class="fa-solid fa-users fa-xl"></i>
+                                <i class="fa-solid fa-users fa-xl  text-black"></i>
 
                             </a>
                             <a href="{{ route('inscripcion.evento', [Str::slug($evento->tipoEvento->nombre, '-'), $evento->evento_id]) }}"
                                 class="cursor-pointer mx-2" title="Formulario de Inscripción">
-                                <i class="fa-solid fa-file-signature fa-xl text-black"></i>
+                                <i class="fa fa-address-card fa-xl text-black"></i>
                             </a>
+                            <a wire:click="showEditModal({{ $evento }})" class="cursor-pointer mx-2"
+                                title="Editar Fechas">
+                                <i class="fa-solid fa-calendar-alt fa-xl text-black"></i>
+                            </a>
+                        </td>
+                        <td class="px-6 py-2 whitespace-nowrap text-sm font-medium">
+
+
                             <a onclick="confirmFinish({{ $evento }})"
                                 class="text-green-600 hover:text-green-800 cursor-pointer mx-2"
                                 title="Finalizar Evento">
-                                <i class="fa-solid fa-check-to-slot fa-xl"></i>
+                                <i class="fa-solid fa-check-to-slot fa-xl  text-blue-500"></i>
                             </a>
                             <a onclick="confirmCancel({{ $evento }})"
                                 class="text-green-600 hover:text-green-800 cursor-pointer mx-2" title="Cancelar Evento">
-                                <i class="fa-solid fa-times-circle fa-xl"></i>
+                                <i class="fa-solid fa-times-circle fa-xl  text-red-500"></i>
                             </a>
                         </td>
                     </tr>
@@ -81,5 +90,40 @@
             </tbody>
         </table>
     @endif
+
+    <x-dialog-modal wire:model="open_edit_modal">
+        <x-slot name="title">
+            Inscripción al Evento {{ $evento_selected->nombre ?? '' }}
+        </x-slot>
+
+        <x-slot name="content">
+            <div class="flex pt-4 px-6 gap-4">
+                <div class="w-1/2">
+
+                    <label for="apertura_edit" class="block text-sm font-medium text-gray-700">Fecha de Apertura</label>
+                    <input type="date" id="apertura_edit" wire:model.live="apertura"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('apertura')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="w-1/2">
+                    <label for="cierre_edit" class="block text-sm font-medium text-gray-700">Fecha de Cierre</label>
+                    <input type="date" id="cierre_edit" wire:model.live="cierre"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('cierre')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+        </x-slot>
+
+        <x-slot name="footer">
+            <x-secondary-button class="mx-2" wire:click="$set('open_edit_modal', false)">Cancelar</x-secondary-button>
+            <x-button class="mx-2" wire:click="updateFechas">Actualizar</x-button>
+        </x-slot>
+    </x-dialog-modal>
+
 
 </div>

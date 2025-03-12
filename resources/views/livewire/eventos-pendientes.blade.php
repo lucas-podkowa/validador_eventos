@@ -17,35 +17,15 @@
                         <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->fecha_inicio_formatted }}</td>
                         <td class="px-6 py-3 whitespace-nowrap text-sm font-medium">
-                            <!-- Icono para el detalle del evento con tamaño y separación -->
-                            {{-- <a wire:click="detail({{ $evento }})"
-                                            class="text-blue-600 hover:text-blue-800 cursor-pointer mx-2"
-                                            title="Detalle">
-                                            <i class="fas fa-info-circle fa-xl"></i> <!-- fa-lg ajusta el tamaño -->
-                                        </a> --}}
 
-                            <!-- Botón para editar evento -->
-                            {{-- <a href="{{ route('registrar_evento', $evento->evento_id) }}"
-                                            class="btn fa-xl fa-regular" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a> --}}
                             <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
                                 class="btn fa-xl fa-regular" title="Editar">
-                                <i class="fas fa-edit"></i>
+                                <i class="fa-solid fa-edit text-black"></i>
                             </a>
-
-                            {{-- <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                            <x-nav-link href="{{ route('registrar_evento') }}" :active="request()->routeIs('registrar_evento')">
-                                                {{ __('Registrar Evento') }}
-                                            </x-nav-link>
-                                        </div> --}}
-
-
-                            <!-- Icono para habilitar inscripción con tamaño y separación -->
                             <a wire:click="show_dialog_planilla({{ $evento }})"
                                 class="text-green-600 hover:text-green-800 cursor-pointer mx-2"
                                 title="Habilitar Inscripción">
-                                <i class="fa-regular fa-clipboard fa-xl"></i>
+                                <i class="fa-regular fa-clipboard fa-xl  text-blue-500"></i>
                             </a>
                         </td>
                     </tr>
@@ -65,8 +45,6 @@
             </x-slot>
 
             <x-slot name="content">
-
-
                 <div class="flex pt-4 px-6 gap-4">
                     <!-- Fecha del evento -->
                     <div class="w-1/2">
@@ -109,8 +87,6 @@
                         @enderror
                     </div>
                 </div>
-
-
             </x-slot>
 
 

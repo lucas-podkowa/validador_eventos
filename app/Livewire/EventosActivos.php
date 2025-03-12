@@ -19,10 +19,12 @@ use Livewire\WithPagination;
 
 class EventosActivos extends Component
 {
-    public $tipos_eventos = [];
+    use WithPagination;
 
+    public $tipos_eventos = [];
     public $inscriptos = [];
     public $evento_selected = null;
+    public $planilla_selected = null;
     public $search = '';
     public $search_tipo_evento = null;
     public $sort = 'nombre';
@@ -34,9 +36,17 @@ class EventosActivos extends Component
         'cancelarEvento',
     ];
 
+    public $open_edit_modal = false;
+    public $apertura;
+    public $cierre;
     public $eventosEnCurso;
 
-    use WithPagination;
+
+    protected $rules = [
+        'apertura' => 'required|date',
+        'cierre' => 'required|date|after_or_equal:apertura',
+    ];
+
 
     public function mount()
     {
@@ -108,12 +118,18 @@ class EventosActivos extends Component
             PlanillaInscripcion::where('evento_id', $evento_id)->update(['cierre' => Carbon::now()]);
 
             DB::commit();
-
-            //$this->dispatchBrowserEvent('success', ['message' => 'El evento fue finalizado exitosamente.']);
+            $this->reset([
+                'evento_selected',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo finalizar el Evento: ' . $e->getMessage());
         }
+        // Disparar evento para refrescar el componente
+        $this->dispatch('refreshMainComponent');
+
+        // Recargar los eventos pendientes después de la operación
+        $this->mount();
     }
 
     //----------------------------------------------------------------------------
@@ -151,6 +167,45 @@ class EventosActivos extends Component
             $this->dispatch('oops', message: 'No se pudo cancelar el evento: ' . $e->getMessage());
         }
     }
+
+    public function showEditModal($eventoId)
+    {
+        $evento_id = $eventoId['evento_id'];
+        $this->resetValidation();
+        $evento = Evento::find($evento_id);
+
+        if ($evento && $evento->planillaInscripcion) {
+            $this->evento_selected = $evento;
+            $this->planilla_selected = $evento->planillaInscripcion;
+
+            // Asigna las fechas actuales de la planilla para que se preseleccionen en el input de fecha
+            $this->apertura = Carbon::parse($this->planilla_selected->apertura)->format('Y-m-d');
+            $this->cierre = Carbon::parse($this->planilla_selected->cierre)->format('Y-m-d');
+
+            $this->open_edit_modal = true;
+        } else {
+            $this->dispatch('oops', message: 'No se encontró una planilla de inscripción asociada.');
+        }
+    }
+
+    public function updateFechas()
+    {
+        $this->validate();
+
+        if (Carbon::parse($this->cierre)->gt(Carbon::parse($this->evento_selected->fecha_inicio))) {
+            $this->dispatch('oops', message: 'La fecha de cierre no puede ser posterior a la fecha del evento.');
+            return;
+        }
+
+        $this->planilla_selected->update([
+            'apertura' => $this->apertura,
+            'cierre' => $this->cierre,
+        ]);
+
+        $this->open_edit_modal = false;
+        $this->dispatch('success', message: 'Fechas actualizadas correctamente.');
+    }
+
 
 
     public function get_inscriptos($evento)

@@ -6,6 +6,7 @@ use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\PlanillaInscripcion;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -19,6 +20,7 @@ class RegistroEventoPublico extends Component
     public $mail = null;
     public $planilla_id = null;
     public $planilla_inscripcion = null;
+    public $inscripcion_activa = false;
     public $localidad_id = null;
     public $tipos_indicadores_seleccionados = [];
     public $localidadesFiltradas = [];
@@ -44,6 +46,12 @@ class RegistroEventoPublico extends Component
         }
 
         $this->evento = Evento::findOrFail($eventoId);
+
+        // Verificar si la inscripción está activa
+        $hoy = Carbon::now();
+        if ($this->planilla_inscripcion->apertura <= $hoy && $this->planilla_inscripcion->cierre >= $hoy) {
+            $this->inscripcion_activa = true;
+        }
     }
 
 
