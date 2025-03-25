@@ -18,6 +18,7 @@ class RegistroEventoPublico extends Component
     public $apellido = null;
     public $dni = null;
     public $mail = null;
+    public $telefono = null;
     public $planilla_id = null;
     public $planilla_inscripcion = null;
     public $inscripcion_activa = false;
@@ -27,10 +28,11 @@ class RegistroEventoPublico extends Component
     public ?array $participante = null;
 
     protected $rules = [
-        'nombre' => 'required|string|max:255',
-        'apellido' => 'required|string|max:255',
-        'dni' => 'required|string|max:20',
-        'mail' => 'required|email|max:255',
+        'nombre' => 'required|string|max:100',
+        'apellido' => 'required|string|max:100',
+        'dni' => 'required|string|max:15',
+        'mail' => 'required|email|max:100',
+        'telefono' => 'required|string|min:6|max:15',
         //'indicadoresSeleccionados' => 'array',
     ];
 
@@ -64,8 +66,9 @@ class RegistroEventoPublico extends Component
                 $this->nombre = $this->participante['nombre'];
                 $this->apellido = $this->participante['apellido'];
                 $this->mail = $this->participante['mail'];
+                $this->telefono = $this->participante['telefono'];
             } else {
-                $this->reset('nombre', 'apellido', 'mail');
+                $this->reset('nombre', 'apellido', 'mail', 'telefono');
             }
         }
     }
@@ -100,6 +103,7 @@ class RegistroEventoPublico extends Component
                     'apellido' => $this->apellido,
                     'dni' => $this->dni,
                     'mail' => $this->mail,
+                    'telefono' => $this->telefono,
                     //'localidad_id' => $this->localidad_id,
                 ]);
             } else {
@@ -114,6 +118,9 @@ class RegistroEventoPublico extends Component
                 }
                 if ($participante->mail !== $this->mail) {
                     $datosActualizados['mail'] = $this->mail;
+                }
+                if ($participante->telefono !== $this->telefono) {
+                    $datosActualizados['telefono'] = $this->telefono;
                 }
 
                 if (!empty($datosActualizados)) {
@@ -146,7 +153,7 @@ class RegistroEventoPublico extends Component
 
             DB::commit();
             $this->dispatch('alert', '¡Inscripción completada con éxito!');
-            $this->reset(['nombre', 'apellido', 'dni', 'mail']);
+            $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono']);
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);
         } catch (\Exception $e) {

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->date('fecha_inicio');
             //$table->string('cudap')->unique();
+            $table->unsignedInteger('cupo')->nullable();
             $table->string('lugar');
             $table->enum('estado', ['Pendiente', 'En Curso', 'Finalizado'])->default('Pendiente');
             $table->unsignedBigInteger('tipo_evento_id');

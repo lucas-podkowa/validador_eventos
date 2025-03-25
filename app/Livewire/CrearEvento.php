@@ -3,6 +3,8 @@
 namespace App\Livewire;
 
 use App\Models\Evento;
+use App\Models\EventoParticipante;
+use App\Models\PlanillaInscripcion;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use Carbon\Carbon;
@@ -20,6 +22,7 @@ class CrearEvento extends Component
     public $nombre_evento = null;
     public $fecha_inicio = null;
     public $lugar_evento = null;
+    public $cupo = null;
 
     public $tiposEventos = [];
     public $tiposIndicadores = [];
@@ -31,6 +34,8 @@ class CrearEvento extends Component
         'nombre_evento' => 'required|string|min:3|max:255',
         'fecha_inicio' => 'required|date|after_or_equal:today',
         'lugar_evento'  => 'required|string|min:2|max:255',
+        'cupo' => 'nullable|integer|min:0',
+
     ];
 
     public function mount($evento_id = null)
@@ -47,25 +52,16 @@ class CrearEvento extends Component
                 $this->nombre_evento = $evento->nombre;
                 $this->fecha_inicio = $evento->fecha_inicio;
                 $this->lugar_evento = $evento->lugar;
+                $this->cupo = $evento->cupo;
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
             }
         }
     }
 
-    // // Método para cargar datos cuando se edita un evento
-    // public function edit($evento_id)
-    // {
-    //     $evento = Evento::findOrFail($evento_id);
+    //----------------------------------------------------------------
+    //-----  Crear o Actualizar Evento -------------------------------
+    //----------------------------------------------------------------
 
-    //     $this->evento_id = $evento->id;
-    //     $this->tipo_evento = $evento->tipo_evento_id;
-    //     $this->nombre_evento = $evento->nombre;
-    //     $this->fecha_inicio = Carbon::parse($evento->fecha_inicio)->format('Y-m-d');
-    //     $this->lugar_evento = $evento->lugar;
-    //     $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('id')->toArray();
-    // }
-
-    // Función para procesar el formulario
     public function save()
     {
         // Validar los datos del formulario
@@ -77,8 +73,8 @@ class CrearEvento extends Component
                 'tipo_evento_id' => $this->tipo_evento,
                 'nombre' => $this->nombre_evento,
                 'lugar' => $this->lugar_evento,
-                'fecha_inicio' => Carbon::parse($this->fecha_inicio)
-                //'cudap' => uniqid() // Generar un código único
+                'fecha_inicio' => Carbon::parse($this->fecha_inicio),
+                'cupo' => $this->cupo,
             ];
 
 
@@ -129,6 +125,7 @@ class CrearEvento extends Component
                 'nombre_evento',
                 'fecha_inicio',
                 'lugar_evento',
+                'cupo',
                 'indicadoresSeleccionados'
             ]);
 
@@ -140,6 +137,45 @@ class CrearEvento extends Component
             return;
         }
     }
+
+    //----------------------------------------------------------------
+    //-----  Eliminar Evento------------------------------------------
+    //----------------------------------------------------------------
+
+    public function eliminarEvento()
+    {
+        if (!$this->evento_id) {
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+
+            $tienePlanilla = PlanillaInscripcion::where('evento_id', $this->evento_id)->exists();
+            $tieneParticipantes = EventoParticipante::where('evento_id', $this->evento_id)->exists();
+
+            if ($tienePlanilla || $tieneParticipantes) {
+                $this->dispatch('oops', message: 'No se puede eliminar. Existen inscripciones activas o planillas asociadas.');
+                return;
+            }
+
+            // Eliminar el evento
+            Evento::findOrFail($this->evento_id)->delete();
+
+            DB::commit();
+            $this->dispatch('success', message: 'El evento fue eliminado correctamente.');
+            return redirect()->route('eventos');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'Error al eliminar el evento: ' . $e->getMessage());
+        }
+    }
+
+    public function cancelarEdicion()
+    {
+        return redirect()->route('eventos');
+    }
+
 
     //----------------------------------------------------------------
     //----------------------------------------------------------------

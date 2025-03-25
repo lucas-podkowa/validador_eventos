@@ -15,8 +15,7 @@ class Participante extends Model
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['participante_id', 'nombre', 'apellido', 'dni', 'mail'];
-    //protected $fillable = ['participante_id','nombre', 'apellido', 'dni', 'mail', 'localidad_id'];
+    protected $fillable = ['participante_id', 'nombre', 'apellido', 'dni', 'mail', 'telefono'];
 
     protected static function boot()
     {

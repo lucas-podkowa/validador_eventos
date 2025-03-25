@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -16,8 +15,8 @@ return new class extends Migration
             $table->uuid('planilla_inscripcion_id')->primary();
             $table->datetime('apertura');
             $table->datetime('cierre');
-            $table->string('header')->nullable(); // URL para la imagen de cabecera
-            $table->string('footer')->nullable(); // URL para la imagen de pie
+            $table->string('header')->nullable();
+            $table->string('footer')->nullable();
             $table->uuid('evento_id');
             $table->foreign('evento_id')->references('evento_id')->on('evento')->onDelete('cascade');
         });

@@ -25,7 +25,7 @@
             <h2>{{ $evento->tipoEvento->nombre }}: {{ $evento->nombre }}</h2>
             <p><strong>Participante:</strong> {{ $participante->nombre }}
                 {{ $participante->apellido }}</p>
-            <p><strong>Email:</strong> {{ $participante->email }}</p>
+            <p><strong>Email:</strong> {{ $participante->mail }}</p>
             <p><strong>DNI:</strong> {{ $participante->dni }}</p>
         @endif
     </div>

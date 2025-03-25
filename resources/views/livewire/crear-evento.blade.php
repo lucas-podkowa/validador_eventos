@@ -41,6 +41,16 @@
                             <span class="text-sm text-red-500">{{ $message }}</span>
                         @enderror
                     </div>
+                    <!-- Input para cupo -->
+                    <div class="w-1/4 ml-4">
+                        <label for="cupo" class="block text-sm font-medium text-gray-700">Cupo</label>
+                        <input type="number" id="cupo" wire:model.live="cupo" placeholder="Sin Límite"
+                            min="0"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        @error('cupo')
+                            <span class="text-sm text-red-500">{{ $message }}</span>
+                        @enderror
+                    </div>
                 </div>
 
                 <!-- Fecha y Lugar del evento -->
@@ -90,20 +100,31 @@
                 </div>
 
 
-                <!-- Botón de CREAR -->
 
-                <div class="py-2 flex justify-center">
-                    {{-- <button wire:loading.attr="disabled"
-                        class="w-1/3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-md font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <!-- Mostrar un mensaje de procesamiento mientras se ejecuta -->
-                        <span wire:loading.remove>Crear</span>
-                        <span wire:loading>Procesando...</span>
-                    </button> --}}
+                <div class="py-2 flex justify-between items-center">
+                    <!-- Botón de Eliminar (Izquierda) -->
+                    @if ($esEdicion)
+                        <button type="button" wire:click="eliminarEvento"
+                            class="flex items-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
 
-                    <button type="submit" class="btn btn-primary">
-                        {{ $esEdicion ? 'Actualizar' : 'Crear' }}
-                    </button>
+                            <i class="fa fa-trash pr-2"></i>
+                            Eliminar
+                        </button>
+                    @endif
+
+                    <!-- Botones de Actualizar y Volver (Derecha) -->
+                    <div class="flex space-x-4">
+                        <button type="button" wire:click="cancelarEdicion"
+                            class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 mx-4 rounded">
+                            Volver
+                        </button>
+
+                        <button type="submit" class="btn btn-primary">
+                            {{ $esEdicion ? 'Actualizar' : 'Crear' }}
+                        </button>
+                    </div>
                 </div>
+
             </form>
         </div>
     </div>

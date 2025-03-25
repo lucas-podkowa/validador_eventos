@@ -29,8 +29,8 @@
                                 class="cursor-pointer mx-2" title="Formulario de Inscripción">
                                 <i class="fa fa-address-card fa-xl text-black"></i>
                             </a>
-                            <a wire:click="showEditModal({{ $evento }})" class="cursor-pointer mx-2"
-                                title="Editar Fechas">
+                            <a wire:click="show_dialog_planilla({{ $evento }})" class="cursor-pointer mx-2"
+                                title="Editar Planilla de Inscripción">
                                 <i class="fa-solid fa-calendar-alt fa-xl text-black"></i>
                             </a>
                         </td>
@@ -69,7 +69,8 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Apellido</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">DNI</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Email</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500"> Asistencia </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Teléfono</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Asistencia</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -79,6 +80,7 @@
                         <td class="px-6  whitespace-nowrap">{{ $inscripto->participante->apellido }}</td>
                         <td class="px-6  whitespace-nowrap">{{ $inscripto->participante->dni }}</td>
                         <td class="px-6  whitespace-nowrap">{{ $inscripto->participante->mail }}</td>
+                        <td class="px-6  whitespace-nowrap">{{ $inscripto->participante->telefono }}</td>
                         <td class="px-6">
                             <input type="checkbox"
                                 wire:click="toggleAsistencia({{ $inscripto->inscripcion_participante_id }})"
@@ -91,6 +93,9 @@
         </table>
     @endif
 
+
+    {{-- ------------------------  DIALOG MODAL editar_planilla--------------------------- --}}
+
     <x-dialog-modal wire:model="open_edit_modal">
         <x-slot name="title">
             Inscripción al Evento {{ $evento_selected->nombre ?? '' }}
@@ -100,8 +105,9 @@
             <div class="flex pt-4 px-6 gap-4">
                 <div class="w-1/2">
 
-                    <label for="apertura_edit" class="block text-sm font-medium text-gray-700">Fecha de Apertura</label>
-                    <input type="date" id="apertura_edit" wire:model.live="apertura"
+                    <label for="apertura_edit" class="block text-sm font-medium text-gray-700">Fecha y Hora de
+                        Apertura</label>
+                    <input type="datetime-local" id="apertura_edit" wire:model.live="apertura"
                         class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     @error('apertura')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -109,19 +115,55 @@
                 </div>
 
                 <div class="w-1/2">
-                    <label for="cierre_edit" class="block text-sm font-medium text-gray-700">Fecha de Cierre</label>
-                    <input type="date" id="cierre_edit" wire:model.live="cierre"
+                    <label for="cierre_edit" class="block text-sm font-medium text-gray-700">Fecha y Hora de
+                        Cierre</label>
+                    <input type="datetime-local" id="cierre_edit" wire:model.live="cierre"
                         class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     @error('cierre')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
             </div>
+
+
+            <!-- Imágenes -->
+            <div class="flex flex-col gap-4 pt-4 px-6">
+                <div class="w-full">
+                    <label for="header" class="block text-sm font-medium text-gray-700">Imagen de
+                        Cabecera</label>
+                    <input type="file" id="header" wire:model="header" accept="image/png, image/jpeg, image/jpg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('header')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="w-full">
+                    <label for="footer" class="block text-sm font-medium text-gray-700">Imagen de Pie</label>
+                    <input type="file" id="footer" wire:model="footer" accept="image/png, image/jpeg, image/jpg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('footer')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Input para cupo -->
+            <div class="w-1/4 ml-4">
+                <label for="cupo" class="block text-sm font-medium text-gray-700">Cupo</label>
+                <input type="number" id="cupo" wire:model.live="cupo" placeholder="Sin Límite" min="0"
+                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                @error('cupo')
+                    <span class="text-sm text-red-500">{{ $message }}</span>
+                @enderror
+            </div>
+
         </x-slot>
 
         <x-slot name="footer">
-            <x-secondary-button class="mx-2" wire:click="$set('open_edit_modal', false)">Cancelar</x-secondary-button>
-            <x-button class="mx-2" wire:click="updateFechas">Actualizar</x-button>
+            <x-secondary-button class="mx-2"
+                wire:click="$set('open_edit_modal', false)">Cancelar</x-secondary-button>
+            <x-button class="mx-2" wire:click="updatePlanilla">Actualizar</x-button>
         </x-slot>
     </x-dialog-modal>
 

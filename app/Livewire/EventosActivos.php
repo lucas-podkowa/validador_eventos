@@ -26,6 +26,8 @@ class EventosActivos extends Component
     public $evento_selected = null;
     public $planilla_selected = null;
     public $search = '';
+    public $header = null;
+    public $footer = null;
     public $search_tipo_evento = null;
     public $sort = 'nombre';
     public $direction = 'asc';
@@ -43,8 +45,10 @@ class EventosActivos extends Component
 
 
     protected $rules = [
-        'apertura' => 'required|date',
-        'cierre' => 'required|date|after_or_equal:apertura',
+        'apertura' => 'required|date_format:Y-m-d H:i',
+        'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
+        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+        'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
     ];
 
 
@@ -168,11 +172,10 @@ class EventosActivos extends Component
         }
     }
 
-    public function showEditModal($eventoId)
+    public function show_dialog_planilla($eventoId)
     {
-        $evento_id = $eventoId['evento_id'];
         $this->resetValidation();
-        $evento = Evento::find($evento_id);
+        $evento = Evento::find($eventoId['evento_id']);
 
         if ($evento && $evento->planillaInscripcion) {
             $this->evento_selected = $evento;
@@ -181,6 +184,8 @@ class EventosActivos extends Component
             // Asigna las fechas actuales de la planilla para que se preseleccionen en el input de fecha
             $this->apertura = Carbon::parse($this->planilla_selected->apertura)->format('Y-m-d');
             $this->cierre = Carbon::parse($this->planilla_selected->cierre)->format('Y-m-d');
+            $this->header = $this->planilla_selected->header;
+            $this->footer = $this->planilla_selected->footer;
 
             $this->open_edit_modal = true;
         } else {
@@ -188,22 +193,46 @@ class EventosActivos extends Component
         }
     }
 
-    public function updateFechas()
+    public function updatePlanilla()
     {
         $this->validate();
+        // Formatear fechas correctamente antes de la validación
+        $apertura = Carbon::createFromFormat('Y-m-d H:i', $this->apertura);
+        $cierre = Carbon::createFromFormat('Y-m-d H:i', $this->cierre);
 
-        if (Carbon::parse($this->cierre)->gt(Carbon::parse($this->evento_selected->fecha_inicio))) {
-            $this->dispatch('oops', message: 'La fecha de cierre no puede ser posterior a la fecha del evento.');
+        // Verificar que la fecha de apertura sea menor a la fecha de inicio del evento
+        if ($apertura->gte(Carbon::parse($this->evento_selected->fecha_inicio))) {
+            $fechaInicioFormateada = Carbon::parse($this->evento_selected->fecha_inicio)->format('d/m/Y H:i');
+            $this->dispatch('oops', message: 'La fecha de apertura debe ser menor a la fecha de inicio del evento (' . $fechaInicioFormateada . ').');
             return;
         }
+        DB::beginTransaction();
+        try {
+            // Validar y cargar las imágenes
+            $headerPath = $this->header ? $this->header->store('images', 'public') : null;
+            $footerPath = $this->footer ? $this->footer->store('images', 'public') : null;
 
-        $this->planilla_selected->update([
-            'apertura' => $this->apertura,
-            'cierre' => $this->cierre,
-        ]);
+            $this->planilla_selected->update([
+                'apertura' => $apertura,
+                'cierre' => $cierre,
+                'header' => $headerPath,
+                'footer' => $footerPath,
+            ]);
 
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'No se pudo actualizar la planilla de inscripción: ' . $e->getMessage());
+        }
+
+        // Cerrar el modal de planilla
         $this->open_edit_modal = false;
-        $this->dispatch('success', message: 'Fechas actualizadas correctamente.');
+
+        // Disparar evento para refrescar el componente
+        $this->dispatch('refreshMainComponent');
+
+        // Recargar los eventos pendientes después de la operación
+        $this->mount();
     }
 
 

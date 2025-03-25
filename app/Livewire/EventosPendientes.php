@@ -20,7 +20,7 @@ class EventosPendientes extends Component
     public $sort = 'nombre';
     public $direction = 'asc';
     public $open_detail = false;
-    public $open_planilla = false;
+    public $open_modal = false;
     public $apertura = null;
     public $cierre = null;
     public $header = null;
@@ -34,9 +34,9 @@ class EventosPendientes extends Component
     use WithFileUploads;
 
     protected $rules = [
-        'apertura' => 'required|date',
-        'cierre' => 'required|date|after:apertura',
-        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:4096', // 2MB máximo
+        'apertura' => 'required|date_format:Y-m-d H:i',
+        'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
+        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
         'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
     ];
 
@@ -59,6 +59,14 @@ class EventosPendientes extends Component
             'refreshMainComponent' => '$refresh',
         ];
     }
+    public function updatedApertura($value)
+    {
+        $this->apertura = Carbon::parse($value)->format('Y-m-d H:i');
+    }
+    public function updatedCierre($value)
+    {
+        $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
+    }
 
 
     public function render()
@@ -75,25 +83,30 @@ class EventosPendientes extends Component
     public function show_dialog_planilla($evento)
     {
         $this->resetValidation();
-        $this->reset(['open_planilla']);
+        $this->reset(['open_modal']);
         if (is_array($evento)) {
             $this->evento_selected = Evento::find($evento['evento_id']);
         } else {
             $this->evento_selected = Evento::find($evento->evento_id);
         }
-        $this->open_planilla = true;
+        $this->open_modal = true;
     }
 
     public function habilitar_planilla()
     {
         $this->validate();
 
+        // Formatear fechas correctamente antes de la validación
+        $apertura = Carbon::createFromFormat('Y-m-d H:i', $this->apertura);
+        $cierre = Carbon::createFromFormat('Y-m-d H:i', $this->cierre);
+
         // Verificar que la fecha de apertura sea menor a la fecha de inicio del evento
-        if (Carbon::parse($this->apertura)->gte(Carbon::parse($this->evento_selected->fecha_inicio))) {
-            $fechaInicioFormateada = Carbon::parse($this->evento_selected->fecha_inicio)->format('d/m/Y');
+        if ($apertura->gte(Carbon::parse($this->evento_selected->fecha_inicio))) {
+            $fechaInicioFormateada = Carbon::parse($this->evento_selected->fecha_inicio)->format('d/m/Y H:i');
             $this->dispatch('oops', message: 'La fecha de apertura debe ser menor a la fecha de inicio del evento (' . $fechaInicioFormateada . ').');
             return;
         }
+
 
         DB::beginTransaction();
         try {
@@ -109,8 +122,8 @@ class EventosPendientes extends Component
             if (!$planilla) {
                 $planilla = PlanillaInscripcion::create([
                     'evento_id' => $this->evento_selected->evento_id,
-                    'apertura' => Carbon::parse($this->apertura),
-                    'cierre' => Carbon::parse($this->cierre),
+                    'apertura' => $apertura,
+                    'cierre' => $cierre,
                     'header' => $headerPath,
                     'footer' => $footerPath,
                 ]);
@@ -135,7 +148,7 @@ class EventosPendientes extends Component
         }
 
         // Cerrar el modal de planilla
-        $this->open_planilla = false;
+        $this->open_modal = false;
 
         // Disparar evento para refrescar el componente
         $this->dispatch('refreshMainComponent');
@@ -143,6 +156,42 @@ class EventosPendientes extends Component
         // Recargar los eventos pendientes después de la operación
         $this->mount();
     }
+
+    //-------------------------------------------------------------------------------------------------
+    //------ Metodo llamado al precionar el boton "Clonar Evento" en Eventos Pendientes -------
+    //-------------------------------------------------------------------------------------------------
+    public function duplicarEvento($evento)
+    {
+        DB::beginTransaction();
+        try {
+            $eventoOriginal = Evento::with('tipoIndicadores')->findOrFail($evento['evento_id']);
+
+            // Crear el nuevo evento con la palabra "(copia)" en el nombre
+            $nuevoEvento = Evento::create([
+                'tipo_evento_id' => $eventoOriginal->tipo_evento_id,
+                'nombre' => $eventoOriginal->nombre . ' (copia)',
+                'lugar' => $eventoOriginal->lugar,
+                'fecha_inicio' => $eventoOriginal->fecha_inicio,
+                'cupo' => $eventoOriginal->cupo,
+                'estado' => 'pendiente'
+            ]);
+
+            // Copiar los indicadores asociados
+            $nuevoEvento->tipoIndicadores()->attach($eventoOriginal->tipoIndicadores->pluck('tipo_indicador_id'));
+
+            DB::commit();
+
+            // Disparar evento para refrescar el componente
+            $this->dispatch('refreshMainComponent');
+
+            // Recargar los eventos pendientes después de la operación
+            $this->mount();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'No se pudo duplicar el evento: ' . $e->getMessage());
+        }
+    }
+
 
 
     public function order($sort)

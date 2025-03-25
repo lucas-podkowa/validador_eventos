@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->integer('dni')->unique();
             $table->string('mail')->unique();
+            $table->string('telefono');
         });
     }
 

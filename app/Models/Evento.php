@@ -18,7 +18,7 @@ class Evento extends Model
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path'];
+    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path', 'cupo'];
 
     protected static function boot()
     {
@@ -65,9 +65,8 @@ class Evento extends Model
     }
 
 
-
     public function getFechaInicioFormattedAttribute()
     {
-        return Carbon::parse($this->fecha_inicio)->format('d-m-Y');
+        return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
     }
 }
