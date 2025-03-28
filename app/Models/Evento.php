@@ -69,4 +69,9 @@ class Evento extends Model
     {
         return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
     }
+
+    public function sesiones()
+    {
+        return $this->hasMany(SesionEvento::class, 'evento_id', 'evento_id');
+    }
 }

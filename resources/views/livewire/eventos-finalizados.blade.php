@@ -28,12 +28,12 @@
                             <button wire:click="detail({{ $evento }})">
                                 <i class="fa-solid fa-qrcode fa-xl" title="Ver Códigos QR"></i>
                             </button>
-                            @if (!$evento->certificado_path)
-                                <button wire:click="emitir({{ $evento }})">
-                                    <i class="mx-2 fa-solid fa-file-pdf fa-xl text-blue-500"
-                                        title="Emitir Certificados"></i>
-                                </button>
-                            @endif
+                            {{-- @if (!$evento->certificado_path) --}}
+                            <button wire:click="emitir({{ $evento }})">
+                                <i class="mx-2 fa-solid fa-file-pdf fa-xl text-blue-500"
+                                    title="Emitir Certificados"></i>
+                            </button>
+                            {{-- @endif --}}
                             @if ($evento->certificado_path)
                                 <button wire:click="abrirCarpeta('{{ $evento->certificado_path }}')">
                                     <i class="mx-2 fa-solid fa-folder-open fa-xl" title="Descargar Certificados"></i>

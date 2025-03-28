@@ -55,6 +55,8 @@
 
     <!-- Tabla de Participantes -->
     @if ($evento_selected)
+
+
         <h3 class="mt-4 text-lg font-semibold">Participantes del Evento</h3>
         <!-- Campo de búsqueda -->
         <div class="mb-4">
@@ -82,9 +84,7 @@
                         <td class="px-6  whitespace-nowrap">{{ $inscripto->participante->mail }}</td>
                         <td class="px-6  whitespace-nowrap">{{ $inscripto->participante->telefono }}</td>
                         <td class="px-6">
-                            <input type="checkbox"
-                                wire:click="toggleAsistencia({{ $inscripto->inscripcion_participante_id }})"
-                                {{ $inscripto->asistencia ? 'checked' : '' }}>
+                            <a href="http://"></a>
                         </td>
 
                     </tr>
@@ -104,7 +104,6 @@
         <x-slot name="content">
             <div class="flex pt-4 px-6 gap-4">
                 <div class="w-1/2">
-
                     <label for="apertura_edit" class="block text-sm font-medium text-gray-700">Fecha y Hora de
                         Apertura</label>
                     <input type="datetime-local" id="apertura_edit" wire:model.live="apertura"

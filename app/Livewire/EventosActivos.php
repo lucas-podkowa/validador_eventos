@@ -41,8 +41,8 @@ class EventosActivos extends Component
     public $open_edit_modal = false;
     public $apertura;
     public $cierre;
+    public $cupo;
     public $eventosEnCurso;
-
 
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
@@ -51,14 +51,12 @@ class EventosActivos extends Component
         'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
     ];
 
-
     public function mount()
     {
         $this->eventosEnCurso = Evento::where('estado', 'en curso')->get();
         $this->tipos_eventos = TipoEvento::all();
         $this->listeners[] = 'toggleAsistencia';
     }
-
 
     public function updatingSearch()
     {
@@ -80,13 +78,10 @@ class EventosActivos extends Component
         DB::beginTransaction();
         try {
             $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
-
             if (!$planilla) {
                 throw new \Exception('No se encontró la planilla de inscripción para este evento.');
             }
-
             $planilla_id = $planilla->planilla_inscripcion_id;
-
 
             // Obtener los participantes con asistencia confirmada
             $presentes = DB::table('inscripcion_participante')
@@ -104,7 +99,6 @@ class EventosActivos extends Component
                 new SvgImageBackEnd()
             );
             $writer = new Writer($renderer);
-
 
             // Insertar en evento_participantes
             foreach ($presentes as $participante_id) {
@@ -153,9 +147,7 @@ class EventosActivos extends Component
 
                 // Eliminar todas las inscripciones de la planilla
                 InscripcionParticipante::where('planilla_id', $planilla_id)->delete();
-
-                // Eliminar la planilla
-                $planilla->delete();
+                $planilla->delete(); // Eliminar la planilla
             }
 
             // Actualizar el estado del evento a "pendiente"
@@ -172,20 +164,19 @@ class EventosActivos extends Component
         }
     }
 
-    public function show_dialog_planilla($eventoId)
+    public function show_dialog_planilla($ev)
     {
         $this->resetValidation();
-        $evento = Evento::find($eventoId['evento_id']);
+        $evento = Evento::find($ev['evento_id']);
 
         if ($evento && $evento->planillaInscripcion) {
             $this->evento_selected = $evento;
             $this->planilla_selected = $evento->planillaInscripcion;
-
-            // Asigna las fechas actuales de la planilla para que se preseleccionen en el input de fecha
-            $this->apertura = Carbon::parse($this->planilla_selected->apertura)->format('Y-m-d');
-            $this->cierre = Carbon::parse($this->planilla_selected->cierre)->format('Y-m-d');
+            $this->apertura = Carbon::parse($this->planilla_selected->apertura)->format('Y-m-d H:i');
+            $this->cierre = Carbon::parse($this->planilla_selected->cierre)->format('Y-m-d H:i');
             $this->header = $this->planilla_selected->header;
             $this->footer = $this->planilla_selected->footer;
+            $this->cupo = $evento->cupo;
 
             $this->open_edit_modal = true;
         } else {
@@ -217,6 +208,7 @@ class EventosActivos extends Component
                 'cierre' => $cierre,
                 'header' => $headerPath,
                 'footer' => $footerPath,
+                'cupo' => $this->cupo,
             ]);
 
             DB::commit();
@@ -236,29 +228,39 @@ class EventosActivos extends Component
     }
 
 
-
     public function get_inscriptos($evento)
     {
+        $this->evento_selected = Evento::find($evento['evento_id']);
+
+        if ($this->evento_selected) {
+            $this->dispatch('loadAsistencias', $this->evento_selected->evento_id);
+        }
+
+
+
         // Obtener el evento con la planilla de inscripción y sus inscritos
         $this->evento_selected = Evento::with(['planillaInscripcion.participantes'])
             ->find($evento['evento_id']);
 
         if ($this->evento_selected && $this->evento_selected->planillaInscripcion) {
 
-            $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
-                ->with('participante');
+            $this->dispatch('loadAsistencias', $this->evento_selected->evento_id);
 
-            if (!empty($this->searchParticipante)) {
-                $query->whereHas('participante', function ($q) {
-                    $q->where('nombre', 'like', "%{$this->searchParticipante}%")
-                        ->orWhere('apellido', 'like', "%{$this->searchParticipante}%");
-                });
-            }
+            // $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
+            //     ->with('participante');
 
-            $this->inscriptos = $query->get();
-        } else {
-            $this->inscriptos = collect(); // No hay participantes inscritos
+            // if (!empty($this->searchParticipante)) {
+            //     $query->whereHas('participante', function ($q) {
+            //         $q->where('nombre', 'like', "%{$this->searchParticipante}%")
+            //             ->orWhere('apellido', 'like', "%{$this->searchParticipante}%");
+            //     });
+            // }
+
+            // $this->inscriptos = $query->get();
         }
+        // else {
+        //     $this->inscriptos = collect(); // No hay participantes inscritos
+        // }
     }
 
 
@@ -266,22 +268,22 @@ class EventosActivos extends Component
     //------ Metodo disparado por la asistencias desde la tabla participantes" ---
     //----------------------------------------------------------------------------
 
-    public function toggleAsistencia($inscripcionID)
-    {
-        $inscripto = InscripcionParticipante::where('inscripcion_participante_id', $inscripcionID)
-            ->whereHas('planilla', function ($query) {
-                $query->where('evento_id', $this->evento_selected->evento_id);
-            })
-            ->first();
+    // public function toggleAsistencia($inscripcionID)
+    // {
+    //     $inscripto = InscripcionParticipante::where('inscripcion_participante_id', $inscripcionID)
+    //         ->whereHas('planilla', function ($query) {
+    //             $query->where('evento_id', $this->evento_selected->evento_id);
+    //         })
+    //         ->first();
 
-        if ($inscripto) {
-            $inscripto->asistencia = !$inscripto->asistencia;
-            $inscripto->save();
+    //     if ($inscripto) {
+    //         $inscripto->asistencia = !$inscripto->asistencia;
+    //         $inscripto->save();
 
-            // Emitir un evento para actualizar la tabla
-            $this->dispatch('refreshMainComponent');
-        }
-    }
+    //         // Emitir un evento para actualizar la tabla
+    //         $this->dispatch('refreshMainComponent');
+    //     }
+    // }
 
 
     public function render()

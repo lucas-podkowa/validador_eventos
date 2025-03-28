@@ -57,6 +57,8 @@ class EventosFinalizados extends Component
             $pdf = Pdf::loadView('certificado', [
                 'nombre' => $participante->nombre,
                 'apellido' => $participante->apellido,
+                'dni' => $participante->dni,
+                'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
                 'background' => $backgroundPath
             ])->setPaper('a4', 'landscape');
 

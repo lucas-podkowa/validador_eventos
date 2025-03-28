@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\WelcomeController;
+use App\Livewire\Asistencias;
 use App\Livewire\CrearEvento;
 use App\Livewire\Eventos;
+use App\Livewire\Participantes;
 use App\Livewire\RegistroEventoPublico;
 use Illuminate\Support\Facades\Route;
 
@@ -19,5 +21,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     //Route::get('/registrar_evento', CrearEvento::class)->name('registrar_evento');
     Route::get('/registrar_evento/{evento_id?}', CrearEvento::class)->name('registrar_evento');
     Route::get('/eventos', Eventos::class)->name('eventos');
+    Route::get('/participantes', Participantes::class)->name('participantes');
+    Route::get('/asistencias', Asistencias::class)->name('asistencias');
     Route::get('/validar-participante/{evento_id}/{participante_id}', [QRController::class, 'show'])->name('validar.participante');
 });

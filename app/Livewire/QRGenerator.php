@@ -24,10 +24,6 @@ class QRGenerator extends Component
         $this->evento_id = $evento_id;
         $this->participante_id = $participante_id;
 
-
-        // // Generar el código QR
-        // $this->qrCode = QrCode::size(200)->generate($url);
-
         // Generar la URL
         $url = "http://localhost:8080/validate/{$this->evento_id}/{$this->participante_id}";
 

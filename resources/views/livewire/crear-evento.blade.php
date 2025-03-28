@@ -106,7 +106,6 @@
                     @if ($esEdicion)
                         <button type="button" wire:click="eliminarEvento"
                             class="flex items-center bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-
                             <i class="fa fa-trash pr-2"></i>
                             Eliminar
                         </button>

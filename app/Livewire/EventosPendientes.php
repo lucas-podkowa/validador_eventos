@@ -20,7 +20,7 @@ class EventosPendientes extends Component
     public $sort = 'nombre';
     public $direction = 'asc';
     public $open_detail = false;
-    public $open_modal = false;
+    public $open_planilla = false;
     public $apertura = null;
     public $cierre = null;
     public $header = null;
@@ -83,14 +83,16 @@ class EventosPendientes extends Component
     public function show_dialog_planilla($evento)
     {
         $this->resetValidation();
-        $this->reset(['open_modal']);
+        $this->reset(['open_planilla']);
         if (is_array($evento)) {
             $this->evento_selected = Evento::find($evento['evento_id']);
         } else {
             $this->evento_selected = Evento::find($evento->evento_id);
         }
-        $this->open_modal = true;
+        $this->open_planilla = true;
     }
+
+
 
     public function habilitar_planilla()
     {
@@ -114,7 +116,6 @@ class EventosPendientes extends Component
             $headerPath = $this->header ? $this->header->store('images', 'public') : null;
             $footerPath = $this->footer ? $this->footer->store('images', 'public') : null;
 
-
             // Consulta si ya existe la planilla de inscripción para el evento
             $planilla = PlanillaInscripcion::where('evento_id', $this->evento_selected->evento_id)->first();
 
@@ -133,7 +134,6 @@ class EventosPendientes extends Component
             Evento::where('evento_id', $this->evento_selected->evento_id)->update(['estado' => 'En Curso']);
 
             DB::commit();
-
             $this->reset([
                 'apertura',
                 'cierre',
@@ -148,7 +148,7 @@ class EventosPendientes extends Component
         }
 
         // Cerrar el modal de planilla
-        $this->open_modal = false;
+        $this->open_planilla = false;
 
         // Disparar evento para refrescar el componente
         $this->dispatch('refreshMainComponent');
@@ -180,7 +180,6 @@ class EventosPendientes extends Component
             $nuevoEvento->tipoIndicadores()->attach($eventoOriginal->tipoIndicadores->pluck('tipo_indicador_id'));
 
             DB::commit();
-
             // Disparar evento para refrescar el componente
             $this->dispatch('refreshMainComponent');
 
