@@ -6,6 +6,13 @@
             {{ session('message') }}
         </div>
     @endif
+
+    <!-- Campo de búsqueda -->
+    <div class="mb-4">
+        <input type="text" wire:model.live="searchParticipante"
+            class="w-full px-4 py-2 border rounded-md focus:ring focus:ring-blue-300"
+            placeholder="Buscar por nombre, apellido o DNI...">
+    </div>
     <x-table>
 
         <table class="w-full min-w-full divide-y divide-gray-200">

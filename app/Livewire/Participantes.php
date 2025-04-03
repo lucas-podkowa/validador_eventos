@@ -12,6 +12,7 @@ class Participantes extends Component
 
     public $participante_id, $nombre, $apellido, $dni, $mail, $telefono;
     public $open_modal = false;
+    public $searchParticipante = '';
 
     protected $rules = [
         'nombre' => 'required|string|max:255',
@@ -23,9 +24,27 @@ class Participantes extends Component
 
     public function render()
     {
-        $participantes = Participante::orderBy('apellido')->paginate(20);
+        $query = Participante::orderBy('apellido');
+
+        if (!empty($this->searchParticipante)) {
+            $query->where(function ($q) {
+                $q->where('nombre', 'like', "%{$this->searchParticipante}%")
+                    ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
+                    ->orWhere('dni', 'like', "%{$this->searchParticipante}%");
+            });
+        }
+
+        $participantes = $query->paginate(20);
+
         return view('livewire.participantes', compact('participantes'));
     }
+
+    // Resetea la paginación cuando cambia el filtro
+    public function updatedSearchParticipante()
+    {
+        $this->resetPage();
+    }
+
 
     public function edit($id)
     {

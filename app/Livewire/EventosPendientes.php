@@ -36,8 +36,8 @@ class EventosPendientes extends Component
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
         'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
-        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-        'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
+        'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
     ];
 
     public function mount()

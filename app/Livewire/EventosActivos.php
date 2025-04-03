@@ -23,6 +23,7 @@ class EventosActivos extends Component
 
     public $tipos_eventos = [];
     public $inscriptos = [];
+    public $mostrar_inscriptos = false;
     public $evento_selected = null;
     public $planilla_selected = null;
     public $search = '';
@@ -41,14 +42,13 @@ class EventosActivos extends Component
     public $open_edit_modal = false;
     public $apertura;
     public $cierre;
-    public $cupo;
     public $eventosEnCurso;
 
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
         'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
-        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-        'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
+        'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
     ];
 
     public function mount()
@@ -63,6 +63,12 @@ class EventosActivos extends Component
         $this->resetPage();
     }
 
+    public function updatedEventoSelected($value)
+    {
+        if (is_null($value)) {
+            $this->resetPage(); // Resetea la paginación
+        }
+    }
     public function updatedSearch()
     {
         $this->get_inscriptos($this->evento_selected);
@@ -135,6 +141,7 @@ class EventosActivos extends Component
     //----------------------------------------------------------------------------
     public function cancelarEvento($eventoId)
     {
+        $this->mostrar_inscriptos = false;
         $evento_id = $eventoId['evento_id'];
 
         DB::beginTransaction();
@@ -166,6 +173,7 @@ class EventosActivos extends Component
 
     public function show_dialog_planilla($ev)
     {
+        $this->mostrar_inscriptos = false;
         $this->resetValidation();
         $evento = Evento::find($ev['evento_id']);
 
@@ -176,7 +184,6 @@ class EventosActivos extends Component
             $this->cierre = Carbon::parse($this->planilla_selected->cierre)->format('Y-m-d H:i');
             $this->header = $this->planilla_selected->header;
             $this->footer = $this->planilla_selected->footer;
-            $this->cupo = $evento->cupo;
 
             $this->open_edit_modal = true;
         } else {
@@ -208,7 +215,6 @@ class EventosActivos extends Component
                 'cierre' => $cierre,
                 'header' => $headerPath,
                 'footer' => $footerPath,
-                'cupo' => $this->cupo,
             ]);
 
             DB::commit();
@@ -232,58 +238,28 @@ class EventosActivos extends Component
     {
         $this->evento_selected = Evento::find($evento['evento_id']);
 
-        if ($this->evento_selected) {
-            $this->dispatch('loadAsistencias', $this->evento_selected->evento_id);
-        }
-
-
-
         // Obtener el evento con la planilla de inscripción y sus inscritos
         $this->evento_selected = Evento::with(['planillaInscripcion.participantes'])
             ->find($evento['evento_id']);
 
         if ($this->evento_selected && $this->evento_selected->planillaInscripcion) {
 
-            $this->dispatch('loadAsistencias', $this->evento_selected->evento_id);
+            $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
+                ->with('participante');
 
-            // $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
-            //     ->with('participante');
-
-            // if (!empty($this->searchParticipante)) {
-            //     $query->whereHas('participante', function ($q) {
-            //         $q->where('nombre', 'like', "%{$this->searchParticipante}%")
-            //             ->orWhere('apellido', 'like', "%{$this->searchParticipante}%");
-            //     });
-            // }
-
-            // $this->inscriptos = $query->get();
+            if (!empty($this->searchParticipante)) {
+                $query->whereHas('participante', function ($q) {
+                    $q->where('nombre', 'like', "%{$this->searchParticipante}%")
+                        ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
+                        ->orWhere('dni', 'like', '%' . $this->searchParticipante . '%');
+                });
+            }
+            $this->inscriptos = $query->get();
+            $this->mostrar_inscriptos = true;
+        } else {
+            $this->inscriptos = collect(); // No hay participantes inscritos
         }
-        // else {
-        //     $this->inscriptos = collect(); // No hay participantes inscritos
-        // }
     }
-
-
-    //----------------------------------------------------------------------------
-    //------ Metodo disparado por la asistencias desde la tabla participantes" ---
-    //----------------------------------------------------------------------------
-
-    // public function toggleAsistencia($inscripcionID)
-    // {
-    //     $inscripto = InscripcionParticipante::where('inscripcion_participante_id', $inscripcionID)
-    //         ->whereHas('planilla', function ($query) {
-    //             $query->where('evento_id', $this->evento_selected->evento_id);
-    //         })
-    //         ->first();
-
-    //     if ($inscripto) {
-    //         $inscripto->asistencia = !$inscripto->asistencia;
-    //         $inscripto->save();
-
-    //         // Emitir un evento para actualizar la tabla
-    //         $this->dispatch('refreshMainComponent');
-    //     }
-    // }
 
 
     public function render()

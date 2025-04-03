@@ -57,5 +57,10 @@ class DatabaseSeeder extends Seeder
             ['nombre' => 'Ingeniería Mecatrónica', 'tipo_indicador_id' => 3],
             ['nombre' => 'Licenciatura en Higiene y Seguridad en el Trabajo', 'tipo_indicador_id' => 3],
         ]);
+
+        // $this->call([
+        //     EventoSeeder::class,
+        //     ParticipanteSeeder::class,
+        // ]);
     }
 }

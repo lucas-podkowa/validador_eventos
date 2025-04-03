@@ -67,7 +67,9 @@ class Evento extends Model
 
     public function getFechaInicioFormattedAttribute()
     {
-        return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
+        return Carbon::parse($this->fecha_inicio)->format('d/m/Y');
+        //     return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
+
     }
 
     public function sesiones()

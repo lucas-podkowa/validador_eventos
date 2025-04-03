@@ -122,19 +122,32 @@
 
     <!-- Modal para tomar asistencia -->
     @if ($mostrarModalAsistencia)
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-            <div class="bg-white p-6 rounded shadow-lg">
-                <h3 class="text-lg font-bold">Tomar Asistencia</h3>
-                @foreach ($asistencias as $index => $asistencia)
-                    <div class="flex items-center">
-                        <span>{{ $asistencia['nombre'] }}</span>
-                        <input type="checkbox" wire:model="asistencias.{{ $index }}.asistio" class="ml-auto">
-                    </div>
-                @endforeach
-                <button wire:click="guardarAsistencia"
-                    class="bg-blue-500 text-white px-4 py-2 mt-2 rounded">Guardar</button>
-            </div>
-        </div>
+
+        <x-dialog-modal wire:model="mostrarModalAsistencia">
+            <x-slot name="title">
+                Tomar Asistencia
+            </x-slot>
+
+            <x-slot name="content">
+
+                <div>
+                    @foreach ($asistencias as $index => $asistencia)
+                        <div class="flex items-center">
+                            <span>{{ $asistencia['nombre'] }}</span>
+                            <input type="checkbox" wire:model="asistencias.{{ $index }}.asistio"
+                                class="ml-auto">
+                        </div>
+                    @endforeach
+                </div>
+            </x-slot>
+
+            <x-slot name="footer">
+                <x-secondary-button class="mx-2"
+                    wire:click="$set('mostrarModalAsistencia', false)">Cancelar</x-secondary-button>
+                <x-button class="mx-2" wire:click="guardarAsistencia">Guardar</x-button>
+            </x-slot>
+        </x-dialog-modal>
+
     @endif
 
 </div>
