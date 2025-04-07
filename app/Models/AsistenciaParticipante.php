@@ -11,7 +11,7 @@ class AsistenciaParticipante extends Model
 
     protected $table = 'asistencia_participante'; // Nombre de la tabla
     protected $primaryKey = 'asistencia_participante_id'; // Clave primaria
-    public $timestamps = true; // Habilita timestamps
+    public $timestamps = false; // Habilita timestamps
 
     protected $fillable = [
         'participante_id',

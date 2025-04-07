@@ -27,9 +27,10 @@
         </div>
 
         <!-- Tabla de Sesiones (Solo visible si hay un evento seleccionado) -->
-        @if ($evento_selected)
-            <div class="max-w-[50%] flex-1">
+        {{-- @if ($evento_selected) --}}
+        <div class="max-w-[50%] flex-1">
 
+            @if ($evento_selected)
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-lg font-bold">Sesiones del evento: {{ $evento_selected->nombre }}</h3>
 
@@ -54,8 +55,12 @@
                                 @foreach ($sesiones as $sesion)
                                     <tr wire:click="seleccionarSesion('{{ $sesion->sesion_evento_id }}')">
                                         <td class="px-6 py-3 text-gray-900">{{ $sesion->nombre }}</td>
-                                        <td class="px-6 py-3 text-gray-900">{{ $sesion->fecha_hora_inicio }}</td>
-                                        <td class="px-6 py-3 text-gray-900">{{ $sesion->fecha_hora_fin }}</td>
+                                        <td class="px-6 py-3 text-gray-900">
+                                            {{ \Carbon\Carbon::parse($sesion->fecha_hora_inicio)->format('d/m/y H:i') }}
+                                        </td>
+                                        <td class="px-6 py-3 text-gray-900">
+                                            {{ \Carbon\Carbon::parse($sesion->fecha_hora_fin)->format('d/m/y H:i') }}
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -65,8 +70,17 @@
                     @endif
                     {{-- </x-table> --}}
                 </div>
-            </div>
-        @endif
+            @else
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-lg font-bold">Seleccione algun evento para ver sus Sesiones
+                </div>
+                <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                    <div class="px-6 py-4">No existen registros para mostrar</div>
+                </div>
+            @endif
+
+        </div>
+        {{-- @endif --}}
     </div>
 
     <!-- Modal para agregar sesión -->
@@ -93,6 +107,7 @@
                         <label for="fecha_hora_inicio" class="block text-sm font-medium text-gray-700">Fecha y Hora de
                             Inicio</label>
                         <input type="datetime-local" id="fecha_hora_inicio" wire:model.live="fecha_hora_inicio"
+                            min="{{ \Carbon\Carbon::parse($evento_selected->fecha_inicio)->format('Y-m-d\TH:i') }}"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('fecha_hora_inicio')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -119,35 +134,54 @@
         </x-dialog-modal>
     @endif
 
-
-    <!-- Modal para tomar asistencia -->
     @if ($mostrarModalAsistencia)
-
         <x-dialog-modal wire:model="mostrarModalAsistencia">
             <x-slot name="title">
                 Tomar Asistencia
             </x-slot>
 
             <x-slot name="content">
-
-                <div>
-                    @foreach ($asistencias as $index => $asistencia)
-                        <div class="flex items-center">
-                            <span>{{ $asistencia['nombre'] }}</span>
-                            <input type="checkbox" wire:model="asistencias.{{ $index }}.asistio"
-                                class="ml-auto">
-                        </div>
-                    @endforeach
+                <!-- Campo de búsqueda -->
+                <div class="mb-4">
+                    <input type="text" wire:model.live="searchParticipante" placeholder="Buscar por nombre o DNI..."
+                        class="w-full border rounded p-2 mb-4" />
+                </div>
+                <div class="overflow-auto max-h-96">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-2 text-left text-sm font-medium text-gray-700">Participante</th>
+                                <th class="px-6 py-2 text-left text-sm font-medium text-gray-700">DNI</th>
+                                <th class="px-6 py-2 text-left text-sm font-medium text-gray-700">Asistió</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach ($asistencias as $index => $asistencia)
+                                <tr>
+                                    <td class="px-6 py-2">{{ $asistencia['nombre'] }}</td>
+                                    <td class="px-6 py-2">{{ $asistencia['dni'] }}</td>
+                                    <td class="px-6 py-2 text-center">
+                                        <input type="checkbox" wire:model="asistencias.{{ $index }}.asistio"
+                                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </x-slot>
 
             <x-slot name="footer">
-                <x-secondary-button class="mx-2"
-                    wire:click="$set('mostrarModalAsistencia', false)">Cancelar</x-secondary-button>
-                <x-button class="mx-2" wire:click="guardarAsistencia">Guardar</x-button>
+                <x-secondary-button wire:click="$set('mostrarModalAsistencia', false)">
+                    Cancelar
+                </x-secondary-button>
+
+                <x-button class="ml-2 bg-blue-600 text-white" wire:click="guardarAsistencia">
+                    Guardar Asistencia
+                </x-button>
             </x-slot>
         </x-dialog-modal>
-
     @endif
+
 
 </div>

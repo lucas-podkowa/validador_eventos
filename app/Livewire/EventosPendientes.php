@@ -42,7 +42,7 @@ class EventosPendientes extends Component
 
     public function mount()
     {
-        $this->eventosPendientes = Evento::where('estado', 'pendiente')->get();
+        //$this->eventosPendientes = Evento::where('estado', 'pendiente')->get();
         $this->tipos_eventos = TipoEvento::all();
     }
 
@@ -68,12 +68,6 @@ class EventosPendientes extends Component
         $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
     }
 
-
-    public function render()
-    {
-        $eventos = Evento::where('estado', 'pendiente')->get();
-        return view('livewire.eventos-pendientes', compact('eventos'));
-    }
 
 
 
@@ -193,16 +187,21 @@ class EventosPendientes extends Component
 
 
 
-    public function order($sort)
+    public function render()
     {
-        if ($this->sort == $sort) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
-            if ($this->direction == 'asc') {
-                $this->direction == 'desc';
-            } else {
-                $this->direction == 'asc';
-            }
+        $eventos = Evento::where('estado', 'pendiente')
+            ->orderBy($this->sort, $this->direction)
+            ->get();
+        return view('livewire.eventos-pendientes', compact('eventos'));
+    }
+
+
+    public function order($field)
+    {
+        if ($this->sort == $field) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+            $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
         } else { //si es una columna nueva, ordeno de forma ascendente
-            $this->sort = $sort;
+            $this->sort = $field;
             $this->direction = 'asc';
         }
     }

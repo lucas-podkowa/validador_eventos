@@ -13,6 +13,8 @@ class Participantes extends Component
     public $participante_id, $nombre, $apellido, $dni, $mail, $telefono;
     public $open_modal = false;
     public $searchParticipante = '';
+    public $sort = 'nombre';
+    public $direction = 'asc';
 
     protected $rules = [
         'nombre' => 'required|string|max:255',
@@ -22,22 +24,6 @@ class Participantes extends Component
         'telefono' => 'required|string|max:20',
     ];
 
-    public function render()
-    {
-        $query = Participante::orderBy('apellido');
-
-        if (!empty($this->searchParticipante)) {
-            $query->where(function ($q) {
-                $q->where('nombre', 'like', "%{$this->searchParticipante}%")
-                    ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
-                    ->orWhere('dni', 'like', "%{$this->searchParticipante}%");
-            });
-        }
-
-        $participantes = $query->paginate(20);
-
-        return view('livewire.participantes', compact('participantes'));
-    }
 
     // Resetea la paginación cuando cambia el filtro
     public function updatedSearchParticipante()
@@ -78,5 +64,33 @@ class Participantes extends Component
             'telefono' => $this->telefono,
         ]);
         $this->reset(['participante_id', 'nombre', 'apellido', 'dni', 'mail', 'telefono', 'open_modal']);
+    }
+
+    public function render()
+    {
+        $query = Participante::orderBy('apellido');
+
+        if (!empty($this->searchParticipante)) {
+            $query->where(function ($q) {
+                $q->where('nombre', 'like', "%{$this->searchParticipante}%")
+                    ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
+                    ->orWhere('dni', 'like', "%{$this->searchParticipante}%");
+            });
+        }
+
+        $participantes = $query->paginate(20);
+
+        return view('livewire.participantes', compact('participantes'));
+    }
+
+
+    public function order($field)
+    {
+        if ($this->sort == $field) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+            $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
+        } else { //si es una columna nueva, ordeno de forma ascendente
+            $this->sort = $field;
+            $this->direction = 'asc';
+        }
     }
 }

@@ -3,7 +3,18 @@
         <table class="w-full min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr class="bg-gray-200">
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
+                    <th wire:click="order('nombre')" class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Nombre
+                        @if ($sort === 'nombre')
+                            @if ($direction === 'asc')
+                                <i class="fas fa-sort-alpha-up-alt float-right mt-1"></i>
+                            @else
+                                <i class="fas fa-sort-alpha-down-alt float-right mt-1"></i>
+                            @endif
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tipo de Evento</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Fecha de Inicio</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Lugar</th>
@@ -12,7 +23,7 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                @foreach ($eventosPendientes as $evento)
+                @foreach ($eventos as $evento)
                     <tr>
                         <td class="px-6 py-3">{{ $evento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>

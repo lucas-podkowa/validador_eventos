@@ -12,6 +12,7 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
 use Carbon\Carbon;
+
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -42,7 +43,7 @@ class EventosActivos extends Component
     public $open_edit_modal = false;
     public $apertura;
     public $cierre;
-    public $eventosEnCurso;
+    //public $eventosEnCurso;
 
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
@@ -53,7 +54,7 @@ class EventosActivos extends Component
 
     public function mount()
     {
-        $this->eventosEnCurso = Evento::where('estado', 'en curso')->get();
+        //$this->eventosEnCurso = Evento::where('estado', 'en curso')->orderBy($this->sort, $this->direction)->get();
         $this->tipos_eventos = TipoEvento::all();
         $this->listeners[] = 'toggleAsistencia';
     }
@@ -73,6 +74,16 @@ class EventosActivos extends Component
     {
         $this->get_inscriptos($this->evento_selected);
     }
+
+    public function updatedApertura($value)
+    {
+        $this->apertura = Carbon::parse($value)->format('Y-m-d H:i');
+    }
+    public function updatedCierre($value)
+    {
+        $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
+    }
+
 
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton "Finalizar Evento" --------
@@ -261,7 +272,6 @@ class EventosActivos extends Component
         }
     }
 
-
     public function render()
     {
         $eventos = Evento::query()
@@ -271,22 +281,19 @@ class EventosActivos extends Component
             ->when($this->search_tipo_evento, function ($query) {
                 $query->where('tipo_evento_id', $this->search_tipo_evento);
             })
+            ->where('estado', 'en curso')
             ->orderBy($this->sort, $this->direction)
             ->get();
 
         return view('livewire.eventos-activos', compact('eventos'));
     }
 
-    public function order($sort)
+    public function order($field)
     {
-        if ($this->sort == $sort) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
-            if ($this->direction == 'asc') {
-                $this->direction == 'desc';
-            } else {
-                $this->direction == 'asc';
-            }
+        if ($this->sort == $field) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+            $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
         } else { //si es una columna nueva, ordeno de forma ascendente
-            $this->sort = $sort;
+            $this->sort = $field;
             $this->direction = 'asc';
         }
     }

@@ -15,7 +15,6 @@ return new class extends Migration
             $table->boolean('asistio')->default(false);
             $table->foreign('participante_id')->references('participante_id')->on('participante')->onDelete('cascade');
             $table->foreign('sesion_evento_id')->references('sesion_evento_id')->on('sesion_evento')->onDelete('cascade');
-
             $table->unique(['participante_id', 'sesion_evento_id']); // Un participante solo puede tener una asistencia por sesión
         });
     }

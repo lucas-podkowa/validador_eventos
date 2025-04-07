@@ -21,6 +21,7 @@ class Asistencias extends Component
     public $fecha_hora_inicio;
     public $fecha_hora_fin;
     public $asistencias = [];
+    public $searchParticipante;
 
     public function mount()
     {
@@ -61,30 +62,23 @@ class Asistencias extends Component
         $this->reset('nombre', 'fecha_hora_inicio', 'fecha_hora_fin');
     }
 
-    // Seleccionar sesión para tomar asistencia
-    public function seleccionarSesion($sesionId)
+    public function cargarAsistencias()
     {
-        $this->sesionSeleccionada = SesionEvento::find($sesionId);
+        if (!$this->evento_selected || !$this->sesionSeleccionada) return;
 
-        // Obtener participantes inscritos en el evento
-        $participantes = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
-            ->with('participante')
-            ->get();
+        $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
+            ->with('participante');
 
-        // $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
-        //     ->with('participante');
+        if (!empty($this->searchParticipante)) {
+            $query->whereHas('participante', function ($q) {
+                $q->where('nombre', 'like', '%' . $this->searchParticipante . '%')
+                    ->orWhere('apellido', 'like', '%' . $this->searchParticipante . '%')
+                    ->orWhere('dni', 'like', '%' . $this->searchParticipante . '%');
+            });
+        }
 
-        // if (!empty($this->searchParticipante)) {
-        //     $query->whereHas('participante', function ($q) {
-        //         $q->where('nombre', 'like', "%{$this->searchParticipante}%")
-        //             ->orWhere('apellido', 'like', "%{$this->searchParticipante}%");
-        //     });
-        // }
+        $participantes = $query->get();
 
-        // $this->inscriptos = $query->get();
-
-
-        // Obtener asistencias previas
         $this->asistencias = $participantes->map(function ($inscripcion) {
             $asistencia = AsistenciaParticipante::where('participante_id', $inscripcion->participante_id)
                 ->where('sesion_evento_id', $this->sesionSeleccionada->sesion_evento_id)
@@ -92,13 +86,61 @@ class Asistencias extends Component
 
             return [
                 'participante_id' => $inscripcion->participante_id,
-                'nombre' => $inscripcion->participante->nombre,
-                'asistio' => $asistencia ? $asistencia->asistio : false
+                'nombre' => $inscripcion->participante->nombre . ' ' . $inscripcion->participante->apellido,
+                'dni' => $inscripcion->participante->dni,
+                'asistio' => (bool) ($asistencia ? $asistencia->asistio : false),
             ];
         })->toArray();
+    }
+    public function updatedSearchParticipante()
+    {
+        $this->cargarAsistencias();
+    }
 
+    public function seleccionarSesion($sesionId)
+    {
+        $this->sesionSeleccionada = SesionEvento::find($sesionId);
+        $this->searchParticipante = '';
+        $this->cargarAsistencias();
         $this->mostrarModalAsistencia = true;
     }
+
+
+
+    // // Seleccionar sesión para tomar asistencia
+    // public function seleccionarSesion($sesionId)
+    // {
+    //     $this->sesionSeleccionada = SesionEvento::find($sesionId);
+
+    //     $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
+    //         ->with('participante');
+
+    //     if (!empty($this->searchParticipante)) {
+    //         $query->whereHas('participante', function ($q) {
+    //             $q->where('nombre', 'like', "%{$this->searchParticipante}%")
+    //                 ->orWhere('apellido', 'like', "%{$this->searchParticipante}%");
+    //         });
+    //     }
+
+    //     $participantes = $query->get();
+
+
+    //     // Obtener asistencias previas
+    //     $this->asistencias = $participantes->map(function ($inscripcion) {
+    //         $asistencia = AsistenciaParticipante::where('participante_id', $inscripcion->participante_id)
+    //             ->where('sesion_evento_id', $this->sesionSeleccionada->sesion_evento_id)
+    //             ->first();
+
+    //         return [
+    //             'participante_id' => $inscripcion->participante_id,
+    //             'nombre' => $inscripcion->participante->nombre,
+    //             'asistio' => (bool) ($asistencia ? $asistencia->asistio : false)
+    //         ];
+    //     })->toArray();
+
+
+    //     $this->mostrarModalAsistencia = true;
+    // }
 
     // Guardar asistencia
     public function guardarAsistencia()

@@ -44,18 +44,23 @@ class Evento extends Model
     {
         return $this->hasOne(PlanillaInscripcion::class, 'evento_id');
     }
-    // Acceder a los participantes inscriptos a través de la planilla de inscripción
+
+    // Evento → Planilla → InscripcionParticipante → Participante
     public function inscriptos()
     {
-        return $this->hasManyThrough(
-            Participante::class,
-            InscripcionParticipante::class,
-            'planilla_id', // Clave foránea en InscripcionParticipante
-            'participante_id', // Clave foránea en Participante
-            'evento_id', // Clave primaria en Evento
-            'participante_id' // Clave en InscripcionParticipante
-        )->withPivot('fecha_inscripcion', 'asistencia');
+        $planilla = $this->planillaInscripcion;
+
+        if (!$planilla) {
+            return collect(); // si no hay planilla, entonces no hay inscriptos
+        }
+
+        return Participante::whereIn('participante_id', function ($query) use ($planilla) {
+            $query->select('participante_id')
+                ->from('inscripcion_participante')
+                ->where('planilla_id', $planilla->planilla_inscripcion_id);
+        })->get();
     }
+
 
 
     public function participantes()
@@ -69,7 +74,6 @@ class Evento extends Model
     {
         return Carbon::parse($this->fecha_inicio)->format('d/m/Y');
         //     return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
-
     }
 
     public function sesiones()

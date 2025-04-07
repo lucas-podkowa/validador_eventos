@@ -3,16 +3,29 @@
         <table class="w-full min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tipo de Evento
+                    <th wire:click="order('nombre')" class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Nombre
+                        @if ($sort === 'nombre')
+                            @if ($direction === 'asc')
+                                <i class="fas fa-sort-alpha-up-alt float-right mt-1"></i>
+                            @else
+                                <i class="fas fa-sort-alpha-down-alt float-right mt-1"></i>
+                            @endif
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Fecha de Inicio
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Tipo de Evento
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Fecha de Inicio
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Acciones</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                @foreach ($eventosEnCurso as $evento)
+                @foreach ($eventos as $evento)
                     <tr>
                         <td class="px-6 py-2">{{ $evento->nombre }}</td>
                         <td class="px-6 py-2">{{ $evento->tipoEvento->nombre }}</td>
@@ -66,7 +79,7 @@
 
 
     @if ($evento_selected && $mostrar_inscriptos)
-        <h3 class="mt-4 text-lg font-semibold">Participantes del Evento</h3>
+        <h3 class="mt-4 text-lg font-semibold">Inscriptos en {{ $evento_selected->nombre }}</h3>
         <!-- Campo de búsqueda -->
         <div class="mb-4">
             <input type="text" wire:model.debounce.300ms="searchParticipante"

@@ -90,7 +90,7 @@
                                             <td class="px-6 py-3">{{ $evento->nombre }}</td>
                                             <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
                                             <td class="px-6 py-3">{{ $evento->fecha_inicio_formatted }}</td>
-                                            <td class="px-6 py-3">{{ $evento->participantes->count() }}</td>
+                                            <td class="px-6 py-3">{{ $evento->inscriptos()->count() }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
