@@ -113,14 +113,15 @@
 
                     <!-- Botones de Actualizar y Volver (Derecha) -->
                     <div class="flex space-x-4">
-                        <button type="button" wire:click="cancelarEdicion"
-                            class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 mx-4 rounded">
+                        <x-secondary-button wire:click="cancelarEdicion">
                             Volver
-                        </button>
+                        </x-secondary-button>
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" style="font-size: 0.75rem; font-weight: 600"
+                            class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
                             {{ $esEdicion ? 'Actualizar' : 'Crear' }}
                         </button>
+
                     </div>
                 </div>
 

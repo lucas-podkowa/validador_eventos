@@ -4,7 +4,7 @@
     <header class="w-full flex justify-center bg-gray-200">
         @if (isset($planilla_inscripcion['header']) && $planilla_inscripcion['header'])
             <img src="{{ asset('storage/' . $planilla_inscripcion['header']) }}" alt="Cabecera del formulario"
-                class="max-h-[300px] w-auto object-contain">
+                class="w-full h-auto object-cover">
         @endif
     </header>
 
@@ -125,7 +125,7 @@
 
                     <!-- Botón -->
                     <button type="submit"
-                        class="w-full py-2 px-4 bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-300">
+                        class="font-semibold text-white uppercase w-full py-2 px-4 bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-300">
                         Inscribirse
                     </button>
                 </form>
@@ -141,7 +141,7 @@
     <footer class="w-full flex justify-center bg-gray-200">
         @if (isset($planilla_inscripcion['footer']) && $planilla_inscripcion['footer'])
             <img src="{{ asset('storage/' . $planilla_inscripcion['footer']) }}" alt="Cabecera del formulario"
-                class="max-h-[300px] w-auto object-contain">
+                class="w-full h-auto object-cover">
         @endif
     </footer>
 </div>

@@ -35,7 +35,7 @@
 
     <script>
         //script para el boton finalizarEvento en la pestaña de eventos en curso
-        function confirmFinish(eventoId) {
+        function confirmFinish(evento_id) {
             Swal.fire({
                 title: '¿Estás seguro de finalizar el Evento?',
                 text: "Esto significa que se cerarrán las inscripciones y estará listo para emitir los certificados",
@@ -48,7 +48,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.Livewire.dispatch('finalizarEvento', {
-                        eventoId
+                        evento_id
                     }); // Se emite el evento a Livewire 3
                     Swal.fire({
                         timer: 2000,
@@ -63,7 +63,7 @@
         }
 
         //script para el boton cancelarEvento en la pestaña de eventos en curso
-        function confirmCancel(eventoId) {
+        function confirmCancel(evento_id) {
             Swal.fire({
                 title: '¿Estás seguro de Cancelar el Evento?',
                 text: "Esto eliminará todas las incripciones y su respectiva Planilla. El evento volverá al estado Pendiente",
@@ -76,7 +76,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.Livewire.dispatch('cancelarEvento', {
-                        eventoId
+                        evento_id
                     }); // Se emite el evento a Livewire 3
                     Swal.fire({
                         timer: 2000,

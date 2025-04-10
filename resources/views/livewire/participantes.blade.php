@@ -106,8 +106,8 @@
                 <x-secondary-button wire:click="$set('open_modal', false)">
                     Volver
                 </x-secondary-button>
-                <button type="button" wire:click="update"
-                    class="btn btn-primary bg-gray-500 hover:bg-green-600 text-white font-bold py-2 px-4 mx-4 rounded">
+                <button type="button" wire:click="update" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
                     Actualizar
                 </button>
             </div>

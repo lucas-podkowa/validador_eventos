@@ -59,11 +59,11 @@
                                         style="text-decoration: none; color: inherit;">
                                         <i class="fa-solid fa-edit fa-xl text-black"></i>Editar Evento
                                     </a>
-                                    <a onclick="confirmFinish({{ $evento }})"
+                                    <a onclick="confirmFinish('{{ addslashes($evento->evento_id) }}')"
                                         class="block px-4 py-1 text-blue-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                         <i class="fa-solid fa-check-to-slot fa-xl"></i> Finalizar Evento
                                     </a>
-                                    <a onclick="confirmCancel({{ $evento }})"
+                                    <a onclick="confirmCancel('{{ addslashes($evento->evento_id) }}')"
                                         class="block px-4 py-1 text-red-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                         <i class="fa-solid fa-times-circle fa-xl"></i> Cancelar Evento
                                     </a>
@@ -170,9 +170,14 @@
         </x-slot>
 
         <x-slot name="footer">
-            <x-secondary-button class="mx-2"
-                wire:click="$set('open_edit_modal', false)">Cancelar</x-secondary-button>
-            <x-button class="mx-2" wire:click="updatePlanilla">Actualizar</x-button>
+            <x-secondary-button wire:click="$set('open_edit_modal', false)">
+                Volver
+            </x-secondary-button>
+
+            <button type="button" wire:click="updatePlanilla" style="font-size: 0.75rem; font-weight: 600"
+                class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+                Actualizar
+            </button>
         </x-slot>
     </x-dialog-modal>
 

@@ -116,8 +116,16 @@
 
 
         <x-slot name="footer">
-            <x-secondary-button wire:click="$set('open_emitir', false)">Cancelar</x-secondary-button>
-            <x-button wire:click="emitirCertificados" class="ml-2">Emitir</x-button>
+            <x-secondary-button wire:click="$set('open_emitir', false)">
+                Cancelar
+            </x-secondary-button>
+
+            <button type="button" wire:click="emitirCertificados" style="font-size: 0.75rem; font-weight: 600"
+                class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+                Emitir
+            </button>
+
+
         </x-slot>
     </x-dialog-modal>
 </div>

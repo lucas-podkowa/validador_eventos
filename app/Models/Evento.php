@@ -80,4 +80,27 @@ class Evento extends Model
     {
         return $this->hasMany(SesionEvento::class, 'evento_id', 'evento_id');
     }
+    // Dentro del modelo Evento
+
+    public function tieneAsistencias(): bool
+    {
+        return AsistenciaParticipante::whereHas('sesionEvento', function ($query) {
+            $query->where('evento_id', $this->evento_id);
+        })->where('asistio', true)->exists();
+    }
+
+    // En el modelo Evento
+    public function participantesConAsistencia()
+    {
+        return Participante::whereIn('participante_id', function ($query) {
+            $query->select('participante_id')
+                ->from('asistencia_participante')
+                ->where('asistio', true)
+                ->whereIn('sesion_evento_id', function ($subquery) {
+                    $subquery->select('sesion_evento_id')
+                        ->from('sesion_evento')
+                        ->where('evento_id', $this->evento_id);
+                });
+        })->get();
+    }
 }

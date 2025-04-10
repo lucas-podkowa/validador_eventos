@@ -127,9 +127,15 @@
             </x-slot>
 
             <x-slot name="footer">
-                <x-secondary-button class="mx-2"
-                    wire:click="$set('mostrarModalSesion', false)">Cancelar</x-secondary-button>
-                <x-button class="mx-2" wire:click="crearSesion">Guardar</x-button>
+                <x-secondary-button wire:click="$set('mostrarModalSesion', false)">
+                    Volver
+                </x-secondary-button>
+
+                <button type="button" wire:click="crearSesion" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+                    Guardar
+                </button>
+
             </x-slot>
         </x-dialog-modal>
     @endif

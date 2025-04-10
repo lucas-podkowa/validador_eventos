@@ -12,11 +12,9 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
 use Carbon\Carbon;
-
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
-
 
 class EventosActivos extends Component
 {
@@ -89,22 +87,19 @@ class EventosActivos extends Component
     //------ Metodo disparado por el boton "Finalizar Evento" --------
     //----------------------------------------------------------------------------
 
-    public function finalizarEvento($eventoId)
+    public function finalizarEvento($evento_id)
     {
-        $evento_id = $eventoId['evento_id'];
         DB::beginTransaction();
         try {
+            $evento = Evento::findOrFail($evento_id);
             $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
+
             if (!$planilla) {
                 throw new \Exception('No se encontró la planilla de inscripción para este evento.');
             }
-            $planilla_id = $planilla->planilla_inscripcion_id;
 
             // Obtener los participantes con asistencia confirmada
-            $presentes = DB::table('inscripcion_participante')
-                ->where('planilla_id', $planilla_id)
-                ->where('asistencia', true)
-                ->pluck('participante_id');
+            $presentes = $evento->participantesConAsistencia();
 
             if ($presentes->isEmpty()) {
                 throw new \Exception('No hay participantes con asistencia confirmada para este evento.');
@@ -118,12 +113,12 @@ class EventosActivos extends Component
             $writer = new Writer($renderer);
 
             // Insertar en evento_participantes
-            foreach ($presentes as $participante_id) {
-                $url = route('validar.participante', ['evento_id' => $evento_id, 'participante_id' => $participante_id]); // URL de validación
+            foreach ($presentes as $participante) {
+                $url = route('validar.participante', ['evento_id' => $evento_id, 'participante_id' => $participante['participante_id']]); // URL de validación
                 $qrcode = $writer->writeString($url); // Generar código QR en formato SVG
                 EventoParticipante::create([
-                    'evento_id' =>  $eventoId['evento_id'],
-                    'participante_id' => $participante_id,
+                    'evento_id' =>  $evento_id,
+                    'participante_id' => $participante['participante_id'],
                     'url' => $url,
                     'qrcode' => $qrcode,
                 ]);
@@ -150,10 +145,9 @@ class EventosActivos extends Component
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton Cancelar Evento" ---
     //----------------------------------------------------------------------------
-    public function cancelarEvento($eventoId)
+    public function cancelarEvento($evento_id)
     {
         $this->mostrar_inscriptos = false;
-        $evento_id = $eventoId['evento_id'];
 
         DB::beginTransaction();
         try {

@@ -112,13 +112,11 @@
                     Volver
                 </x-secondary-button>
 
-                <x-button wire:loading.attr="disabled"
-                    class="gap-4 py-2 px-4 mx-4 border border-transparent shadow-sm text-md font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <button type="submit" wire:loading.attr="disabled" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
                     <span wire:loading.remove>Habilitar</span>
                     <span wire:loading>Procesando...</span>
-                </x-button>
-
-
+                </button>
             </x-slot>
 
         </x-dialog-modal>
