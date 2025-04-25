@@ -17,6 +17,7 @@ return new class extends Migration
             $table->datetime('cierre');
             $table->string('header')->nullable();
             $table->string('footer')->nullable();
+            $table->string('disposicion')->nullable();
             $table->uuid('evento_id');
             $table->foreign('evento_id')->references('evento_id')->on('evento')->onDelete('cascade');
         });

@@ -18,8 +18,8 @@ class DatabaseSeeder extends Seeder
     {
 
         User::factory()->create([
-            'name' => 'Test',
-            'email' => 'mail@mail.com',
+            'name' => 'Admin',
+            'email' => 'sistemas@fio.unam.edu.ar',
             'password' => bcrypt('hh1y32gg')
         ]);
 
@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         TipoIndicador::insert([
-            ['nombre' => 'Relación con la Entidad'],
+            ['nombre' => 'Relación con la Institución'],
             ['nombre' => 'Origen de Información'],
             ['nombre' => 'Carrera'],
         ]);
@@ -58,9 +58,9 @@ class DatabaseSeeder extends Seeder
             ['nombre' => 'Licenciatura en Higiene y Seguridad en el Trabajo', 'tipo_indicador_id' => 3],
         ]);
 
-        // $this->call([
-        //     EventoSeeder::class,
-        //     ParticipanteSeeder::class,
-        // ]);
+        $this->call([
+            EventoSeeder::class,
+            //ParticipanteSeeder::class,
+        ]);
     }
 }

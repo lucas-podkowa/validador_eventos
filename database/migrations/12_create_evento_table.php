@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('lugar');
             $table->enum('estado', ['Pendiente', 'En Curso', 'Finalizado'])->default('Pendiente');
             $table->unsignedBigInteger('tipo_evento_id');
+            $table->boolean('aprobacion')->default(false);
             $table->unsignedTinyInteger('porcentaje_asistencia_requerido')->default(70); // 70% por defecto
             $table->string('certificado_path')->nullable();
             $table->foreign('tipo_evento_id')->references('tipo_evento_id')->on('tipo_evento')->onDelete('cascade');

@@ -15,7 +15,7 @@ class EventoSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 1; $i <= 20; $i++) {
+        for ($i = 1; $i <= 5; $i++) {
             Evento::create([
                 'evento_id' => Str::uuid(),
                 'nombre' => "Evento de prueba $i",

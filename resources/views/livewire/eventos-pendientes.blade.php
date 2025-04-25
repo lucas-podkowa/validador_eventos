@@ -30,96 +30,41 @@
                         <td class="px-6 py-3">{{ $evento->fecha_inicio_formatted }}</td>
                         <td class="px-6 py-3">{{ $evento->lugar }}</td>
                         <td class="px-6 py-3">{{ $evento->cupo ?: 'Sin Límites' }}</td>
-                        <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-right sticky right-0 bg-white">
+                        <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
+                            <div x-data="{ open: false }">
+                                <button @click="open = !open"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md focus:outline-none flex items-center">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
 
-                            <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
-                                class="cursor-pointer mx-2" title="Editar">
-                                <i class="fa-solid fa-edit fa-xl text-black"></i>
-                            </a>
+                                <div x-show="open" @click.away="open = false"
+                                    class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
+                                    style="z-index: 9999;">
 
-                            <a wire:click="duplicarEvento({{ $evento }})"
-                                class="text-green-600 hover:text-green-800 cursor-pointer mx-2" title="Clonar Evento">
-                                <i class="fa-regular fa-clone fa-xl  "></i>
-                            </a>
-                            <a wire:click="show_dialog_planilla({{ $evento }})"
-                                class="text-green-600 hover:text-green-800 cursor-pointer mx-2"
-                                title="Habilitar Inscripción">
-                                <i class="fa-regular fa-clipboard fa-xl text-blue-500 "></i>
-                            </a>
+                                    <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        style="text-decoration: none; color: inherit;">
+                                        <i class="fa-solid fa-edit fa-xl text-black"></i>
+                                        Editar
+                                    </a>
+                                    <a ire:click="duplicarEvento({{ $evento }})"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                        <i class="fa-regular fa-clone fa-xl  "></i>
+                                        Clonar Evento
+                                    </a>
+
+                                    <a href="{{ route('habilitar_planilla', ['evento_id' => $evento->evento_id]) }}"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        style="text-decoration: none; color: inherit;">
+                                        <i class="fa-regular fa-clipboard fa-xl text-blue-500"></i>
+                                        Habilitar Inscripción
+                                    </a>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     </x-table>
-
-
-    {{-- ------------------------  DIALOG MODAL habilitar_planilla--------------------------- --}}
-
-    <form wire:submit.prevent="habilitar_planilla" enctype="multipart/form-data" class="space-y-4">
-
-        <x-dialog-modal wire:model="open_planilla">
-
-            <x-slot name="title" class="bg-gray-900">
-                @if ($evento_selected)
-                    Habilitar Inscripciones al Evento: {{ $evento_selected->nombre }}
-                @endif
-            </x-slot>
-
-            <x-slot name="content">
-                <div class="flex pt-4 px-6 gap-4">
-                    <!-- Fecha del evento -->
-                    <div class="mb-4">
-                        <label for="apertura" class="block text-gray-700">Fecha y Hora de Apertura</label>
-                        <input type="datetime-local" id="apertura" wire:model="apertura"
-                            class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="cierre" class="block text-gray-700">Fecha y Hora de Cierre</label>
-                        <input type="datetime-local" id="cierre" wire:model="cierre"
-                            class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                    </div>
-                </div>
-                <div class="flex flex-col gap-4 pt-4 px-6">
-                    <div class="w-full">
-                        <label for="header" class="block text-sm font-medium text-gray-700">Imagen de
-                            Cabecera</label>
-                        <input type="file" id="header" wire:model="header"
-                            accept="image/png, image/jpeg, image/jpg"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('header')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="w-full">
-                        <label for="footer" class="block text-sm font-medium text-gray-700">Imagen de Pie</label>
-                        <input type="file" id="footer" wire:model="footer"
-                            accept="image/png, image/jpeg, image/jpg"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('footer')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-                </div>
-            </x-slot>
-
-
-            <x-slot name="footer">
-
-                <x-secondary-button wire:click="$set('open_planilla', false)">
-                    Volver
-                </x-secondary-button>
-
-                <button type="submit" wire:loading.attr="disabled" style="font-size: 0.75rem; font-weight: 600"
-                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                    <span wire:loading.remove>Habilitar</span>
-                    <span wire:loading>Procesando...</span>
-                </button>
-            </x-slot>
-
-        </x-dialog-modal>
-    </form>
-
 </div>

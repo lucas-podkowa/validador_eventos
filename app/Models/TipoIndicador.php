@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class TipoIndicador extends Model
 {
     use HasFactory;
+    public $timestamps = false;
     protected $table = 'tipo_indicador';
     protected $primaryKey = 'tipo_indicador_id';
+    protected $fillable = ['nombre'];
+
 
     public function indicadores()
     {

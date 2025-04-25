@@ -81,6 +81,10 @@ class EventosActivos extends Component
     {
         $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
     }
+    public function redirectToEventos($tab)
+    {
+        return redirect()->route('eventos', ['tab' => $tab]);
+    }
 
 
     //----------------------------------------------------------------------------
@@ -139,7 +143,8 @@ class EventosActivos extends Component
         $this->dispatch('refreshMainComponent');
 
         // Recargar los eventos pendientes después de la operación
-        $this->mount();
+        //$this->mount();
+        $this->redirectToEventos('finalizados');
     }
 
     //----------------------------------------------------------------------------

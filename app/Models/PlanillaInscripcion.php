@@ -15,7 +15,7 @@ class PlanillaInscripcion extends Model
     protected $primaryKey = 'planilla_inscripcion_id';
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
-    protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer'];
+    protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer', 'disposicion'];
 
     protected static function boot()
     {
