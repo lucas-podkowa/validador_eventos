@@ -11,7 +11,8 @@ class Indicador extends Model
     public $timestamps = false;
     protected $table = 'indicador';
     protected $primaryKey = 'indicador_id';
-    protected $fillable = ['nombre', 'descripcion'];
+    protected $fillable = ['nombre', 'descripcion', 'tipo_indicador_id'];
+
 
 
     public function tipoIndicador()
@@ -22,5 +23,11 @@ class Indicador extends Model
     public function inscripcionesParticipantes()
     {
         return $this->belongsToMany(InscripcionParticipante::class, 'participante_indicador', 'indicador_id', 'insc_participante_id');
+    }
+
+    // Verificamos si hay inscripciones asociadas al indicador
+    public function hasInscripciones()
+    {
+        return $this->inscripcionesParticipantes()->exists();
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Evento;
 use App\Models\PlanillaInscripcion;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class HabilitarPlanilla extends Component
 {
@@ -20,15 +21,22 @@ class HabilitarPlanilla extends Component
     public $footer = null;
     public $apertura;
     public $cierre;
+    public $imagenesDisponibles = [];
+    public $showHeaderModal = false;
+    public $showFooterModal = false;
+    public $nuevaImagen;
+    public $tipoModalActivo;
+
+
 
 
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
         'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
-        'header' => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
-        'footer' => 'nullable|image|mimes:jpeg,png,jpg|max:10240',
         'disposicion' => 'required|file|mimes:pdf|max:10240', // 10MB
     ];
+
+
 
     public function mount($evento_id = null)
     {
@@ -52,10 +60,67 @@ class HabilitarPlanilla extends Component
     }
 
 
+    public function abrirGaleria($tipo)
+    {
+        $this->tipoModalActivo = $tipo;
+
+        $path = 'images/' . $tipo;
+        $files = Storage::disk('public')->files($path);
+        $this->imagenesDisponibles = collect($files)->filter(function ($file) {
+            return collect(['.jpg', '.jpeg', '.png'])->contains(fn($ext) => str_ends_with($file, $ext));
+        })->values()->all();
+
+
+        if ($tipo === 'header') {
+            $this->showHeaderModal = true;
+        } elseif ($tipo === 'footer') {
+            $this->showFooterModal = true;
+        }
+    }
+
+
+
+    public function seleccionarImagen($path, $tipo)
+    {
+        if ($tipo === 'header') {
+            $this->header = $path;
+            $this->showHeaderModal = false;
+        } elseif ($tipo === 'footer') {
+            $this->footer = $path;
+            $this->showFooterModal = false;
+        }
+    }
+
+
+
+    public function guardarNuevaImagen()
+    {
+        $this->validate([
+            'nuevaImagen' => 'required|image|max:10240',
+        ]);
+
+        $path = $this->nuevaImagen->store('images/' . $this->tipoModalActivo, 'public');
+
+        // Refrescar galería
+        $this->abrirGaleria($this->tipoModalActivo);
+
+        // Limpiar input
+        $this->nuevaImagen = null;
+    }
+
+
+
     public function habilitar_planilla()
     {
 
         $this->validate();
+
+        if ($this->header instanceof \Illuminate\Http\UploadedFile) {
+            $this->header = $this->header->store('images/header', 'public');
+        }
+        if ($this->footer instanceof \Illuminate\Http\UploadedFile) {
+            $this->footer = $this->footer->store('images/footer', 'public');
+        }
 
         // Formatear fechas correctamente antes de la validación
         $apertura = Carbon::createFromFormat('Y-m-d H:i', $this->apertura);
@@ -71,8 +136,10 @@ class HabilitarPlanilla extends Component
         DB::beginTransaction();
         try {
             // Validar y cargar las imágenes y el archivo de la disposición
-            $headerPath = $this->header ? $this->header->store('images', 'public') : null;
-            $footerPath = $this->footer ? $this->footer->store('images', 'public') : null;
+            //$headerPath = $this->header ? $this->header->store('images', 'public') : null;
+            //$footerPath = $this->footer ? $this->footer->store('images', 'public') : null;
+            $headerPath = $this->header;
+            $footerPath = $this->footer;
             $dispoPath = $this->disposicion ? $this->disposicion->store('disposiciones', 'private') : null;
 
             // Consulta si ya existe la planilla de inscripción para el evento

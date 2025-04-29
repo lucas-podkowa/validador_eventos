@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\Indicador;
 use App\Models\TipoIndicador;
+use Livewire\Attributes\On;
 
 class Indicadores extends Component
 {
@@ -17,6 +18,8 @@ class Indicadores extends Component
     public $isCreatingTipo = false;
     public $isCreatingIndicador = false;
 
+    public $sortField = 'nombre';
+    public $sortDirection = 'asc';
 
 
     // Formulario para TipoIndicador
@@ -32,8 +35,22 @@ class Indicadores extends Component
 
     public function loadData()
     {
-        $this->tipo_indicadores = TipoIndicador::all();
-        $this->indicadores = Indicador::with('tipoIndicador')->get();
+        $this->tipo_indicadores = TipoIndicador::orderBy('nombre', 'asc')->get(); // sigue como antes
+
+        $this->indicadores = Indicador::with('tipoIndicador')
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->get();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+        $this->loadData();
     }
 
 
@@ -71,25 +88,29 @@ class Indicadores extends Component
         $this->loadData(); // si tenés un método para recargar
     }
 
-
-    public function deleteTipo($id)
+    #[On('deleteTipo')]
+    public function deleteTipo($tipo_indicador_id)
     {
-        TipoIndicador::destroy($id);
+        // Verificar si el tipo de indicador tiene indicadores asociados
+        $tipoIndicador = TipoIndicador::findOrFail($tipo_indicador_id);
+        if ($tipoIndicador->indicadores()->exists()) {
+            $this->dispatch('oops', message: 'No se puede eliminar el tipo de indicador porque tiene indicadores asociados.');
+            return;
+        }
+        // Si no tiene indicadores asociados, proceder a eliminar
+        $tipoIndicador->delete();
         $this->loadData();
     }
 
 
-
     // INDICADOR
     //----------------------------------------------------
-
     public function createIndicador()
     {
         $this->reset(['indicador_nombre', 'tipo_indicador_id', 'editingIndicadorId']);
         $this->isCreatingIndicador = true;
         $this->showIndicadorModal = true;
     }
-
 
     public function editIndicador($id)
     {
@@ -99,7 +120,6 @@ class Indicadores extends Component
         $this->editingIndicadorId = $indicador->indicador_id;
         $this->showIndicadorModal = true;
     }
-
 
     public function saveIndicador()
     {
@@ -127,13 +147,20 @@ class Indicadores extends Component
     }
 
 
-    public function deleteIndicador($id)
+    #[On('deleteIndicador')]
+    public function deleteIndicador($indicador_id)
     {
-        Indicador::destroy($id);
+        // Verificar si el indicador tiene inscripciones asociadas
+        $indicador = Indicador::findOrFail($indicador_id);
+        if ($indicador->hasInscripciones()) {
+            $this->dispatch('oops', message: 'No se puede eliminar el indicador porque tiene inscripciones asociadas.');
+            return;
+        }
+
+        // Si no tiene inscripciones asociadas, proceder a eliminar
+        $indicador->delete();
         $this->loadData();
     }
-
-
 
     public function render()
     {

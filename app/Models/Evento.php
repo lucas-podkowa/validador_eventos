@@ -18,7 +18,7 @@ class Evento extends Model
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path', 'cupo'];
+    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path', 'cupo', 'por_aprobacion'];
 
     protected static function boot()
     {
@@ -45,6 +45,23 @@ class Evento extends Model
         return $this->hasOne(PlanillaInscripcion::class, 'evento_id');
     }
 
+    public function esPorAprobacion(): bool
+    {
+        return $this->por_aprobacion;
+    }
+
+    public function participantes()
+    {
+        return $this->belongsToMany(Participante::class, 'evento_participantes', 'evento_id', 'participante_id')
+            ->withPivot('url', 'qrcode');
+    }
+
+
+    public function sesiones()
+    {
+        return $this->hasMany(SesionEvento::class, 'evento_id', 'evento_id');
+    }
+
     // Evento → Planilla → InscripcionParticipante → Participante
     public function inscriptos()
     {
@@ -62,26 +79,6 @@ class Evento extends Model
     }
 
 
-
-    public function participantes()
-    {
-        return $this->belongsToMany(Participante::class, 'evento_participantes', 'evento_id', 'participante_id')
-            ->withPivot('url', 'qrcode');
-    }
-
-
-    public function getFechaInicioFormattedAttribute()
-    {
-        return Carbon::parse($this->fecha_inicio)->format('d/m/Y');
-        //     return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
-    }
-
-    public function sesiones()
-    {
-        return $this->hasMany(SesionEvento::class, 'evento_id', 'evento_id');
-    }
-    // Dentro del modelo Evento
-
     public function tieneAsistencias(): bool
     {
         return AsistenciaParticipante::whereHas('sesionEvento', function ($query) {
@@ -89,7 +86,6 @@ class Evento extends Model
         })->where('asistio', true)->exists();
     }
 
-    // En el modelo Evento
     public function participantesConAsistencia()
     {
         return Participante::whereIn('participante_id', function ($query) {
@@ -102,5 +98,12 @@ class Evento extends Model
                         ->where('evento_id', $this->evento_id);
                 });
         })->get();
+    }
+
+
+    public function getFechaInicioFormattedAttribute()
+    {
+        return Carbon::parse($this->fecha_inicio)->format('d/m/Y');
+        //     return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
     }
 }

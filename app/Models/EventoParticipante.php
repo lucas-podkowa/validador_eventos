@@ -18,6 +18,7 @@ class EventoParticipante extends Model
         'participante_id',
         'url',
         'qrcode',
+        'aprobado'
     ];
 
     protected static function boot()

@@ -20,7 +20,7 @@
                             <i class="fa-regular fa-edit fa-xl  "></i>
                         </a>
 
-                        <a wire:click="deleteTipo({{ $tipo->tipo_indicador_id }})"
+                        <a onclick="confirmDeleteTipo({{ $tipo->tipo_indicador_id }})"
                             class="text-red-600 hover:text-red-800 cursor-pointer mx-2" title="Eliminar">
                             <i class="fa-solid fa-trash fa-xl"></i>
                         </a>
@@ -46,8 +46,26 @@
         <table class="mt-4 w-full text-sm border-t border-gray-300">
             <thead>
                 <tr class="text-left border-b border-gray-300">
-                    <th class="py-1">Nombre</th>
-                    <th class="py-1">Tipo</th>
+                    <th class="py-1 cursor-pointer" wire:click="sortBy('nombre')">
+                        Nombre
+                        @if ($sortField == 'nombre')
+                            @if ($sortDirection == 'asc')
+                                ▲
+                            @else
+                                ▼
+                            @endif
+                        @endif
+                    </th>
+                    <th class="py-1 cursor-pointer" wire:click="sortBy('tipo_indicador_id')">
+                        Tipo
+                        @if ($sortField == 'tipo_indicador_id')
+                            @if ($sortDirection == 'asc')
+                                ▲
+                            @else
+                                ▼
+                            @endif
+                        @endif
+                    </th>
                     <th class="py-1">Acciones</th>
                 </tr>
             </thead>
@@ -63,7 +81,7 @@
                                 <i class="fa-regular fa-edit fa-xl  "></i>
                             </a>
 
-                            <a wire:click="deleteIndicador({{ $ind->indicador_id }})"
+                            <a onclick="confirmDeleteIndicador({{ $ind->indicador_id }})"
                                 class="text-red-600 hover:text-red-800 cursor-pointer mx-2" title="Eliminar">
                                 <i class="fa-solid fa-trash fa-xl"></i>
                             </a>
@@ -127,4 +145,63 @@
             </button>
         </x-slot>
     </x-dialog-modal>
+    <script>
+        //script para el boton finalizarEvento en la pestaña de eventos en curso
+        function confirmDeleteTipo(tipo_indicador_id) {
+            Swal.fire({
+                title: '¿Estás seguro de ELIMINAR el Tipo de Indicador?',
+                text: "Esto tambien eliminará todos los indicadores relacionados",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, Eliminar',
+                cancelButtonText: 'Volver'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.Livewire.dispatch('deleteTipo', {
+                        tipo_indicador_id
+                    });
+                    //Livewire.emit('deleteTipo', tipo_indicador_id);
+                    Swal.fire({
+                        timer: 2000,
+                        position: "bottom-end",
+                        icon: "info",
+                        title: "Eliminado",
+                        text: "El Tipo de Indicador fué eliminado con éxito",
+                        showConfirmButton: false
+                    });
+                }
+            })
+        }
+
+        //script para el boton cancelarEvento en la pestaña de eventos en curso
+        function confirmDeleteIndicador(indicador_id) {
+            Swal.fire({
+                title: '¿Estás seguro de ELIMINAR el Indicador?',
+                //text: "Esto tambien eliminará todos los indicadores relacionados",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, Eliminar',
+                cancelButtonText: 'Volver'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.Livewire.dispatch('deleteIndicador', {
+                        indicador_id
+                    });
+                    //Livewire.emit('deleteIndicador', tipo_indicador_id);
+                    Swal.fire({
+                        timer: 2000,
+                        position: "bottom-end",
+                        icon: "info",
+                        title: "Eliminado",
+                        text: "El Tipo de Indicador fué eliminado con éxito",
+                        showConfirmButton: false
+                    });
+                }
+            })
+        }
+    </script>
 </div>

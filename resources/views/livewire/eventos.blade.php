@@ -49,7 +49,7 @@
                 if (result.isConfirmed) {
                     window.Livewire.dispatch('finalizarEvento', {
                         evento_id
-                    }); // Se emite el evento a Livewire 3
+                    });
                     Swal.fire({
                         timer: 2000,
                         position: "bottom-end",
@@ -77,7 +77,7 @@
                 if (result.isConfirmed) {
                     window.Livewire.dispatch('cancelarEvento', {
                         evento_id
-                    }); // Se emite el evento a Livewire 3
+                    });
                     Swal.fire({
                         timer: 2000,
                         position: "bottom-end",
