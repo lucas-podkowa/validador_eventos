@@ -3,13 +3,13 @@
     <div class="flex gap-4">
         <!-- Tabla de Eventos (Siempre visible) -->
         <div class="max-w-[50%] flex-1">
-            {{-- <x-table> --}}
             <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
                 <table class="w-full min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tipo de Evento</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Asistencias</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -18,16 +18,23 @@
                                 class="{{ $evento_selected && $evento_selected->evento_id == $evento->evento_id ? 'bg-blue-600 text-white' : '' }}">
                                 <td class="px-6 py-2">{{ $evento->tipoEvento->nombre }}</td>
                                 <td class="px-6 py-2">{{ $evento->nombre }}</td>
+                                <td class="px-6 py-2">
+                                    @if (count($evento->sesiones) > 0)
+                                        <a wire:click="descargarAsistencias"
+                                            class="block px-4 py-1 text-gray-700 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-2 fa-solid fa-file-pdf fa-xl"></i>
+                                        </a>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
-            {{-- </x-table> --}}
         </div>
 
         <!-- Tabla de Sesiones (Solo visible si hay un evento seleccionado) -->
-        {{-- @if ($evento_selected) --}}
+
         <div class="max-w-[50%] flex-1">
 
             @if ($evento_selected)
@@ -80,14 +87,13 @@
             @endif
 
         </div>
-        {{-- @endif --}}
     </div>
 
     <!-- Modal para agregar sesión -->
     @if ($mostrarModalSesion)
         <x-dialog-modal wire:model="mostrarModalSesion">
             <x-slot name="title">
-                Inscripción al Evento {{ $evento_selected->nombre ?? '' }}
+                Nueva sesión de asistencias al evento {{ $evento_selected->nombre ?? '' }}
             </x-slot>
 
             <x-slot name="content">
@@ -101,12 +107,12 @@
                         <span class="text-sm text-red-500">{{ $message }}</span>
                     @enderror
                 </div>
-                <div class="flex pt-4 px-6 gap-4">
-
+                <div class="flex pt-4 px-6 gap-4" x-data="{ inicio: @entangle('fecha_hora_inicio') }">
                     <div class="w-1/2">
                         <label for="fecha_hora_inicio" class="block text-sm font-medium text-gray-700">Fecha y Hora de
                             Inicio</label>
                         <input type="datetime-local" id="fecha_hora_inicio" wire:model.live="fecha_hora_inicio"
+                            x-model="inicio"
                             min="{{ \Carbon\Carbon::parse($evento_selected->fecha_inicio)->format('Y-m-d\TH:i') }}"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('fecha_hora_inicio')
@@ -118,6 +124,7 @@
                         <label for="fecha_hora_fin" class="block text-sm font-medium text-gray-700">Fecha y Hora de
                             Cierre</label>
                         <input type="datetime-local" id="fecha_hora_fin" wire:model.live="fecha_hora_fin"
+                            x-bind:min="inicio"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('fecha_hora_fin')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -188,6 +195,4 @@
             </x-slot>
         </x-dialog-modal>
     @endif
-
-
 </div>

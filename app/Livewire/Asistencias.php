@@ -8,6 +8,8 @@ use App\Models\AsistenciaParticipante;
 use App\Models\InscripcionParticipante;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class Asistencias extends Component
 {
@@ -105,43 +107,6 @@ class Asistencias extends Component
         $this->mostrarModalAsistencia = true;
     }
 
-
-
-    // // Seleccionar sesión para tomar asistencia
-    // public function seleccionarSesion($sesionId)
-    // {
-    //     $this->sesionSeleccionada = SesionEvento::find($sesionId);
-
-    //     $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
-    //         ->with('participante');
-
-    //     if (!empty($this->searchParticipante)) {
-    //         $query->whereHas('participante', function ($q) {
-    //             $q->where('nombre', 'like', "%{$this->searchParticipante}%")
-    //                 ->orWhere('apellido', 'like', "%{$this->searchParticipante}%");
-    //         });
-    //     }
-
-    //     $participantes = $query->get();
-
-
-    //     // Obtener asistencias previas
-    //     $this->asistencias = $participantes->map(function ($inscripcion) {
-    //         $asistencia = AsistenciaParticipante::where('participante_id', $inscripcion->participante_id)
-    //             ->where('sesion_evento_id', $this->sesionSeleccionada->sesion_evento_id)
-    //             ->first();
-
-    //         return [
-    //             'participante_id' => $inscripcion->participante_id,
-    //             'nombre' => $inscripcion->participante->nombre,
-    //             'asistio' => (bool) ($asistencia ? $asistencia->asistio : false)
-    //         ];
-    //     })->toArray();
-
-
-    //     $this->mostrarModalAsistencia = true;
-    // }
-
     // Guardar asistencia
     public function guardarAsistencia()
     {
@@ -158,6 +123,43 @@ class Asistencias extends Component
         });
 
         $this->mostrarModalAsistencia = false;
+    }
+
+    public function descargarAsistencias()
+    {
+        if (!$this->evento_selected) return;
+
+        $evento = Evento::with('sesiones', 'planillaInscripcion.inscripciones.participante')->find($this->evento_selected->evento_id);
+
+        $sesiones = $evento->sesiones;
+
+        $inscripciones = $evento->planillaInscripcion->inscripciones;
+
+        $datos = $inscripciones->map(function ($inscripcion) use ($sesiones) {
+            $asistencias = [];
+
+            foreach ($sesiones as $sesion) {
+                $asistio = AsistenciaParticipante::where('participante_id', $inscripcion->participante_id)
+                    ->where('sesion_evento_id', $sesion->sesion_evento_id)
+                    ->value('asistio') ?? false;
+
+                $asistencias[$sesion->nombre] = $asistio;
+            }
+
+            return [
+                'nombre' => $inscripcion->participante->nombre . ' ' . $inscripcion->participante->apellido,
+                'dni' => $inscripcion->participante->dni,
+                'asistencias' => $asistencias,
+            ];
+        });
+
+        $pdf = Pdf::loadView('livewire.pdf-asistencias', [
+            'evento' => $evento,
+            'sesiones' => $sesiones,
+            'datos' => $datos,
+        ]);
+
+        return response()->streamDownload(fn() => print($pdf->output()), 'asistencias_evento.pdf');
     }
 
     public function render()

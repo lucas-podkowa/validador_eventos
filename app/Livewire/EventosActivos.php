@@ -135,16 +135,13 @@ class EventosActivos extends Component
             $this->reset([
                 'evento_selected',
             ]);
+            $this->redirectToEventos('finalizados');
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo finalizar el Evento: ' . $e->getMessage());
         }
         // Disparar evento para refrescar el componente
         $this->dispatch('refreshMainComponent');
-
-        // Recargar los eventos pendientes después de la operación
-        //$this->mount();
-        $this->redirectToEventos('finalizados');
     }
 
     //----------------------------------------------------------------------------
