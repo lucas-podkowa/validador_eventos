@@ -38,7 +38,7 @@ class EventosActivos extends Component
         'cancelarEvento',
     ];
 
-    public $open_edit_modal = false;
+    //public $open_edit_modal = false;
     public $apertura;
     public $cierre;
     //public $eventosEnCurso;
@@ -179,68 +179,6 @@ class EventosActivos extends Component
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo cancelar el evento: ' . $e->getMessage());
         }
-    }
-
-    public function show_dialog_planilla($ev)
-    {
-        $this->mostrar_inscriptos = false;
-        $this->resetValidation();
-        $evento = Evento::find($ev['evento_id']);
-
-        if ($evento && $evento->planillaInscripcion) {
-            $this->evento_selected = $evento;
-            $this->planilla_selected = $evento->planillaInscripcion;
-            $this->apertura = Carbon::parse($this->planilla_selected->apertura)->format('Y-m-d H:i');
-            $this->cierre = Carbon::parse($this->planilla_selected->cierre)->format('Y-m-d H:i');
-            $this->header = $this->planilla_selected->header;
-            $this->footer = $this->planilla_selected->footer;
-
-            $this->open_edit_modal = true;
-        } else {
-            $this->dispatch('oops', message: 'No se encontró una planilla de inscripción asociada.');
-        }
-    }
-
-    public function updatePlanilla()
-    {
-        $this->validate();
-        // Formatear fechas correctamente antes de la validación
-        $apertura = Carbon::createFromFormat('Y-m-d H:i', $this->apertura);
-        $cierre = Carbon::createFromFormat('Y-m-d H:i', $this->cierre);
-
-        // Verificar que la fecha de apertura sea menor a la fecha de inicio del evento
-        if ($apertura->gte(Carbon::parse($this->evento_selected->fecha_inicio))) {
-            $fechaInicioFormateada = Carbon::parse($this->evento_selected->fecha_inicio)->format('d/m/Y H:i');
-            $this->dispatch('oops', message: 'La fecha de apertura debe ser menor a la fecha de inicio del evento (' . $fechaInicioFormateada . ').');
-            return;
-        }
-        DB::beginTransaction();
-        try {
-            // Validar y cargar las imágenes
-            $headerPath = $this->header ? $this->header->store('images', 'public') : null;
-            $footerPath = $this->footer ? $this->footer->store('images', 'public') : null;
-
-            $this->planilla_selected->update([
-                'apertura' => $apertura,
-                'cierre' => $cierre,
-                'header' => $headerPath,
-                'footer' => $footerPath,
-            ]);
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo actualizar la planilla de inscripción: ' . $e->getMessage());
-        }
-
-        // Cerrar el modal de planilla
-        $this->open_edit_modal = false;
-
-        // Disparar evento para refrescar el componente
-        $this->dispatch('refreshMainComponent');
-
-        // Recargar los eventos pendientes después de la operación
-        $this->mount();
     }
 
 

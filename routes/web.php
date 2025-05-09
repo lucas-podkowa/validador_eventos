@@ -21,6 +21,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/registrar_evento/{evento_id?}', CrearEvento::class)->name('registrar_evento');
     Route::get('/eventos/{tab?}', Eventos::class)->name('eventos');
     Route::get('/eventos/{evento_id}/habilitar', HabilitarPlanilla::class)->name('habilitar_planilla');
+    Route::get('/planilla/{evento_id}/editar', HabilitarPlanilla::class)->name('planilla.editar');
+
     Route::get('/participantes', Participantes::class)->name('participantes');
     Route::get('/asistencias', Asistencias::class)->name('asistencias');
     Route::get('/indicadores', Indicadores::class)->name('indicadores');

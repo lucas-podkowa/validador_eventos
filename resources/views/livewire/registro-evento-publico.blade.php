@@ -8,7 +8,7 @@
         @endif
     </header>
 
-    <main class="flex-1 p-4 justify-center">
+    <main class="flex-1 p-4 justify-center max-w-4xl mx-auto">
         <!-- Título del formulario -->
         <h2 class="text-2xl font-semibold text-center">Inscripción al evento: {{ $evento->nombre }}</h2>
 
@@ -16,14 +16,15 @@
             @if ($inscripcion_activa)
                 <form wire:submit.prevent="submit" class="space-y-6">
                     <!-- Datos principales -->
-                    <div class="flex flex-col gap-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                         <!-- Campo: DNI -->
-                        <div class="flex items-center">
-                            <label for="dni" class="text-right pr-4 font-medium mr-2">Número DNI:</label>
+                        <div class="flex flex-col lg:flex-row lg:items-center">
+                            <label for="dni" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Número
+                                DNI:</label>
 
                             <input type="text" wire:model.defer="dni" wire:keydown.enter="buscarParticipante"
                                 wire:keydown.tab="buscarParticipante" wire:blur="buscarParticipante"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300" />
+                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300" />
 
                             @error('dni')
                                 <span class="text-sm text-red-600">{{ $message }}</span>
@@ -31,38 +32,41 @@
                         </div>
 
                         <!-- Campo: Nombre -->
-                        <div class="flex items-center">
-                            <label for="nombre" class="text-right pr-4 font-medium mr-2">Nombre:</label>
+                        <div class="flex flex-col lg:flex-row lg:items-center">
+                            <label for="nombre" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Nombre
+                                Completo:</label>
                             <input type="text" id="nombre" wire:model="nombre"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                             @error('nombre')
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
                         </div>
 
                         <!-- Campo: Apellido -->
-                        <div class="flex items-center">
-                            <label for="apellido" class="text-right pr-4 font-medium mr-2">Apellido:</label>
+                        <div class="flex flex-col lg:flex-row lg:items-center">
+                            <label for="apellido"
+                                class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Apellido:</label>
                             <input type="text" id="apellido" wire:model="apellido"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                             @error('apellido')
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
                         </div>
                         <!-- Campo: Correo Electrónico -->
-                        <div class="flex items-center">
-                            <label for="mail" class="text-right pr-4 font-medium mr-2">Email:</label>
+                        <div class="flex flex-col lg:flex-row lg:items-center">
+                            <label for="mail" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Email:</label>
                             <input type="email" id="mail" wire:model="mail"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                             @error('mail')
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
                         </div>
                         <!-- Campo: Correo Electrónico -->
-                        <div class="flex items-center">
-                            <label for="telefono" class="text-right pr-4 font-medium mr-2">Teléfono:</label>
+                        <div class="flex flex-col lg:flex-row lg:items-center">
+                            <label for="telefono"
+                                class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Teléfono:</label>
                             <input type="number" id="mail" wire:model="telefono"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                             @error('telefono')
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
@@ -108,11 +112,6 @@
                                             <input type="checkbox" name="indicadores[]"
                                                 id="indicador_{{ $indicador->id }}" value="{{ $indicador->id }}"
                                                 class="mr-2">
-
-                                            {{-- <input type="checkbox" wire:model="tipos_indicadores_seleccionados"
-                                            id="indicador_{{ $indicador->id }}" value="{{ $indicador->id }}"
-                                            class="mr-2"> --}}
-
                                             <label
                                                 for="indicador_{{ $indicador->id }}">{{ $indicador->nombre }}</label>
                                         </div>

@@ -2,10 +2,13 @@
     <div class="w-full p-4 bg-white shadow-md rounded-lg">
 
         @if ($evento)
-            <h2 class="text-xl font-bold mb-4">Habilitar Inscripciones al Evento: {{ $evento->nombre }}</h2>
+            {{-- <h2 class="text-xl font-bold mb-4">Habilitar Inscripciones al Evento: {{ $evento->nombre }}</h2> --}}
+            <h2 class="text-xl font-bold mb-4">
+                {{ $modo === 'crear' ? 'Habilitar' : 'Editar' }} Inscripciones al Evento: {{ $evento->nombre }}
+            </h2>
         @endif
 
-        <form wire:submit.prevent="habilitar_planilla" enctype="multipart/form-data" class="space-y-4">
+        <form wire:submit.prevent="guardar_planilla" enctype="multipart/form-data" class="space-y-4">
 
             <div class="flex pt-4 px-6 gap-4">
                 <div class="mb-4">
@@ -64,8 +67,10 @@
                         <div
                             class="flex items-center justify-between border border-gray-300 rounded-md p-2 bg-white shadow-sm">
                             <span class="text-sm text-gray-500 truncate">
-                                @if ($disposicion)
+                                @if ($disposicion instanceof \Illuminate\Http\UploadedFile)
                                     {{ $disposicion->getClientOriginalName() }}
+                                @elseif (is_string($disposicion))
+                                    {{ basename($disposicion) }}
                                 @else
                                     Seleccioná un archivo PDF
                                 @endif
@@ -85,7 +90,8 @@
 
                 <button type="submit" wire:loading.attr="disabled" style="font-size: 0.75rem; font-weight: 600"
                     class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                    <span wire:loading.remove>Habilitar</span>
+                    <span wire:loading.remove>{{ $modo === 'crear' ? 'Habilitar' : 'Actualizar' }}</span>
+                    {{-- <span wire:loading.remove>Habilitar</span> --}}
                     <span wire:loading>Procesando...</span>
                 </button>
             </div>

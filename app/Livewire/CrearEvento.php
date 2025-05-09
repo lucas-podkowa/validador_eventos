@@ -18,7 +18,8 @@ class CrearEvento extends Component
 {
     //use WithFileUploads;
     public $evento_id = null; // Para saber si es edición o creación
-    public $tipo_evento = null;
+    public $tipo_evento_id = null;
+    public $por_aprobacion = null;
     public $nombre_evento = null;
     public $fecha_inicio = null;
     public $lugar_evento = null;
@@ -30,7 +31,7 @@ class CrearEvento extends Component
 
     // Reglas de validación
     protected $rules = [
-        'tipo_evento'  => 'required',
+        'tipo_evento_id'  => 'required',
         'nombre_evento' => 'required|string|min:3|max:255',
         'fecha_inicio' => 'required|date|after_or_equal:today',
         'lugar_evento'  => 'required|string|min:2|max:255',
@@ -48,11 +49,12 @@ class CrearEvento extends Component
             $evento = Evento::with('tipoIndicadores')->find($evento_id);
 
             if ($evento) {
-                $this->tipo_evento = $evento->tipo_evento_id;
+                $this->tipo_evento_id = $evento->tipo_evento_id;
                 $this->nombre_evento = $evento->nombre;
                 $this->fecha_inicio = $evento->fecha_inicio;
                 $this->lugar_evento = $evento->lugar;
                 $this->cupo = $evento->cupo;
+                $this->por_aprobacion = $evento->por_aprobacion;
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
             }
         }
@@ -70,11 +72,12 @@ class CrearEvento extends Component
         DB::beginTransaction();
         try {
             $datosEvento = [
-                'tipo_evento_id' => $this->tipo_evento,
+                'tipo_evento_id' => $this->tipo_evento_id,
                 'nombre' => $this->nombre_evento,
                 'lugar' => $this->lugar_evento,
                 'fecha_inicio' => Carbon::parse($this->fecha_inicio),
                 'cupo' => $this->cupo,
+                'por_aprobacion' => $this->por_aprobacion,
             ];
 
 
@@ -121,12 +124,13 @@ class CrearEvento extends Component
             //Resetear los campos después de guardar
             $this->reset([
                 'evento_id',
-                'tipo_evento',
+                'tipo_evento_id',
                 'nombre_evento',
                 'fecha_inicio',
                 'lugar_evento',
                 'cupo',
-                'indicadoresSeleccionados'
+                'indicadoresSeleccionados',
+                'por_aprobacion',
             ]);
 
             // Redirigir a la ruta de eventos después de la creación exitosa
@@ -184,7 +188,6 @@ class CrearEvento extends Component
 
     public function render()
     {
-        //return view('livewire.crear-evento');
 
         return view('livewire.crear-evento', [
             'esEdicion' => $this->evento_id !== null,

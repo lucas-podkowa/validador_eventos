@@ -49,10 +49,12 @@
                                         style="text-decoration: none; color: inherit;">
                                         <i class="fa fa-address-card fa-xl"></i> Formulario de Inscripción
                                     </a>
-                                    <a wire:click="show_dialog_planilla({{ $evento }})"
-                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                    <a href="{{ route('planilla.editar', ['evento_id' => $evento->evento_id]) }}"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        style="text-decoration: none; color: inherit;">
                                         <i class="fa-solid fa-calendar-alt fa-xl"></i> Editar Planilla
                                     </a>
+
                                     <hr class="border-gray-200">
                                     <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
@@ -113,72 +115,5 @@
             <div class="px-6 py-4">Aún no se han registrado Participantes</div>
         @endif
     @endif
-
-
-    {{-- ------------------------  DIALOG MODAL editar_planilla--------------------------- --}}
-
-    <x-dialog-modal wire:model="open_edit_modal">
-        <x-slot name="title">
-            Inscripción al Evento {{ $evento_selected->nombre ?? '' }}
-        </x-slot>
-
-        <x-slot name="content">
-            <div class="flex pt-4 px-6 gap-4">
-                <div class="w-1/2">
-                    <label for="apertura_edit" class="block text-sm font-medium text-gray-700">Fecha y Hora de
-                        Apertura</label>
-                    <input type="datetime-local" id="apertura_edit" wire:model.live="apertura"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('apertura')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="w-1/2">
-                    <label for="cierre_edit" class="block text-sm font-medium text-gray-700">Fecha y Hora de
-                        Cierre</label>
-                    <input type="datetime-local" id="cierre_edit" wire:model.live="cierre"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('cierre')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-            </div>
-
-
-            <!-- Imágenes -->
-            <div class="flex flex-col gap-4 pt-4 px-6">
-                <div class="w-full">
-                    <label for="header" class="block text-sm font-medium text-gray-700">Imagen de
-                        Cabecera</label>
-                    <input type="file" id="header" wire:model="header" accept="image/png, image/jpeg, image/jpg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('header')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="w-full">
-                    <label for="footer" class="block text-sm font-medium text-gray-700">Imagen de Pie</label>
-                    <input type="file" id="footer" wire:model="footer" accept="image/png, image/jpeg, image/jpg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('footer')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-            </div>
-        </x-slot>
-
-        <x-slot name="footer">
-            <x-secondary-button wire:click="$set('open_edit_modal', false)">
-                Volver
-            </x-secondary-button>
-
-            <button type="button" wire:click="updatePlanilla" style="font-size: 0.75rem; font-weight: 600"
-                class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                Actualizar
-            </button>
-        </x-slot>
-    </x-dialog-modal>
 
 </div>

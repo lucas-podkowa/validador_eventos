@@ -2,12 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Mail\ConfirmacionInscripcion;
 use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\PlanillaInscripcion;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 
 class RegistroEventoPublico extends Component
@@ -152,7 +154,15 @@ class RegistroEventoPublico extends Component
 
 
             DB::commit();
-            $this->dispatch('alert', '¡Inscripción completada con éxito!');
+
+            //$this->dispatch('alert', '¡Inscripción completada con éxito!');
+            // Enviar correo de confirmación al participante
+
+            Mail::to($this->mail)->send(new ConfirmacionInscripcion(
+                $this->nombre,
+                $this->apellido,
+                $this->evento
+            ));
             $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono']);
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);

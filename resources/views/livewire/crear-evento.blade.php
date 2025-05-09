@@ -30,7 +30,7 @@
                     <!-- Nombre del Evento -->
                     <div>
                         <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre del Evento</label>
-                        <input type="text" id="nombre" wire:model.live="nombre"
+                        <input type="text" id="nombre" wire:model.live="nombre_evento"
                             placeholder="Ingrese el nombre del evento"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('nombre')
@@ -78,11 +78,11 @@
 
                     <!-- Es por Aprobación -->
                     <div class="flex items-center gap-2">
-                        <input type="checkbox" id="es_por_aprobacion" wire:model.live="es_por_aprobacion"
+                        <input type="checkbox" id="por_aprobacion" wire:model.live="por_aprobacion"
                             class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-                        <label for="es_por_aprobacion" class="text-sm font-medium text-gray-700">Es por
+                        <label for="por_aprobacion" class="text-sm font-medium text-gray-700">Es por
                             Aprobación</label>
-                        @error('es_por_aprobacion')
+                        @error('por_aprobacion')
                             <span class="text-sm text-red-500">{{ $message }}</span>
                         @enderror
                     </div>

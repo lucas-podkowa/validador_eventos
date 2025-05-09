@@ -7,8 +7,11 @@ use Livewire\WithFileUploads;
 use App\Models\Evento;
 use App\Models\PlanillaInscripcion;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
 
 class HabilitarPlanilla extends Component
 {
@@ -26,22 +29,23 @@ class HabilitarPlanilla extends Component
     public $showFooterModal = false;
     public $nuevaImagen;
     public $tipoModalActivo;
-
-
-
-
-    protected $rules = [
-        'apertura' => 'required|date_format:Y-m-d H:i',
-        'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
-        'disposicion' => 'required|file|mimes:pdf|max:10240', // 10MB
-    ];
-
+    public $modo = 'crear'; // 'crear' o 'editar'
 
 
     public function mount($evento_id = null)
     {
         $this->evento_id = $evento_id;
         $this->evento = Evento::findOrFail($evento_id);
+
+        $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
+        if ($planilla) {
+            $this->modo = 'editar';
+            $this->apertura = Carbon::parse($planilla->apertura)->format('Y-m-d H:i');
+            $this->cierre = Carbon::parse($planilla->cierre)->format('Y-m-d H:i');
+            $this->header = $planilla->header;
+            $this->footer = $planilla->footer;
+            $this->disposicion = $planilla->disposicion ?? null;
+        }
     }
 
     public function updatedApertura($value)
@@ -91,8 +95,6 @@ class HabilitarPlanilla extends Component
         }
     }
 
-
-
     public function guardarNuevaImagen()
     {
         $this->validate([
@@ -108,12 +110,23 @@ class HabilitarPlanilla extends Component
         $this->nuevaImagen = null;
     }
 
-
-
-    public function habilitar_planilla()
+    public function guardar_planilla()
     {
 
-        $this->validate();
+        $rules = [
+            'apertura' => 'required|date_format:Y-m-d H:i',
+            'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
+        ];
+
+        // Si está en modo crear, la disposición debe ser obligatoria
+        // Si está en modo editar, solo se valida si se cargó un nuevo archivo
+        if ($this->modo === 'crear') {
+            $rules['disposicion'] = 'required|file|mimes:pdf|max:10240';
+        } elseif ($this->disposicion instanceof \Illuminate\Http\UploadedFile) {
+            $rules['disposicion'] = 'file|mimes:pdf|max:10240';
+        }
+
+        $this->validate($rules);
 
         if ($this->header instanceof \Illuminate\Http\UploadedFile) {
             $this->header = $this->header->store('images/header', 'public');
@@ -122,11 +135,24 @@ class HabilitarPlanilla extends Component
             $this->footer = $this->footer->store('images/footer', 'public');
         }
 
-        // Formatear fechas correctamente antes de la validación
+        // Verifica si la disposición es un archivo cargado o un archivo ya existente
+        if ($this->disposicion instanceof \Illuminate\Http\UploadedFile) {
+            $anio = Carbon::parse($this->evento->fecha_inicio)->year;
+            $tipo = Str::slug($this->evento->tipoEvento->nombre);
+            $nombreEvento = Str::slug($this->evento->nombre);
+            $fechaEvento = Carbon::parse($this->evento->fecha_inicio)->format('d-m');
+            $nombreArchivo = $nombreEvento . '_' . $fechaEvento . '.pdf';
+
+            $ruta = "disposiciones/{$anio}/{$tipo}";
+            $this->disposicion = $this->disposicion->storeAs($ruta, $nombreArchivo, 'private');
+        } elseif (!$this->disposicion) {
+            // Si no hay disposición cargada y no está definida, no guardamos nada
+            $this->disposicion = null;
+        }
+
         $apertura = Carbon::createFromFormat('Y-m-d H:i', $this->apertura);
         $cierre = Carbon::createFromFormat('Y-m-d H:i', $this->cierre);
 
-        // Verificar que la fecha de apertura sea menor a la fecha de inicio del evento
         if ($apertura->gte(Carbon::parse($this->evento->fecha_inicio))) {
             $fechaInicioFormateada = Carbon::parse($this->evento->fecha_inicio)->format('d/m/Y H:i');
             $this->dispatch('oops', message: 'La fecha de apertura debe ser menor a la fecha de inicio del evento (' . $fechaInicioFormateada . ').');
@@ -135,47 +161,29 @@ class HabilitarPlanilla extends Component
 
         DB::beginTransaction();
         try {
-            // Validar y cargar las imágenes y el archivo de la disposición
-            //$headerPath = $this->header ? $this->header->store('images', 'public') : null;
-            //$footerPath = $this->footer ? $this->footer->store('images', 'public') : null;
-            $headerPath = $this->header;
-            $footerPath = $this->footer;
-            $dispoPath = $this->disposicion ? $this->disposicion->store('disposiciones', 'private') : null;
 
-            // Consulta si ya existe la planilla de inscripción para el evento
-            $planilla = PlanillaInscripcion::where('evento_id', $this->evento->evento_id)->first();
-
-            //Crea la planilla de inscripción para el evento
-            if (!$planilla) {
-                $planilla = PlanillaInscripcion::create([
-                    'evento_id' => $this->evento->evento_id,
+            PlanillaInscripcion::updateOrCreate(
+                ['evento_id' => $this->evento->evento_id],
+                [
                     'apertura' => $apertura,
                     'cierre' => $cierre,
-                    'header' => $headerPath,
-                    'footer' => $footerPath,
-                    'disposicion' => $dispoPath,
-                ]);
-            }
+                    'header' => $this->header,
+                    'footer' => $this->footer,
+                    'disposicion' => $this->disposicion,
+                ]
+            );
 
-            // Actualizar el estado del evento a "en curso"
             Evento::where('evento_id', $this->evento->evento_id)->update(['estado' => 'En Curso']);
-
             DB::commit();
-            $this->reset([
-                'apertura',
-                'cierre',
-                'header',
-                'footer',
-                'disposicion',
-                'evento',
-            ]);
+
+            $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion', 'evento', 'modo']);
             $this->redirectToEventos('en_curso');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo habilitar la planilla de inscripción: ' . $e->getMessage());
-            return;
+            $this->dispatch('oops', message: 'Error al guardar la planilla: ' . $e->getMessage());
         }
     }
+
 
     public function render()
     {
