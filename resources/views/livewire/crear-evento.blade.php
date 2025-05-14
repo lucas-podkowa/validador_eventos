@@ -77,15 +77,15 @@
                     </div>
 
                     <!-- Es por Aprobación -->
+
                     <div class="flex items-center gap-2">
-                        <input type="checkbox" id="por_aprobacion" wire:model.live="por_aprobacion"
+                        <input type="checkbox" id="por_aprobacion" wire:model="por_aprobacion"
                             class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-                        <label for="por_aprobacion" class="text-sm font-medium text-gray-700">Es por
-                            Aprobación</label>
-                        @error('por_aprobacion')
-                            <span class="text-sm text-red-500">{{ $message }}</span>
-                        @enderror
+                        <label for="por_aprobacion" class="text-sm font-medium text-gray-700">
+                            Requiere Aprobación
+                        </label>
                     </div>
+
 
                 </div>
 

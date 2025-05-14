@@ -20,6 +20,10 @@ class EventoParticipante extends Model
         'qrcode',
         'aprobado'
     ];
+    protected $primaryKey = 'evento_participantes_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
 
     protected static function boot()
     {

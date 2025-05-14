@@ -8,6 +8,7 @@ use App\Livewire\Eventos;
 use App\Livewire\HabilitarPlanilla;
 use App\Livewire\Indicadores;
 use App\Livewire\Participantes;
+use App\Livewire\ProcesarAprobaciones;
 use App\Livewire\RegistroEventoPublico;
 use Illuminate\Support\Facades\Route;
 
@@ -27,4 +28,5 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/asistencias', Asistencias::class)->name('asistencias');
     Route::get('/indicadores', Indicadores::class)->name('indicadores');
     Route::get('/validar-participante/{evento_id}/{participante_id}', [QRController::class, 'show'])->name('validar.participante');
+    Route::get('/procesar-aprobaciones', ProcesarAprobaciones::class)->name('procesar_aprobaciones');
 });

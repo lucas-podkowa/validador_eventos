@@ -5,7 +5,6 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class Evento extends Model
@@ -53,7 +52,7 @@ class Evento extends Model
     public function participantes()
     {
         return $this->belongsToMany(Participante::class, 'evento_participantes', 'evento_id', 'participante_id')
-            ->withPivot('url', 'qrcode');
+            ->withPivot('url', 'qrcode', 'aprobado');
     }
 
 

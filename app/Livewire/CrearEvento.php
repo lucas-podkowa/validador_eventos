@@ -19,7 +19,7 @@ class CrearEvento extends Component
     //use WithFileUploads;
     public $evento_id = null; // Para saber si es edición o creación
     public $tipo_evento_id = null;
-    public $por_aprobacion = null;
+    public $por_aprobacion;
     public $nombre_evento = null;
     public $fecha_inicio = null;
     public $lugar_evento = null;
@@ -54,7 +54,7 @@ class CrearEvento extends Component
                 $this->fecha_inicio = $evento->fecha_inicio;
                 $this->lugar_evento = $evento->lugar;
                 $this->cupo = $evento->cupo;
-                $this->por_aprobacion = $evento->por_aprobacion;
+                $this->por_aprobacion = (bool) $evento->por_aprobacion;
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
             }
         }
@@ -77,7 +77,7 @@ class CrearEvento extends Component
                 'lugar' => $this->lugar_evento,
                 'fecha_inicio' => Carbon::parse($this->fecha_inicio),
                 'cupo' => $this->cupo,
-                'por_aprobacion' => $this->por_aprobacion,
+                'por_aprobacion' =>  (bool) $this->por_aprobacion,
             ];
 
 
