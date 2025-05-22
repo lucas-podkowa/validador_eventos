@@ -5,13 +5,58 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('eventos') }}">
+                    <a href="{{ route('welcome') }}">
                         <x-application-mark class="block h-9 w-auto" />
                     </a>
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+
+                @role('Administrador|Asistente')
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('asistencias') }}" :active="request()->routeIs('asistencias')">
+                            {{ __('Asistencias') }}
+                        </x-nav-link>
+                    </div>
+                @endrole
+
+                @role('Administrador')
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('eventos') }}" :active="request()->routeIs('eventos')">
+                            {{ __('Eventos') }}
+                        </x-nav-link>
+                    </div>
+
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('participantes') }}" :active="request()->routeIs('participantes')">
+                            {{ __('Participantes') }}
+                        </x-nav-link>
+                    </div>
+
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('registrar_evento') }}" :active="request()->routeIs('registrar_evento')">
+                            {{ __('Registrar Evento') }}
+                        </x-nav-link>
+                    </div>
+
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('indicadores') }}" :active="request()->routeIs('indicadores')">
+                            {{ __('Indicadores') }}
+                        </x-nav-link>
+                    </div>
+                @endrole
+
+                @role('Administrador|Revisor')
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('procesar_aprobaciones') }}" :active="request()->routeIs('procesar_aprobaciones')">
+                            {{ __('Aprobaciones') }}
+                        </x-nav-link>
+                    </div>
+                @endrole
+
+
+
+                {{-- <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link href="{{ route('eventos') }}" :active="request()->routeIs('eventos')">
                         {{ __('Eventos') }}
                     </x-nav-link>
@@ -43,7 +88,7 @@
                     <x-nav-link href="{{ route('procesar_aprobaciones') }}" :active="request()->routeIs('procesar_aprobaciones')">
                         {{ __('Aprobaciones') }}
                     </x-nav-link>
-                </div>
+                </div> --}}
 
 
             </div>
@@ -179,11 +224,43 @@
 
     <!-- Responsive Navigation Menu -->
     <div :class="{ 'block': open, 'hidden': !open }" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
+        {{-- <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link href="{{ route('eventos') }}" :active="request()->routeIs('eventos')">
                 {{ __('Eventos') }}
             </x-responsive-nav-link>
+        </div> --}}
+        <div class="pt-2 pb-3 space-y-1">
+            @role('Administrador|Asistente')
+                <x-responsive-nav-link href="{{ route('asistencias') }}" :active="request()->routeIs('asistencias')">
+                    {{ __('Asistencias') }}
+                </x-responsive-nav-link>
+            @endrole
+
+            @role('Administrador')
+                <x-responsive-nav-link href="{{ route('eventos') }}" :active="request()->routeIs('eventos')">
+                    {{ __('Eventos') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link href="{{ route('participantes') }}" :active="request()->routeIs('participantes')">
+                    {{ __('Participantes') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link href="{{ route('registrar_evento') }}" :active="request()->routeIs('registrar_evento')">
+                    {{ __('Registrar Evento') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link href="{{ route('indicadores') }}" :active="request()->routeIs('indicadores')">
+                    {{ __('Indicadores') }}
+                </x-responsive-nav-link>
+            @endrole
+
+            @role('Administrador|Revisor')
+                <x-responsive-nav-link href="{{ route('procesar_aprobaciones') }}" :active="request()->routeIs('procesar_aprobaciones')">
+                    {{ __('Aprobaciones') }}
+                </x-responsive-nav-link>
+            @endrole
         </div>
+
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
