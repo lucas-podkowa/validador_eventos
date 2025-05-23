@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\WelcomeController;
+use App\Livewire\Admin\Usuarios;
 use App\Livewire\Asistencias;
 use App\Livewire\CrearEvento;
 use App\Livewire\Eventos;
@@ -38,6 +39,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/planilla/{evento_id}/editar', HabilitarPlanilla::class)->name('editar_planilla');
         Route::get('/participantes', Participantes::class)->name('participantes');
         Route::get('/indicadores', Indicadores::class)->name('indicadores');
+        Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
     });
 
     Route::middleware('can:procesar_aprobaciones')->group(function () {

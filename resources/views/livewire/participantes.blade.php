@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
     <h2 class="text-xl font-bold mb-4">Gestión de Participantes</h2>
 
     @if (session()->has('message'))

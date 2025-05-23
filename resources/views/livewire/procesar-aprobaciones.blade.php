@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
     @if (session()->has('success'))
         <div class="bg-green-200 text-green-800 p-2 mb-2">{{ session('success') }}</div>
     @endif

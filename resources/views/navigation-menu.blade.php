@@ -12,24 +12,10 @@
 
                 <!-- Navigation Links -->
 
-                @role('Administrador|Asistente')
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <x-nav-link href="{{ route('asistencias') }}" :active="request()->routeIs('asistencias')">
-                            {{ __('Asistencias') }}
-                        </x-nav-link>
-                    </div>
-                @endrole
-
                 @role('Administrador')
                     <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link href="{{ route('eventos') }}" :active="request()->routeIs('eventos')">
                             {{ __('Eventos') }}
-                        </x-nav-link>
-                    </div>
-
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <x-nav-link href="{{ route('participantes') }}" :active="request()->routeIs('participantes')">
-                            {{ __('Participantes') }}
                         </x-nav-link>
                     </div>
 
@@ -46,6 +32,14 @@
                     </div>
                 @endrole
 
+                @role('Administrador|Asistente')
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('asistencias') }}" :active="request()->routeIs('asistencias')">
+                            {{ __('Asistencias') }}
+                        </x-nav-link>
+                    </div>
+                @endrole
+
                 @role('Administrador|Revisor')
                     <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link href="{{ route('procesar_aprobaciones') }}" :active="request()->routeIs('procesar_aprobaciones')">
@@ -53,6 +47,21 @@
                         </x-nav-link>
                     </div>
                 @endrole
+
+
+                @role('Administrador')
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('participantes') }}" :active="request()->routeIs('participantes')">
+                            {{ __('Participantes') }}
+                        </x-nav-link>
+                    </div>
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('usuarios') }}" :active="request()->routeIs('usuarios')">
+                            {{ __('Usuarios') }}
+                        </x-nav-link>
+                    </div>
+                @endrole
+
 
 
 
