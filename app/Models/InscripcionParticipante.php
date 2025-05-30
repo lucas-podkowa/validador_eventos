@@ -15,10 +15,15 @@ class InscripcionParticipante extends Model
     protected $fillable = ['planilla_id', 'participante_id', 'fecha_inscripcion', 'asistencia'];
 
 
+    // public function indicadores()
+    // {
+    //     return $this->belongsToMany(Indicador::class, 'participante_indicador', 'insc_participante_id', 'indicador_id');
+    // }
     public function indicadores()
     {
-        return $this->belongsToMany(Indicador::class, 'participante_indicador', 'insc_participante_id', 'indicador_id');
+        return $this->hasMany(ParticipanteIndicador::class, 'insc_participante_id');
     }
+
 
     public function planilla()
     {

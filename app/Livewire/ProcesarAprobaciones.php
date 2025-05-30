@@ -18,6 +18,7 @@ class ProcesarAprobaciones extends Component
     {
         $this->eventos = Evento::where('por_aprobacion', true)
             ->where('estado', 'finalizado')
+            ->where('revisado', false)
             // ->whereHas('participantes', function ($query) {
             //     $query->whereNull('evento_participantes.aprobado');
             // })
@@ -55,6 +56,7 @@ class ProcesarAprobaciones extends Component
             foreach ($this->participantes as $p) {
                 $p->update(['aprobado' => $this->estadoAprobacion[$p->evento_participantes_id]]);
             }
+            $this->eventoSeleccionado->update(['revisado' => true]);
 
             DB::commit();
             $this->dispatch('success', message: 'Participantes actualizados correctamente.');

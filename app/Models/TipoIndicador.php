@@ -11,7 +11,7 @@ class TipoIndicador extends Model
     public $timestamps = false;
     protected $table = 'tipo_indicador';
     protected $primaryKey = 'tipo_indicador_id';
-    protected $fillable = ['nombre'];
+    protected $fillable = ['nombre', 'selector'];
 
 
     public function indicadores()

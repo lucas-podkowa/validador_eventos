@@ -68,6 +68,7 @@ class CrearEvento extends Component
     {
         // Validar los datos del formulario
         $this->validate();
+        $this->nombre_evento = mb_strtoupper(trim($this->nombre_evento));
 
         DB::beginTransaction();
         try {

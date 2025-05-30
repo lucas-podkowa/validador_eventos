@@ -98,11 +98,31 @@
     <x-dialog-modal wire:model="showTipoModal">
         <x-slot name="title">{{ $isCreatingTipo ? 'Crear' : 'Editar' }} Tipo de Indicador</x-slot>
         <x-slot name="content">
-            <input type="text" wire:model.defer="tipo_nombre" class="w-full border rounded p-1"
-                placeholder="Nombre del tipo">
-            @error('tipo_nombre')
-                <span class="text-red-600 text-sm">{{ $message }}</span>
-            @enderror
+
+            {{-- Formulario dentro del modal de Tipo de Indicador --}}
+            <div class="space-y-4">
+                <div>
+                    <label for="tipo_nombre" class="block font-medium text-gray-700">Nombre del Tipo</label>
+                    <input type="text" wire:model.defer="tipo_nombre" id="tipo_nombre"
+                        class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    @error('tipo_nombre')
+                        <span class="text-sm text-red-600">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="tipo_selector" class="block font-medium text-gray-700">Tipo de Selección</label>
+                    <select wire:model.defer="tipo_selector" id="tipo_selector"
+                        class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                        <option value="Selección Única">Selección Única</option>
+                        <option value="Selección Múltiple">Selección Múltiple</option>
+                        <option value="Texto Libre">Texto Libre</option>
+                    </select>
+                    @error('tipo_selector')
+                        <span class="text-sm text-red-600">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
         </x-slot>
         <x-slot name="footer">
             <x-secondary-button wire:click="$set('showTipoModal', false)">

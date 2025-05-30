@@ -19,7 +19,7 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                @foreach ($eventosFinalizados as $evento)
+                {{-- @foreach ($eventosFinalizados as $evento)
                     <tr>
                         <td class="px-6 py-3">{{ $evento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
@@ -58,7 +58,54 @@
                             </div>
                         </td>
                     </tr>
+                @endforeach --}}
+                @foreach ($eventosFinalizados as $evento)
+                    <tr>
+                        <td class="px-6 py-3">{{ $evento->nombre }}</td>
+                        <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
+                        <td class="px-6 py-3">{{ $evento->fecha_inicio }}</td>
+
+                        <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
+                            @if ($evento->por_aprobacion && !$evento->revisado)
+                                <div class="flex items-center justify-center text-yellow-600">
+                                    <i class="fa-solid fa-triangle-exclamation fa-xl"
+                                        title="Requiere revisar Aprobaciones"></i>
+                                </div>
+                            @else
+                                <div x-data="{ open: false }">
+                                    <button @click="open = !open"
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-md focus:outline-none flex items-center">
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </button>
+
+                                    <div x-show="open" @click.away="open = false"
+                                        class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
+                                        style="z-index: 9999;">
+
+                                        <a wire:click="detail({{ $evento }})"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-2 fa-solid fa-qrcode fa-xl"></i>
+                                            Ver Códigos QR
+                                        </a>
+
+                                        <a wire:click="emitir({{ $evento }})"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
+                                            Emitir Certificados
+                                        </a>
+
+                                        <a wire:click="abrirCarpeta('{{ $evento->certificado_path }}')"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-1 fa-solid fa-folder-open fa-xl"></i>
+                                            Descargar Certificados
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+                        </td>
+                    </tr>
                 @endforeach
+
             </tbody>
         </table>
     </x-table>

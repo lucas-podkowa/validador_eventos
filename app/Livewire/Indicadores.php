@@ -24,6 +24,7 @@ class Indicadores extends Component
 
     // Formulario para TipoIndicador
     public $tipo_nombre, $editingTipoId = null;
+    public $tipo_selector = 'Selección Única'; // valor por defecto
 
     // Formulario para Indicador
     public $indicador_nombre, $tipo_indicador_id, $editingIndicadorId = null;
@@ -59,7 +60,8 @@ class Indicadores extends Component
     //----------------------------------------------------
     public function createTipo()
     {
-        $this->reset(['tipo_nombre', 'editingTipoId']);
+        $this->reset(['tipo_nombre', 'tipo_selector', 'editingTipoId']);
+        $this->tipo_selector = 'Selección Única'; // por defecto
         $this->isCreatingTipo = true;
         $this->showTipoModal = true;
     }
@@ -68,19 +70,27 @@ class Indicadores extends Component
     {
         $tipo = TipoIndicador::findOrFail($id);
         $this->tipo_nombre = $tipo->nombre;
+        $this->tipo_selector = $tipo->selector;
         $this->editingTipoId = $tipo->tipo_indicador_id;
         $this->showTipoModal = true;
     }
 
     public function saveTipo()
     {
-        $this->validate(['tipo_nombre' => 'required|string|max:255']);
+
+        $this->validate([
+            'tipo_nombre' => 'required|string|max:255',
+            'tipo_selector' => 'required|in:Selección Única,Selección Múltiple,Texto Libre',
+        ]);
 
         if ($this->isCreatingTipo) {
             TipoIndicador::create(['nombre' => $this->tipo_nombre]);
         } else {
             $tipo = TipoIndicador::findOrFail($this->editingTipoId);
-            $tipo->update(['nombre' => $this->tipo_nombre]);
+            $tipo->update([
+                'nombre' => $this->tipo_nombre,
+                'selector' => $this->tipo_selector,
+            ]);
         }
 
         $this->showTipoModal = false;

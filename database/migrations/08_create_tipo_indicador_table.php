@@ -12,6 +12,7 @@ return new class extends Migration
         Schema::create('tipo_indicador', function (Blueprint $table) {
             $table->id('tipo_indicador_id');
             $table->string('nombre')->unique();
+            $table->enum('selector', ['Selección Única', 'Selección Múltiple', 'Texto Libre'])->default('Selección Única');
         });
     }
 

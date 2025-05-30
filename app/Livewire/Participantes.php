@@ -55,6 +55,10 @@ class Participantes extends Component
             'telefono' => 'required|string|max:20',
         ]);
 
+        // Normalizar nombre y apellido antes de guardar o actualizar
+        $this->nombre = ucfirst(mb_strtolower(trim($this->nombre)));
+        $this->apellido = ucfirst(mb_strtolower(trim($this->apellido)));
+
         $participante = Participante::findOrFail($this->participante_id);
         $participante->update([
             'nombre' => $this->nombre,

@@ -34,8 +34,8 @@
                 <div class="flex w-full gap-4 ">
                     <div class="w-1/2 bg-gray-100 rounded-xl">
                         <button type="button" wire:click="abrirGaleria('header')"
-                            class="btn btn-secondary w-full">Imagen de
-                            Cabecera</button>
+                            class="btn btn-secondary w-full">Imagen de Cabecera
+                        </button>
                         @if ($header)
                             <img src="{{ asset('storage/' . $header) }}" class="max-h-24 w-auto object-contain mx-auto">
                         @endif
@@ -46,8 +46,8 @@
 
                     <div class="w-1/2 bg-gray-100 rounded-xl">
                         <button type="button" wire:click="abrirGaleria('footer')"
-                            class="btn btn-secondary w-full">Imagen de
-                            Pie</button>
+                            class="btn btn-secondary w-full">Imagen de Pie
+                        </button>
                         @if ($footer)
                             <img src="{{ asset('storage/' . $footer) }}"
                                 class="max-h-24 w-auto object-contain mx-auto bg-red-300">
@@ -102,79 +102,94 @@
 
     <!-- Modal Cabecera -->
     @if ($showHeaderModal)
-        <x-modal>
+
+        <x-dialog-modal wire:model="showHeaderModal">
+
             <x-slot name="title">Seleccionar Cabecera</x-slot>
+            <x-slot name="content">
+                {{-- Galería --}}
+                <div class="grid grid-cols-3 gap-4 p-2">
+                    @foreach ($imagenesDisponibles as $imagen)
+                        <div class="cursor-pointer border rounded-lg bg-white p-2 shadow-md hover:scale-105 transition"
+                            wire:click="seleccionarImagen('{{ $imagen }}', 'header')">
+                            <img src="{{ asset('storage/' . $imagen) }}" class="rounded-md w-full h-40 object-cover"
+                                alt="Imagen disponible">
+                        </div>
+                    @endforeach
+                </div>
 
-            {{-- Galería --}}
-            <div class="grid grid-cols-3 gap-2 p-2">
-                @foreach ($imagenesDisponibles as $imagen)
-                    <div class="cursor-pointer" wire:click="seleccionarImagen('{{ $imagen }}', 'header')">
-                        <img src="{{ asset('storage/' . $imagen) }}" class="rounded shadow hover:scale-105 transition">
-                    </div>
-                @endforeach
-            </div>
+                {{-- Cargar nueva imagen --}}
+                <div class="border-t pt-4 mt-4">
 
-            {{-- Cargar nueva imagen --}}
-            <div class="border-t pt-4 mt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Subir nueva imagen</label>
-                <input type="file" wire:model="nuevaImagen" accept="image/*"
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
-                   file:rounded-md file:border-0 file:text-sm file:font-semibold
-                   file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                    {{-- <input type="file" wire:model="nuevaImagen" accept="image/*"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+               file:rounded-md file:border-0 file:text-sm file:font-semibold
+               file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" /> --}}
 
-                @error('nuevaImagen')
-                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                @enderror
+                    <input type="file" wire:model="nuevaImagen" accept="image/*"
+                        class="block w-full text-sm text-gray-500
+           file:mr-4 file:py-2 file:px-4
+           file:rounded-md file:border-0 file:text-sm file:font-semibold
+           file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100
+           file:content-['Subir_nueva_imagen']" />
 
-                <button type="button" wire:click="guardarNuevaImagen"
-                    class="mt-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
-                    Subir Imagen
-                </button>
-            </div>
 
-            <x-slot name="footer">
-                <x-secondary-button wire:click="$set('showHeaderModal', false)">Cancelar</x-secondary-button>
+                    @error('nuevaImagen')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+
+                    <button type="button" wire:click="guardarNuevaImagen"
+                        class="mt-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
+                        Subir Imagen
+                    </button>
+                </div>
             </x-slot>
-        </x-modal>
+            <x-slot name="footer">
+                <x-secondary-button wire:click="cerrarGaleria">Cancelar</x-secondary-button>
+            </x-slot>
+        </x-dialog-modal>
+
     @endif
 
     <!-- Modal Pie -->
     @if ($showFooterModal)
-        <x-modal>
+        <x-dialog-modal wire:model="showFooterModal">
             <x-slot name="title">Seleccionar Pie de Página</x-slot>
+            <x-slot name="content">
+                {{-- Galería --}}
+                <div class="grid grid-cols-3 gap-4 p-2">
+                    @foreach ($imagenesDisponibles as $imagen)
+                        <div class="cursor-pointer border rounded-lg bg-white p-2 shadow-md hover:scale-105 transition"
+                            wire:click="seleccionarImagen('{{ $imagen }}', 'footer')">
+                            <img src="{{ asset('storage/' . $imagen) }}" class="rounded-md w-full h-40 object-cover"
+                                alt="Imagen disponible">
+                        </div>
+                    @endforeach
+                </div>
 
-            {{-- Galería --}}
-            <div class="grid grid-cols-3 gap-2 p-2">
-                @foreach ($imagenesDisponibles as $imagen)
-                    <div class="cursor-pointer" wire:click="seleccionarImagen('{{ $imagen }}', 'footer')">
-                        <img src="{{ asset('storage/' . $imagen) }}" class="rounded shadow hover:scale-105 transition">
-                    </div>
-                @endforeach
-            </div>
+                {{-- Cargar nueva imagen --}}
+                <div class="border-t pt-4 mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Subir nueva imagen</label>
+                    <input type="file" wire:model="nuevaImagen" accept="image/*"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+               file:rounded-md file:border-0 file:text-sm file:font-semibold
+               file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
 
-            {{-- Cargar nueva imagen --}}
-            <div class="border-t pt-4 mt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Subir nueva imagen</label>
-                <input type="file" wire:model="nuevaImagen" accept="image/*"
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
-                   file:rounded-md file:border-0 file:text-sm file:font-semibold
-                   file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                    @error('nuevaImagen')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
 
-                @error('nuevaImagen')
-                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                @enderror
-
-                <button type="button" wire:click="guardarNuevaImagen"
-                    class="mt-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
-                    Subir Imagen
-                </button>
-            </div>
+                    <button type="button" wire:click="guardarNuevaImagen"
+                        class="mt-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
+                        Subir Imagen
+                    </button>
+                </div>
+            </x-slot>
 
             <x-slot name="footer">
-                <x-secondary-button wire:click="$set('showFooterModal', false)">Cancelar</x-secondary-button>
+                <x-secondary-button wire:click="cerrarGaleria">Cancelar</x-secondary-button>
             </x-slot>
-        </x-modal>
+        </x-dialog-modal>
+
     @endif
-
-
 </div>

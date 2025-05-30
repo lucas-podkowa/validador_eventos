@@ -29,7 +29,17 @@ class HabilitarPlanilla extends Component
     public $showFooterModal = false;
     public $nuevaImagen;
     public $tipoModalActivo;
-    public $modo = 'crear'; // 'crear' o 'editar'
+    public $modo = 'crear';
+
+
+    protected function rules()
+    {
+        return [
+            'apertura' => 'required|date_format:Y-m-d H:i|before:cierre',
+            'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
+            'disposicion' => 'required|file|mimes:pdf|max:10240', // 10MB
+        ];
+    }
 
 
     public function mount($evento_id = null)
@@ -74,7 +84,6 @@ class HabilitarPlanilla extends Component
             return collect(['.jpg', '.jpeg', '.png'])->contains(fn($ext) => str_ends_with($file, $ext));
         })->values()->all();
 
-
         if ($tipo === 'header') {
             $this->showHeaderModal = true;
         } elseif ($tipo === 'footer') {
@@ -82,7 +91,13 @@ class HabilitarPlanilla extends Component
         }
     }
 
-
+    public function cerrarGaleria()
+    {
+        $this->showHeaderModal = false;
+        $this->showFooterModal = false;
+        $this->tipoModalActivo = null;
+        $this->nuevaImagen = null;
+    }
 
     public function seleccionarImagen($path, $tipo)
     {
@@ -97,26 +112,30 @@ class HabilitarPlanilla extends Component
 
     public function guardarNuevaImagen()
     {
+        if (!$this->tipoModalActivo) {
+            $this->addError('nuevaImagen', 'No se pudo determinar el tipo de imagen (header o footer).');
+            return;
+        }
+
         $this->validate([
             'nuevaImagen' => 'required|image|max:10240',
         ]);
 
-        $path = $this->nuevaImagen->store('images/' . $this->tipoModalActivo, 'public');
-
-        // Refrescar galería
-        $this->abrirGaleria($this->tipoModalActivo);
-
-        // Limpiar input
-        $this->nuevaImagen = null;
+        try {
+            //$path = $this->nuevaImagen->store('images', 'public');
+            $path = $this->nuevaImagen->store('images/' . $this->tipoModalActivo, 'public');
+            $this->imagenesDisponibles[] = $path;
+            // Refrescar galería
+            $this->abrirGaleria($this->tipoModalActivo);
+            $this->nuevaImagen = null;
+            $this->dispatch('image-uploaded');
+        } catch (\Exception $e) {
+            $this->addError('nuevaImagen', 'Error al subir la imagen.');
+        }
     }
 
     public function guardar_planilla()
     {
-
-        $rules = [
-            'apertura' => 'required|date_format:Y-m-d H:i',
-            'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
-        ];
 
         // Si está en modo crear, la disposición debe ser obligatoria
         // Si está en modo editar, solo se valida si se cargó un nuevo archivo
@@ -125,8 +144,8 @@ class HabilitarPlanilla extends Component
         } elseif ($this->disposicion instanceof \Illuminate\Http\UploadedFile) {
             $rules['disposicion'] = 'file|mimes:pdf|max:10240';
         }
+        $this->validate();
 
-        $this->validate($rules);
 
         if ($this->header instanceof \Illuminate\Http\UploadedFile) {
             $this->header = $this->header->store('images/header', 'public');

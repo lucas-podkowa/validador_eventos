@@ -71,56 +71,38 @@
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
                         </div>
-
-                        <!-- Campo: Localidad -->
-                        {{-- <div class="flex items-start">
-                    <label for="localidad_nombre" class="text-right pr-4 font-medium mr-2">Localidad:</label>
-                    <div class="flex-1 relative">
-                        <input type="text" id="localidad_nombre" wire:model="localidad_nombre"
-                            wire:keyup="buscarLocalidades" placeholder="Escriba el nombre de la localidad"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
-                        <ul class="bg-white shadow rounded-md mt-2 absolute w-full z-10 max-h-40 overflow-y-auto">
-                            @if (!empty($localidadesFiltradas))
-                                @foreach ($localidadesFiltradas as $localidad)
-                                    <li class="px-4 py-2 cursor-pointer hover:bg-gray-200"
-                                        wire:click="seleccionarLocalidad({{ $localidad->localidad_id }}, '{{ $localidad->nombre }}')">
-                                        {{ $localidad->nombre }}
-                                    </li>
-                                @endforeach
-                            @endif
-                            @if (empty($localidadesFiltradas) && !empty($localidad_nombre))
-                                <li class="px-4 py-2 text-gray-500">
-                                    Sin coincidencias. "{{ $localidad_nombre }}" será agregada a la base de datos.
-                                </li>
-                            @endif
-                        </ul>
-                        @error('localidad_id')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </div>
-                </div> --}}
                     </div>
 
                     <!-- Indicadores -->
                     <div class="space-y-6">
-                        @foreach ($evento->tipoIndicadores as $tipo_indicador)
+                        @foreach ($evento->tipoIndicadores as $tipo)
                             <fieldset>
-                                <legend class="font-semibold">{{ $tipo_indicador->nombre }}</legend>
-                                <div class="mt-2 space-y-2">
-                                    @foreach ($tipo_indicador->indicadores as $indicador)
-                                        <div class="flex items-center">
-                                            <input type="checkbox" name="indicadores[]"
-                                                id="indicador_{{ $indicador->id }}" value="{{ $indicador->id }}"
-                                                class="mr-2">
-                                            <label
-                                                for="indicador_{{ $indicador->id }}">{{ $indicador->nombre }}</label>
-                                        </div>
-                                    @endforeach
+                                <legend class="font-semibold mb-2">{{ $tipo->nombre }}</legend>
+                                <div class="flex flex-col space-y-2 ml-4">
+                                    @if ($tipo->selector === 'Selección Múltiple')
+                                        @foreach ($tipo->indicadores as $indicador)
+                                            <label class="inline-flex items-center mr-4">
+                                                <input type="checkbox" wire:model="indicadoresMutiples"
+                                                    value="{{ $indicador->indicador_id }}" class="mr-1">
+                                                {{ $indicador->nombre }}
+                                            </label>
+                                        @endforeach
+                                    @else
+                                        @foreach ($tipo->indicadores as $indicador)
+                                            <label class="inline-flex items-center mr-4">
+                                                <input type="radio"
+                                                    name="indicadoresUnicos_{{ $tipo->tipo_indicador_id }}"
+                                                    wire:model="indicadoresUnicos.{{ $tipo->tipo_indicador_id }}"
+                                                    value="{{ $indicador->indicador_id }}" class="mr-1">
+                                                {{ $indicador->nombre }}
+                                            </label>
+                                        @endforeach
+                                    @endif
                                 </div>
                             </fieldset>
-                            <hr class="my-4 border-gray-300">
                         @endforeach
                     </div>
+
 
                     <!-- Botón -->
                     <button type="submit"
