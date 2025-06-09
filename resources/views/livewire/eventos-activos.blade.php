@@ -21,7 +21,15 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
                         Fecha de Inicio
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Acciones</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Revisor
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Periodo de Inscripción
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        Acciones
+                    </th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -30,6 +38,23 @@
                         <td class="px-6 py-2">{{ $evento->nombre }}</td>
                         <td class="px-6 py-2">{{ $evento->tipoEvento->nombre }}</td>
                         <td class="px-6 py-2">{{ $evento->fecha_inicio_formatted }}</td>
+                        <td>
+                            @if ($evento->por_aprobacion)
+                                {{ $evento->revisor ? $evento->revisor->name : 'No asignado' }}
+                            @else
+                                No Requiere
+                            @endif
+                        </td>
+                        <td>
+                            @if ($evento->planillaInscripcion)
+                                {{ \Carbon\Carbon::parse($evento->planillaInscripcion->apertura)->format('d/m/Y') }}
+                                -
+                                {{ \Carbon\Carbon::parse($evento->planillaInscripcion->cierre)->format('d/m/Y') }}
+                            @else
+                                No definida
+                            @endif
+                        </td>
+
                         <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
                             <div x-data="{ open: false }">
                                 <button @click="open = !open"
@@ -56,10 +81,17 @@
                                     </a>
 
                                     <hr class="border-gray-200">
+                                    @if ($evento->por_aprobacion)
+                                        <a wire:click="modalRevisor('{{ addslashes($evento->evento_id) }}')"
+                                            class="block px-4 py-1 text-blue-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="fas fa-user-check fa-xl"></i>Asignar Revisor
+                                        </a>
+                                    @endif
+
                                     <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
                                         style="text-decoration: none; color: inherit;">
-                                        <i class="fa-solid fa-edit fa-xl text-black"></i>Editar Evento
+                                        <i class="fa-solid fa-edit fa-xl text-black"></i> Editar Evento
                                     </a>
                                     <a onclick="confirmFinish('{{ addslashes($evento->evento_id) }}')"
                                         class="block px-4 py-1 text-blue-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
@@ -78,6 +110,42 @@
             </tbody>
         </table>
     </x-table>
+    <x-dialog-modal wire:model="open_modal_revisor">
+        <x-slot name="title">
+            Asignar Revisor al Evento
+        </x-slot>
+
+        <x-slot name="content">
+            <div>
+                <input type="text" wire:model.live="busqueda_usuario" class="w-full rounded border-gray-300"
+                    placeholder="Buscar por nombre o email...">
+            </div>
+
+            <div class="mt-4">
+                @forelse ($usuarios_filtrados as $usuario)
+                    <label class="flex items-center space-x-2 mb-2">
+                        <input type="radio" wire:model="usuario_seleccionado_id" value="{{ $usuario->id }}">
+                        <span>{{ $usuario->name }} - {{ $usuario->email }}</span>
+                    </label>
+                @empty
+                    <p class="text-sm text-gray-500">Sin resultados.</p>
+                @endforelse
+            </div>
+        </x-slot>
+
+        <x-slot name="footer">
+
+            <div class="flex">
+                <x-secondary-button wire:click="$set('open_modal_revisor', false)">
+                    Volver
+                </x-secondary-button>
+                <button type="button" wire:click="guardarRevisor" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+                    Guardar
+                </button>
+            </div>
+        </x-slot>
+    </x-dialog-modal>
 
 
     @if ($evento_selected && $mostrar_inscriptos)
@@ -115,5 +183,9 @@
             <div class="px-6 py-4">Aún no se han registrado Participantes</div>
         @endif
     @endif
+
+    <!-- Modal -->
+
+
 
 </div>

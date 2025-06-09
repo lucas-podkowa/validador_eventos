@@ -135,6 +135,10 @@ class EventosFinalizados extends Component
             ->orderBy($this->sort, $this->direction)
             ->paginate(10);
 
+        foreach ($eventosFinalizados as $evento) {
+            $evento->certificados_disponibles = $evento->certificado_path && Storage::exists($evento->certificado_path);
+        }
+
         // $eventosFinalizados = Evento::where('estado', 'finalizado')
         //     ->when($this->search != '', function ($query) {
         //         $query->where('nombre', 'like', '%' . $this->search . '%');

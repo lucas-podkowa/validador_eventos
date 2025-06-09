@@ -20,6 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('tipo_evento_id');
             $table->boolean('por_aprobacion')->default(false);
             $table->boolean('revisado')->default(false);
+            $table->integer('revisor_id')->nullable(); // ID del revisor, puede ser nulo si no se requiere revisión
             $table->unsignedTinyInteger('porcentaje_asistencia_requerido')->default(70); // 70% por defecto
             $table->string('certificado_path')->nullable();
             $table->foreign('tipo_evento_id')->references('tipo_evento_id')->on('tipo_evento')->onDelete('cascade');

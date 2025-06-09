@@ -19,7 +19,9 @@ class CrearEvento extends Component
     //use WithFileUploads;
     public $evento_id = null; // Para saber si es edición o creación
     public $tipo_evento_id = null;
-    public $por_aprobacion;
+
+    public bool $por_aprobacion = false;
+
     public $nombre_evento = null;
     public $fecha_inicio = null;
     public $lugar_evento = null;

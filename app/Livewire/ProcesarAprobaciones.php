@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Evento;
 use App\Models\EventoParticipante;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 
@@ -13,21 +14,33 @@ class ProcesarAprobaciones extends Component
     public $eventoSeleccionado = null;
     public $participantes = [];
     public $estadoAprobacion = [];
+    protected $listeners = ['finalizarRevision'];
 
     public function mount()
     {
-        $this->eventos = Evento::where('por_aprobacion', true)
+        $usuario = Auth::user();
+
+        $query = Evento::where('por_aprobacion', true)
             ->where('estado', 'finalizado')
-            ->where('revisado', false)
-            // ->whereHas('participantes', function ($query) {
-            //     $query->whereNull('evento_participantes.aprobado');
-            // })
-            ->get();
+            ->where('revisado', false);
+
+        if ($usuario->hasRole('Revisor')) {
+            $query->where('revisor_id', $usuario->id);
+        }
+
+        $this->eventos = $query->get();
     }
+
 
     public function seleccionarEvento($eventoId)
     {
-        $this->eventoSeleccionado = Evento::find($eventoId);
+        $evento = Evento::findOrFail($eventoId);
+
+        if (Auth::user()->hasRole('revisor') && $evento->revisor_id !== Auth::id()) {
+            abort(403, 'No autorizado a ver este evento.');
+        }
+
+        $this->eventoSeleccionado = $evento;
 
         $this->participantes = EventoParticipante::with('participante')
             ->where('evento_id', $eventoId)
@@ -37,6 +50,7 @@ class ProcesarAprobaciones extends Component
             $this->estadoAprobacion[$p->evento_participantes_id] = $p->aprobado ?? false;
         }
     }
+
 
 
     public function actualizarEstado($index, $valor)
@@ -56,7 +70,7 @@ class ProcesarAprobaciones extends Component
             foreach ($this->participantes as $p) {
                 $p->update(['aprobado' => $this->estadoAprobacion[$p->evento_participantes_id]]);
             }
-            $this->eventoSeleccionado->update(['revisado' => true]);
+            //$this->eventoSeleccionado->update(['revisado' => true]);
 
             DB::commit();
             $this->dispatch('success', message: 'Participantes actualizados correctamente.');
@@ -67,6 +81,18 @@ class ProcesarAprobaciones extends Component
             $this->dispatch('oops', message: 'No se pudo Actualizar el listado de Aprobados: ' . $e->getMessage());
         }
     }
+
+    public function finalizarRevision()
+    {
+        try {
+            $this->eventoSeleccionado->update(['revisado' => true]);
+            $this->reset(['eventoSeleccionado', 'participantes']);
+            $this->mount();
+        } catch (\Throwable $e) {
+            $this->dispatch('oops', message: 'Error al finalizar la revisión: ' . $e->getMessage());
+        }
+    }
+
 
     public function render()
     {

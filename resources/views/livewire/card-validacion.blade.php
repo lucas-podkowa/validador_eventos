@@ -5,7 +5,7 @@
     align-items: center;
     width: 100%; 
     height: 100%; 
-    background-image: url('{{ $path_fondo }}'); 
+    background-image: url('{{ $base64 }}'); 
     background-position: center center;
     background-size: contain; 
     background-repeat: no-repeat;

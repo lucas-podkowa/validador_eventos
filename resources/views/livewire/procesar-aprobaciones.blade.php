@@ -71,11 +71,49 @@
                     @endforeach
                 </tbody>
             </table>
-            <button type="submit" style="font-size: 0.75rem; font-weight: 600"
-                class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                Guardar Aprobaciones
-            </button>
+            <div class="flex justify-between items-center mt-4">
+                <button onclick="confirmFinish()" type="button" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-danger rounded-md text-white uppercase py-2 px-4 mx-4 ">
+                    Finalizar Revisión
+                </button>
+
+                <button type="submit" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+                    Guardar Aprobaciones
+                </button>
+
+
+            </div>
+
 
         </form>
     @endif
+
+    <script>
+        //script para el boton finalizarRevision
+        function confirmFinish() {
+            Swal.fire({
+                title: '¿Estás seguro de finalizar la Revisión?',
+                text: "Esto representa el estado final de las aprobaciones y no se podrán realizar modificaciones futuras",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, Finalizar',
+                cancelButtonText: 'Volver'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Livewire.dispatch('finalizarRevision');
+                    Swal.fire({
+                        timer: 2000,
+                        position: "bottom-end",
+                        icon: "info",
+                        title: "Finalizado",
+                        text: "Revisión finalizada correctamente.",
+                        showConfirmButton: false
+                    });
+                }
+            })
+        }
+    </script>
 </div>

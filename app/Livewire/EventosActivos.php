@@ -7,6 +7,7 @@ use App\Models\EventoParticipante;
 use App\Models\InscripcionParticipante;
 use App\Models\PlanillaInscripcion;
 use App\Models\TipoEvento;
+use App\Models\User;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -37,6 +38,12 @@ class EventosActivos extends Component
         'finalizarEvento', // Debe coincidir con el evento emitido
         'cancelarEvento',
     ];
+
+    // para revisor
+    public $open_modal_revisor = false;
+    public $busqueda_usuario = '';
+    public $usuarios_filtrados = [];
+    public $usuario_seleccionado_id = null;
 
     //public $open_edit_modal = false;
     public $apertura;
@@ -85,6 +92,41 @@ class EventosActivos extends Component
     {
         return redirect()->route('eventos', ['tab' => $tab]);
     }
+
+    //----------------------------------------------------------------------------
+    //------ Metodo disparado por el boton "Asignar Revisor" --------
+    //----------------------------------------------------------------------------
+    public function modalRevisor($evento_id)
+    {
+        $this->evento_selected = Evento::find($evento_id);
+        $this->open_modal_revisor = true;
+        $this->busqueda_usuario = '';
+        $this->usuarios_filtrados = [];
+        $this->usuario_seleccionado_id = null;
+    }
+
+    public function updatedBusquedaUsuario()
+    {
+        $this->usuarios_filtrados = User::where(function ($query) {
+            $query->where('name', 'like', '%' . $this->busqueda_usuario . '%')
+                ->orWhere('email', 'like', '%' . $this->busqueda_usuario . '%');
+        })
+            ->limit(10)
+            ->get();
+    }
+
+    public function guardarRevisor()
+    {
+        if ($this->evento_selected && $this->usuario_seleccionado_id) {
+            $this->evento_selected->revisor_id = $this->usuario_seleccionado_id;
+            $this->evento_selected->save();
+
+            $this->dispatch('success', message: 'Revisor asignado correctamente.');
+        }
+
+        $this->reset(['open_modal_revisor', 'evento_selected', 'busqueda_usuario', 'usuarios_filtrados', 'usuario_seleccionado_id']);
+    }
+
 
 
     //----------------------------------------------------------------------------
@@ -209,6 +251,7 @@ class EventosActivos extends Component
     public function render()
     {
         $eventos = Evento::query()
+            ->with(['planillaInscripcion', 'revisor'])
             ->when($this->search, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%');
             })

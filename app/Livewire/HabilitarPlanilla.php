@@ -7,7 +7,6 @@ use Livewire\WithFileUploads;
 use App\Models\Evento;
 use App\Models\PlanillaInscripcion;
 use Carbon\Carbon;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -34,12 +33,18 @@ class HabilitarPlanilla extends Component
 
     protected function rules()
     {
-        return [
+        $rules = [
             'apertura' => 'required|date_format:Y-m-d H:i|before:cierre',
             'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
-            'disposicion' => 'required|file|mimes:pdf|max:10240', // 10MB
         ];
+
+        if ($this->modo === 'crear' || $this->disposicion instanceof \Illuminate\Http\UploadedFile) {
+            $rules['disposicion'] = 'required|file|mimes:pdf|max:10240';
+        }
+
+        return $rules;
     }
+
 
 
     public function mount($evento_id = null)
@@ -136,16 +141,7 @@ class HabilitarPlanilla extends Component
 
     public function guardar_planilla()
     {
-
-        // Si está en modo crear, la disposición debe ser obligatoria
-        // Si está en modo editar, solo se valida si se cargó un nuevo archivo
-        if ($this->modo === 'crear') {
-            $rules['disposicion'] = 'required|file|mimes:pdf|max:10240';
-        } elseif ($this->disposicion instanceof \Illuminate\Http\UploadedFile) {
-            $rules['disposicion'] = 'file|mimes:pdf|max:10240';
-        }
         $this->validate();
-
 
         if ($this->header instanceof \Illuminate\Http\UploadedFile) {
             $this->header = $this->header->store('images/header', 'public');

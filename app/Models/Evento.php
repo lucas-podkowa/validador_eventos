@@ -17,7 +17,7 @@ class Evento extends Model
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path', 'cupo', 'por_aprobacion', 'revisado'];
+    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path', 'cupo', 'por_aprobacion', 'revisor_id', 'revisado'];
 
     protected static function boot()
     {
@@ -47,6 +47,11 @@ class Evento extends Model
     public function esPorAprobacion(): bool
     {
         return $this->por_aprobacion;
+    }
+
+    public function revisor()
+    {
+        return $this->belongsTo(User::class, 'revisor_id');
     }
 
     public function participantes()

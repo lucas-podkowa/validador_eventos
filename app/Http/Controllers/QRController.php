@@ -21,7 +21,16 @@ class QRController extends Controller
             $fondo = 'cert_no_valido.png';
         }
 
-        $path_fondo = asset('storage/images/' . $fondo);
-        return view('livewire.card-validacion', compact('evento', 'participante', 'path_fondo'));
+        $path = storage_path("app/private/img_validacion/{$fondo}");
+
+        if (!file_exists($path)) {
+            abort(404, "Imagen de fondo no encontrada.");
+        }
+
+        $type = pathinfo($path, PATHINFO_EXTENSION);
+        $data = file_get_contents($path);
+        $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+
+        return view('livewire.card-validacion', compact('evento', 'participante', 'base64'));
     }
 }
