@@ -36,30 +36,35 @@
                         <!-- Enlaces a la derecha -->
                         <nav class="-mx-3 flex flex-1 justify-normal nav_superior">
                             @auth
-                                {{-- <a href="{{ url('/eventos') }}"
-                                    class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
-                                    Panel de Control
-                                </a> --}}
-
                                 @php
                                     $user = auth()->user();
                                 @endphp
 
-                                @if ($user && !$user->hasRole('Invitado'))
-                                    @php
-                                        $panelRoute = match (true) {
-                                            $user->hasRole('Administrador') => route('eventos'),
-                                            $user->hasRole('Revisor') => route('procesar_aprobaciones'),
-                                            $user->hasRole('Asistente') => route('asistencias'),
-                                            default => null,
-                                        };
-                                    @endphp
+                                @if ($user)
+                                    @if (!$user->hasRole('Invitado'))
+                                        @php
+                                            $panelRoute = match (true) {
+                                                $user->hasRole('Administrador') => route('eventos'),
+                                                $user->hasRole('Revisor') => route('procesar_aprobaciones'),
+                                                $user->hasRole('Asistente') => route('asistencias'),
+                                                default => null,
+                                            };
+                                        @endphp
 
-                                    @if ($panelRoute)
-                                        <a href="{{ $panelRoute }}"
-                                            class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
-                                            Panel de Control
-                                        </a>
+                                        @if ($panelRoute)
+                                            <a href="{{ $panelRoute }}"
+                                                class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
+                                                Panel de Control
+                                            </a>
+                                        @endif
+                                    @else
+                                        <form method="POST" action="{{ route('logout') }}">
+                                            @csrf
+                                            <button type="submit"
+                                                class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
+                                                Cerrar Sesión
+                                            </button>
+                                        </form>
                                     @endif
                                 @endif
                             @else
