@@ -56,20 +56,31 @@ class DatabaseSeeder extends Seeder
 
         // Crear roles
         Role::create(['name' => 'Administrador']);
+        Role::create(['name' => 'Gestor']);
         Role::create(['name' => 'Revisor']);
         Role::create(['name' => 'Asistente']);
         Role::create(['name' => 'Invitado']); // sin permisos
 
         // Crear permisos y asignar a lor roles
         Permission::create(['name' => 'crear_eventos'])->syncRoles(['Administrador']);
-        Permission::create(['name' => 'procesar_aprobaciones'])->syncRoles(['Administrador', 'Revisor']);
-        Permission::create(['name' => 'asistencias'])->syncRoles(['Administrador', 'Asistente']);
+        Permission::create(['name' => 'usuarios'])->syncRoles(['Administrador']);
+        Permission::create(['name' => 'indicadores'])->syncRoles(['Administrador']);
+        Permission::create(['name' => 'eventos'])->syncRoles(['Administrador', 'Gestor']);
+        Permission::create(['name' => 'ver_participantes'])->syncRoles(['Administrador', 'Gestor']);
+        Permission::create(['name' => 'procesar_aprobaciones'])->syncRoles(['Administrador', 'Gestor', 'Revisor']);
+        Permission::create(['name' => 'asistencias'])->syncRoles(['Administrador', 'Gestor', 'Asistente']);
 
         // Crear usuarios de ejemplo
+        // User::factory()->create([
+        //     'name' => 'Administrador del Sistema',
+        //     'email' => 'sistemas@fio.unam.edu.ar',
+        //     'password' => bcrypt('hh1y32gg')
+        // ])->assignRole('Administrador');
+
         User::factory()->create([
-            'name' => 'Administrador del Sistema',
-            'email' => 'sistemas@fio.unam.edu.ar',
-            'password' => bcrypt('hh1y32gg')
+            'name' => 'Usuario Administrador',
+            'email' => 'admin@mail.com',
+            'password' => bcrypt('password123')
         ])->assignRole('Administrador');
 
         User::factory()->create([

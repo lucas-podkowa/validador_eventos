@@ -3,7 +3,6 @@
 namespace App\Livewire;
 
 use App\Models\Evento;
-use App\Models\TipoEvento;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -15,7 +14,6 @@ class EventosPendientes extends Component
     public $activeTab = 'pendientes'; // Define la primera pestaña como activa por defecto
 
     use WithPagination;
-
 
     public function setActiveTab($tab)
     {

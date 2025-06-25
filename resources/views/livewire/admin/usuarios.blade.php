@@ -22,10 +22,8 @@
                     @foreach ($usuarios as $usuario)
                         <tr>
                             <td class="px-6 py-2">{{ $usuario->name }}</td>
-                            <td class="px-6 py-2">{{ $usuario->roles->first()->name ?? 'Sin rol' }}</td>
-
+                            <td class="px-6 py-2">{{ $usuario->roles->pluck('name')->join(', ') ?: 'Sin rol' }}</td>
                             <td class="px-6 py-2">{{ $usuario->email }}</td>
-                            {{-- <td>{{ $usuario->roles->first()->name }}</td> --}}
                             <td class="px-6 py-2 whitespace-nowrap text-sm font-medium">
 
                                 {{-- aqui esta el boton editar que dispara el metodo edit y este muestra el modal --}}
@@ -92,18 +90,16 @@
                 <div class="mt-4 flex flex-wrap gap-6">
                     @foreach ($roles as $rol)
                         <label for="rol-{{ $rol->id }}"
-                            class="flex items-center space-x-4 text-sm font-medium text-gray-700">
-
-                            <input wire:model="rol_id_edit" type="radio" id="rol-{{ $rol->id }}"
+                            class="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                            <input wire:model="roles_selected" type="checkbox" id="rol-{{ $rol->id }}"
                                 value="{{ $rol->id }}">
                             <span>{{ $rol->name }}</span>
                         </label>
                     @endforeach
-                    @error('rol_id_edit')
-                        <span class="text-danger">{{ $message }}</span>
+                    @error('roles_selected')
+                        <span class="text-red-500">{{ $message }}</span>
                     @enderror
                 </div>
-
             </x-slot>
 
             <x-slot name="footer">

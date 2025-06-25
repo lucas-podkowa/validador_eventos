@@ -45,6 +45,7 @@
                                         @php
                                             $panelRoute = match (true) {
                                                 $user->hasRole('Administrador') => route('eventos'),
+                                                $user->hasRole('Gestor') => route('eventos'),
                                                 $user->hasRole('Revisor') => route('procesar_aprobaciones'),
                                                 $user->hasRole('Asistente') => route('asistencias'),
                                                 default => null,

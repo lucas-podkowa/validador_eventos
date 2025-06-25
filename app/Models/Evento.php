@@ -29,6 +29,11 @@ class Evento extends Model
         });
     }
 
+    public function gestores()
+    {
+        return $this->belongsToMany(User::class, 'evento_gestor', 'evento_id', 'user_id');
+    }
+
     public function tipoEvento()
     {
         return $this->belongsTo(TipoEvento::class, 'tipo_evento_id');

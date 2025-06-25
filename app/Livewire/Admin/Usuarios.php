@@ -11,7 +11,6 @@ use Livewire\WithPagination;
 
 class Usuarios extends Component
 {
-    //public $usuarios;
     public $open_edit = false;
     public $search;
 
@@ -20,6 +19,7 @@ class Usuarios extends Component
     public $rol_id_edit = null;
 
     public $name, $email, $password, $role;
+    public $roles_selected = [];
     public $roles;
     public $confirmingUserEdit = false;
 
@@ -28,6 +28,8 @@ class Usuarios extends Component
     public function mount($usuarioEdit_id = null)
     {
         $this->roles = Role::all();
+        //$this->roles_selected = $this->usuario_edit?->roles->pluck('id')->toArray() ?? [];
+
 
         if ($usuarioEdit_id) {
             $this->usuario_edit = User::find($usuarioEdit_id);
@@ -44,12 +46,14 @@ class Usuarios extends Component
     {
         $this->resetValidation();
         $this->open_edit = true;
+
         $usuario = User::findOrFail($id);
         $this->usuarioEdit_id = $usuario->id;
         $this->usuario_edit = $usuario;
         $this->name = $usuario->name;
         $this->email = $usuario->email;
         $this->rol_id_edit = $usuario->roles->first()?->id;
+        $this->roles_selected = $usuario->roles->pluck('id')->toArray();
     }
 
 
@@ -58,7 +62,8 @@ class Usuarios extends Component
         $this->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($this->usuarioEdit_id)],
-            'rol_id_edit' => 'required|exists:roles,id',
+            'roles_selected' => 'required|array|min:1',
+            'roles_selected.*' => 'exists:roles,id',
             'password' => 'nullable|min:6'
         ]);
 
@@ -70,14 +75,12 @@ class Usuarios extends Component
         }
         $usuario->save();
 
+        $roles = Role::whereIn('id', $this->roles_selected)->pluck('name')->toArray();
+        $usuario->syncRoles($roles); // IMPORTANTE: syncRoles acepta nombres, no IDs
         $this->open_edit = false;
 
-        $rol = Role::findOrFail($this->rol_id_edit);
-        $usuario->syncRoles([$rol->name]);
-
-        //$usuario->syncRoles([$this->role]);
         $this->dispatch('alert', message: 'Usuario actualizado');
-        $this->reset(['usuarioEdit_id', 'name', 'email', 'password', 'rol_id_edit']);
+        $this->reset(['usuarioEdit_id', 'name', 'email', 'password', 'roles_selected', 'open_edit']);
     }
 
 

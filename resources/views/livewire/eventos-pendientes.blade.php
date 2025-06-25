@@ -56,9 +56,16 @@
                                     <a href="{{ route('habilitar_planilla', ['evento_id' => $evento->evento_id]) }}"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                                         style="text-decoration: none; color: inherit;">
-                                        <i class="fa-regular fa-clipboard fa-xl text-blue-500"></i>
+                                        <i class="fa-regular fa-clipboard fa-xl"></i>
                                         Habilitar Inscripción
                                     </a>
+                                    <a href="{{ route('asignar_gestores', ['evento_id' => $evento->evento_id]) }}"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        style="text-decoration: none; color: inherit;">
+                                        <i class="fa-regular fa-user fa-xl "></i>
+                                        Asignar Gestores
+                                    </a>
+
                                 </div>
                             </div>
                         </td>
