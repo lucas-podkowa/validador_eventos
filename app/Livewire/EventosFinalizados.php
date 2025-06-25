@@ -123,11 +123,19 @@ class EventosFinalizados extends Component
 
     public function render()
     {
-        $eventosFinalizados = Evento::where('estado', 'finalizado')
-            ->when(!empty($this->search), function ($query) {
+        $user = auth()->user();
+
+        $eventosFinalizados = Evento::with(['gestores', 'participantes'])
+            ->where('estado', 'finalizado')
+            ->when($user->hasRole('Gestor'), function ($query) use ($user) {
+                $query->whereHas('gestores', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            })
+            ->when($this->search, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%');
             })
-            ->when(!empty($this->searchParticipante), function ($query) {
+            ->when($this->searchParticipante, function ($query) {
                 $query->whereHas('participantes', function ($q) {
                     $q->where('dni', 'like', '%' . $this->searchParticipante . '%');
                 });
@@ -135,21 +143,16 @@ class EventosFinalizados extends Component
             ->orderBy($this->sort, $this->direction)
             ->paginate(10);
 
+        // Chequeo de certificados (fuera del query)
         foreach ($eventosFinalizados as $evento) {
             $evento->certificados_disponibles = $evento->certificado_path && Storage::exists($evento->certificado_path);
         }
 
-        // $eventosFinalizados = Evento::where('estado', 'finalizado')
-        //     ->when($this->search != '', function ($query) {
-        //         $query->where('nombre', 'like', '%' . $this->search . '%');
-        //     })
-        //     ->orderBy($this->sort, $this->direction)
-        //     ->paginate(10);
-
         return view('livewire.eventos-finalizados', [
-            'eventosFinalizados' => $eventosFinalizados
+            'eventosFinalizados' => $eventosFinalizados,
         ]);
     }
+
 
     public function order($sort)
     {

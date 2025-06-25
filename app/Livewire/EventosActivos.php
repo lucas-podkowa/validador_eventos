@@ -250,15 +250,21 @@ class EventosActivos extends Component
 
     public function render()
     {
-        $eventos = Evento::query()
-            ->with(['planillaInscripcion', 'revisor'])
+        $user = auth()->user();
+
+        $eventos = Evento::with(['planillaInscripcion', 'revisor', 'gestores'])
+            ->where('estado', 'en curso')
+            ->when($user->hasRole('Gestor'), function ($query) use ($user) {
+                $query->whereHas('gestores', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            })
             ->when($this->search, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%');
             })
             ->when($this->search_tipo_evento, function ($query) {
                 $query->where('tipo_evento_id', $this->search_tipo_evento);
             })
-            ->where('estado', 'en curso')
             ->orderBy($this->sort, $this->direction)
             ->get();
 

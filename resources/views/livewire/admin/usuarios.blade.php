@@ -52,17 +52,15 @@
         <x-dialog-modal wire:model="open_edit">
 
             <x-slot name="title">
-                {{-- Editando la Carrera: {{ $carreraEdit->nombre }} --}}
+                @if ($usuario_edit)
+                    <h3>Editando el Usuario: {{ $usuario_edit->name }}</h3>
+                @else
+                    <h3>Editando el Usuario</h3>
+                @endif
             </x-slot>
 
 
             <x-slot name="content">
-                @if ($usuario_edit)
-                    <h2>Rol del Usuario: {{ $usuario_edit->name }}</h2>
-                @else
-                    <h2>Rol del Usuario</h2>
-                @endif
-
                 <div>
                     <label>Nombre</label>
                     <input wire:model="name" type="text" class="w-full border p-2 rounded">
@@ -115,31 +113,4 @@
         </x-dialog-modal>
 
     </form>
-    {{-- //-----------------------------------------------------------------
-    @if ($editando)
-        <div class="bg-white p-6 border rounded shadow">
-            <h3 class="text-xl font-semibold mb-4">Editar Usuario</h3>
-
-            <form wire:submit.prevent="actualizar" class="space-y-4">
-               
-
-                <div>
-                    <label>Rol</label>
-                    @foreach ($roles as $r)
-                        <div>
-                            <label>
-                                <input type="radio" wire:model="role" value="{{ $r }}">
-                                {{ ucfirst($r) }}
-                            </label>
-                        </div>
-                    @endforeach
-                    @error('role')
-                        <span class="text-red-500">{{ $message }}</span>
-                    @enderror
-                </div>
-
-            </form>
-        </div>
-    @endif --}}
-
 </div>

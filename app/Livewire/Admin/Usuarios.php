@@ -67,6 +67,14 @@ class Usuarios extends Component
             'password' => 'nullable|min:6'
         ]);
 
+        // Validación: si seleccionaron más de un rol y uno es 'Invitado', lanzar error
+        $invitadoId = Role::where('name', 'Invitado')->value('id');
+
+        if (in_array($invitadoId, $this->roles_selected) && count($this->roles_selected) > 1) {
+            $this->addError('roles_selected', 'El rol "Invitado" no puede combinarse con otros roles.');
+            return;
+        }
+
         $usuario = User::findOrFail($this->usuarioEdit_id);
         $usuario->name = $this->name;
         $usuario->email = $this->email;
@@ -76,7 +84,7 @@ class Usuarios extends Component
         $usuario->save();
 
         $roles = Role::whereIn('id', $this->roles_selected)->pluck('name')->toArray();
-        $usuario->syncRoles($roles); // IMPORTANTE: syncRoles acepta nombres, no IDs
+        $usuario->syncRoles($roles);
         $this->open_edit = false;
 
         $this->dispatch('alert', message: 'Usuario actualizado');

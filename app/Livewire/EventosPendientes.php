@@ -58,7 +58,13 @@ class EventosPendientes extends Component
 
     public function render()
     {
+        $user = auth()->user();
         $eventos = Evento::where('estado', 'pendiente')
+            ->when($user->hasRole('Gestor'), function ($query) use ($user) {
+                $query->whereHas('gestores', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            })
             ->orderBy($this->sort, $this->direction)
             ->get();
         return view('livewire.eventos-pendientes', compact('eventos'));
