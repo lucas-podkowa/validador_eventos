@@ -1,8 +1,8 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
+        <div class="flex justify-between h-16 ">
+            <div class="flex ">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('welcome') }}">
@@ -14,7 +14,7 @@
 
                 {{-- Eventos --}}
                 @role('Administrador|Gestor')
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex ">
                         <x-nav-link href="{{ route('eventos') }}" :active="request()->routeIs('eventos')">
                             {{ __('Eventos') }}
                         </x-nav-link>
@@ -30,14 +30,7 @@
                     </div>
                 @endrole
 
-                {{-- Indicadores (solo admin) --}}
-                @role('Administrador')
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <x-nav-link href="{{ route('indicadores') }}" :active="request()->routeIs('indicadores')">
-                            {{ __('Indicadores') }}
-                        </x-nav-link>
-                    </div>
-                @endrole
+
 
                 {{-- Asistencias --}}
                 @role('Administrador|Asistente|Gestor')
@@ -66,14 +59,52 @@
                     </div>
                 @endrole
 
-                {{-- Usuarios (solo admin) --}}
+
+
+                {{-- @role('Administrador')
+                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <x-nav-link href="{{ route('indicadores') }}" :active="request()->routeIs('indicadores')">
+                            {{ __('Indicadores') }}
+                        </x-nav-link>
+                    </div>
+                @endrole
+                
                 @role('Administrador')
                     <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link href="{{ route('usuarios') }}" :active="request()->routeIs('usuarios')">
                             {{ __('Usuarios') }}
                         </x-nav-link>
                     </div>
+                @endrole --}}
+
+                @role('Administrador')
+                    <div x-data="{ adminOpen: false }" class="hidden sm:ms-10 sm:flex relative">
+                        <button @click="adminOpen = !adminOpen"
+                            class="inline-flex items-center px-3 py-2 text-md font-medium text-gray-700 bg-white hover:text-gray-900 focus:outline-none">
+                            {{ __('Administración') }}
+                            <svg class="ms-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <div x-show="adminOpen" @click.away="adminOpen = false"
+                            class="absolute z-50 mt-10 px-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg">
+                            {{-- class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
+                                    style="z-index: 9999;"> --}}
+                            <div class="py-1">
+                                <x-dropdown-link
+                                    href="{{ route('indicadores') }}">{{ __('Indicadores') }}</x-dropdown-link>
+                                <x-dropdown-link href="{{ route('usuarios') }}">
+                                    {{ __('Usuarios') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link href="{{ route('emisor_certificados') }}">{{ __('Emisión') }}
+                                </x-dropdown-link>
+                            </div>
+                        </div>
+                    </div>
                 @endrole
+
 
             </div>
 
@@ -226,6 +257,11 @@
 
                 <x-responsive-nav-link href="{{ route('usuarios') }}" :active="request()->routeIs('usuarios')">
                     {{ __('Usuarios') }}
+                </x-responsive-nav-link>
+
+
+                <x-responsive-nav-link href="{{ route('emisor_certificados') }}" :active="request()->routeIs('emisor_certificados')">
+                    {{ __('Emisión') }}
                 </x-responsive-nav-link>
             @endrole
 

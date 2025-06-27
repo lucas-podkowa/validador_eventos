@@ -177,7 +177,7 @@
 
         <x-slot name="content">
             <div class="w-full">
-                <label for="background_image" class="block text-sm font-medium text-gray-700">I Selector de Plantilla
+                <label for="background_image" class="block text-sm font-medium text-gray-700">Selector de Plantilla
                     para Certificados</label>
                 <input type="file" id="background_image" wire:model="background_image"
                     accept="image/png, image/jpeg, image/jpg"

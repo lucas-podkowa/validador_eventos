@@ -61,11 +61,11 @@
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
                         </div>
-                        <!-- Campo: Correo Electrónico -->
+                        <!-- Campo: Teléfono -->
                         <div class="flex flex-col lg:flex-row lg:items-center">
                             <label for="telefono"
                                 class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Teléfono:</label>
-                            <input type="number" id="mail" wire:model="telefono"
+                            <input type="number" id="telefono" wire:model="telefono"
                                 class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                             @error('telefono')
                                 <span class="text-sm text-red-600">{{ $message }}</span>

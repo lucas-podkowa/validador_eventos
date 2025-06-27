@@ -28,6 +28,9 @@
                         Periodo de Inscripción
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                        QR Formulario
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
                         Acciones
                     </th>
                 </tr>
@@ -54,6 +57,16 @@
                                 No definida
                             @endif
                         </td>
+
+                        <td class="item-center px-6">
+                            @if ($evento->planillaInscripcion && $evento->planillaInscripcion->qr_formulario)
+                                <img src="{{ $evento->planillaInscripcion->qr_formulario }}" alt="QR"
+                                    width="50" height="50" class="cursor-pointer" />
+                            @else
+                                No definido
+                            @endif
+                        </td>
+
 
                         <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
                             <div x-data="{ open: false }">
@@ -185,7 +198,4 @@
     @endif
 
     <!-- Modal -->
-
-
-
 </div>

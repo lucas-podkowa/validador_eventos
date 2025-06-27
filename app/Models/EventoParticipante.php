@@ -18,7 +18,9 @@ class EventoParticipante extends Model
         'participante_id',
         'url',
         'qrcode',
-        'aprobado'
+        'aprobado',
+        'emision_directa',
+        'certificado_path'
     ];
     protected $primaryKey = 'evento_participantes_id';
     public $incrementing = false;

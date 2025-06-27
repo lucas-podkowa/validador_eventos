@@ -150,7 +150,7 @@
     @if ($mostrarModalAsistencia)
         <x-dialog-modal wire:model="mostrarModalAsistencia">
             <x-slot name="title">
-                Tomar Asistencia
+                Registro de Asistencias: {{ $sesionSeleccionada->nombre ?? '' }}
             </x-slot>
 
             <x-slot name="content">

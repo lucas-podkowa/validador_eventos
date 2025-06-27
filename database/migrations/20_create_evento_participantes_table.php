@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('url')->nullable();  // Para almacenar la URL de la validacion
             $table->longText('qrcode')->nullable();  // Para almacenar el código QR en formato SVG de la URL
             $table->boolean('aprobado')->default(null)->nullable(); // Para almacenar el estado de aprobación del participante
-
+            $table->boolean('emision_directa')->default(false); // Para almacenar el estado de aprobación del participante
+            $table->string('certificado_path')->nullable();
             $table->foreign('evento_id')->references('evento_id')->on('evento')->onDelete('cascade');
             $table->foreign('participante_id')->references('participante_id')->on('participante')->onDelete('cascade');
 

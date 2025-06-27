@@ -6,14 +6,16 @@ use App\Livewire\Admin\Usuarios;
 use App\Livewire\AsignarGestores;
 use App\Livewire\Asistencias;
 use App\Livewire\CrearEvento;
+use App\Livewire\EmisorCertificados;
 use App\Livewire\Eventos;
 use App\Livewire\HabilitarPlanilla;
 use App\Livewire\Indicadores;
 use App\Livewire\Participantes;
 use App\Livewire\ProcesarAprobaciones;
 use App\Livewire\RegistroEventoPublico;
+use App\Models\EventoParticipante;
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Facades\Storage;
 
 // Públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -31,6 +33,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/eventos/{evento_id}/gestores', AsignarGestores::class)->name('asignar_gestores');
         Route::get('/indicadores', Indicadores::class)->name('indicadores');
         Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
+        Route::get('/emision', EmisorCertificados::class)->name('emisor_certificados');
     });
 
     // Rutas compartidas entre administrador y gestor
@@ -55,3 +58,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/asistencias', Asistencias::class)->name('asistencias');
     });
 });
+
+
+Route::get('/ver-certificado/{eventoParticipante}', function (EventoParticipante $eventoParticipante) {
+    $path = $eventoParticipante->certificado_path;
+
+    if (!$path || !Storage::disk('private')->exists($path)) {
+        abort(404, 'Certificado no encontrado.');
+    }
+
+    return response()->file(storage_path("app/private/{$path}"));
+})->name('ver.certificado');

@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+
+
 
 class HabilitarPlanilla extends Component
 {
@@ -174,8 +180,23 @@ class HabilitarPlanilla extends Component
             return;
         }
 
+
+
         DB::beginTransaction();
         try {
+            $inscripcionUrl = route('inscripcion.evento', [
+                Str::slug($this->evento->tipoEvento->nombre),
+                $this->evento->evento_id,
+            ]);
+
+            $renderer = new ImageRenderer(
+                new RendererStyle(400), // tamaño real
+                new SvgImageBackEnd()
+            );
+
+            $writer = new Writer($renderer);
+            $qrSvg = $writer->writeString($inscripcionUrl);
+            $qrSvgBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
 
             PlanillaInscripcion::updateOrCreate(
                 ['evento_id' => $this->evento->evento_id],
@@ -185,6 +206,7 @@ class HabilitarPlanilla extends Component
                     'header' => $this->header,
                     'footer' => $this->footer,
                     'disposicion' => $this->disposicion,
+                    'qr_formulario' => $qrSvgBase64,
                 ]
             );
 

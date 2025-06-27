@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Evento;
+use App\Models\EventoParticipante;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -52,8 +53,11 @@ class EventosFinalizados extends Component
         $tipoEvento = $this->evento_selected->tipoEvento->nombre;
         $nombreEvento = $this->evento_selected->nombre;
 
+        $folderPath = "certificados/{$year}/{$tipoEvento}/{$nombreEvento}";
+
         foreach ($participantes as $participante) {
 
+            $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
             $pdf = Pdf::loadView('certificado', [
                 'nombre' => $participante->nombre,
                 'apellido' => $participante->apellido,
@@ -62,10 +66,14 @@ class EventosFinalizados extends Component
                 'background' => $backgroundPath
             ])->setPaper('a4', 'landscape');
 
-            $folderPath = "certificados/{$year}/{$tipoEvento}/{$nombreEvento}";
-            $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ($participante->dni).pdf";
-
             Storage::put($filename, $pdf->output());
+
+            // 🆕 Guardar la ruta del certificado en evento_participante
+            EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+                ->where('participante_id', $participante->participante_id)
+                ->update([
+                    'certificado_path' => $filename
+                ]);
         }
         $this->evento_selected->update([
             'certificado_path' => $folderPath
