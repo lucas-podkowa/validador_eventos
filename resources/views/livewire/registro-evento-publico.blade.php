@@ -82,7 +82,7 @@
                                     @if ($tipo->selector === 'Selección Múltiple')
                                         @foreach ($tipo->indicadores as $indicador)
                                             <label class="inline-flex items-center mr-4">
-                                                <input type="checkbox" wire:model="indicadoresMutiples"
+                                                <input type="checkbox" wire:model="indicadoresMultiples"
                                                     value="{{ $indicador->indicador_id }}" class="mr-1">
                                                 {{ $indicador->nombre }}
                                             </label>
@@ -112,7 +112,11 @@
                 </form>
             @else
                 <div class="text-center text-red-600 font-semibold text-lg">
-                    <p>El presente formulario de inscripción no se encuentra activo.</p>
+                    @if ($evento->cupo !== null && $evento->planillaInscripcion->inscripciones->count() >= $evento->cupo)
+                        <p>Este curso ya ha cubierto su cupo de {{ $evento->cupo }} participantes.</p>
+                    @else
+                        <p>El presente formulario de inscripción no se encuentra activo.</p>
+                    @endif
                 </div>
             @endif
         </div>

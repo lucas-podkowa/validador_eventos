@@ -26,13 +26,31 @@ class EventosFinalizados extends Component
     public $participantes = [];
 
     public $open_emitir = false;
+
+
     public $background_image;
+    public $background_image_asistencia;
+    public $background_image_aprobacion;
+
 
     protected $paginationTheme = 'tailwind';
 
     protected $rules = [
         'background_image' => 'required|image|mimes:jpeg,png|max:2048',
     ];
+
+    protected function rules()
+    {
+        return $this->evento_selected && $this->evento_selected->por_aprobacion
+            ? [
+                'background_image_asistencia' => 'required|image|mimes:jpeg,png|max:10240',
+                'background_image_aprobacion' => 'required|image|mimes:jpeg,png|max:10240',
+            ]
+            : [
+                'background_image' => 'required|image|mimes:jpeg,png|max:10240',
+            ];
+    }
+
 
     public function emitir($evento)
     {
@@ -44,42 +62,73 @@ class EventosFinalizados extends Component
     {
         $this->validate();
 
-        //$backgroundPath = $this->background_image->store('certificados');
-        $backgroundPath = $this->background_image ? $this->background_image->store('images', 'public') : null;
-
-        $participantes = $this->evento_selected->participantes;
-
         $year = now()->year;
         $tipoEvento = $this->evento_selected->tipoEvento->nombre;
         $nombreEvento = $this->evento_selected->nombre;
-
         $folderPath = "certificados/{$year}/{$tipoEvento}/{$nombreEvento}";
 
-        foreach ($participantes as $participante) {
+        $participantes = $this->evento_selected->participantes;
 
-            $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-            $pdf = Pdf::loadView('certificado', [
-                'nombre' => $participante->nombre,
-                'apellido' => $participante->apellido,
-                'dni' => $participante->dni,
-                'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
-                'background' => $backgroundPath
-            ])->setPaper('a4', 'landscape');
+        //$backgroundPath = $this->background_image->store('certificados');
+        //$backgroundPath = $this->background_image ? $this->background_image->store('images', 'public') : null;
 
-            Storage::put($filename, $pdf->output());
 
-            // 🆕 Guardar la ruta del certificado en evento_participante
-            EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
-                ->where('participante_id', $participante->participante_id)
-                ->update([
-                    'certificado_path' => $filename
-                ]);
+        // Si el evento requiere aprobación, subimos dos plantillas
+        if ($this->evento_selected->por_aprobacion) {
+            $bgAsistenciaPath = $this->background_image_asistencia->store('images', 'public');
+            $bgAprobacionPath = $this->background_image_aprobacion->store('images', 'public');
+
+            foreach ($participantes as $participante) {
+                $background = $participante->pivot->aprobado ? $bgAprobacionPath : $bgAsistenciaPath;
+                $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
+
+                $pdf = Pdf::loadView('certificado', [
+                    'nombre' => $participante->nombre,
+                    'apellido' => $participante->apellido,
+                    'dni' => $participante->dni,
+                    'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
+                    'background' => $background
+                ])->setPaper('a4', 'landscape');
+
+                Storage::put($filename, $pdf->output());
+
+                EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+                    ->where('participante_id', $participante->participante_id)
+                    ->update(['certificado_path' => $filename]);
+            }
+        } else {
+            // Evento tradicional (solo un background)
+            $backgroundPath = $this->background_image->store('images', 'public');
+
+            foreach ($participantes as $participante) {
+                $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
+
+                $pdf = Pdf::loadView('certificado', [
+                    'nombre' => $participante->nombre,
+                    'apellido' => $participante->apellido,
+                    'dni' => $participante->dni,
+                    'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
+                    'background' => $backgroundPath
+                ])->setPaper('a4', 'landscape');
+
+                Storage::put($filename, $pdf->output());
+
+                EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+                    ->where('participante_id', $participante->participante_id)
+                    ->update(['certificado_path' => $filename]);
+            }
         }
         $this->evento_selected->update([
             'certificado_path' => $folderPath
         ]);
 
-        $this->reset(['open_emitir', 'background_image', 'evento_selected']);
+        $this->reset([
+            'open_emitir',
+            'background_image',
+            'background_image_asistencia',
+            'background_image_aprobacion',
+            'evento_selected',
+        ]);
         session()->flash('message', 'Certificados generados correctamente.');
     }
 

@@ -107,13 +107,15 @@ class EventosActivos extends Component
 
     public function updatedBusquedaUsuario()
     {
-        $this->usuarios_filtrados = User::where(function ($query) {
-            $query->where('name', 'like', '%' . $this->busqueda_usuario . '%')
-                ->orWhere('email', 'like', '%' . $this->busqueda_usuario . '%');
-        })
+        $this->usuarios_filtrados = User::role('Revisor') // filtra por rol "Revisor"
+            ->where(function ($query) {
+                $query->where('name', 'like', '%' . $this->busqueda_usuario . '%')
+                    ->orWhere('email', 'like', '%' . $this->busqueda_usuario . '%');
+            })
             ->limit(10)
             ->get();
     }
+
 
     public function guardarRevisor()
     {

@@ -176,16 +176,46 @@
         </x-slot>
 
         <x-slot name="content">
-            <div class="w-full">
-                <label for="background_image" class="block text-sm font-medium text-gray-700">Selector de Plantilla
-                    para Certificados</label>
-                <input type="file" id="background_image" wire:model="background_image"
-                    accept="image/png, image/jpeg, image/jpg"
-                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                @error('background_image')
-                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                @enderror
-            </div>
+            @if ($evento_selected && $evento_selected->por_aprobacion)
+                <div class="mb-4">
+                    <label for="background_image_asistencia" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-file-lines text-blue-500 mr-1"></i>
+                        Plantilla para Certificado de Asistencia
+                    </label>
+                    <input type="file" id="background_image_asistencia" wire:model="background_image_asistencia"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image_asistencia')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label for="background_image_aprobacion" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-award text-green-600 mr-1"></i>
+                        Plantilla para Certificado de Aprobación
+                    </label>
+                    <input type="file" id="background_image_aprobacion" wire:model="background_image_aprobacion"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image_aprobacion')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            @else
+                <div class="mb-4">
+                    <label for="background_image" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-file-image text-indigo-500 mr-1"></i>
+                        Plantilla para Certificado
+                    </label>
+                    <input type="file" id="background_image" wire:model="background_image"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            @endif
 
         </x-slot>
         <div wire:loading wire:target="emitirCertificados" class="flex items-center justify-center py-4">

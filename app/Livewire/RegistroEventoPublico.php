@@ -51,12 +51,27 @@ class RegistroEventoPublico extends Component
 
         $this->evento = Evento::findOrFail($eventoId);
 
-        // Verificar si la inscripción está activa
+        $this->verificarInscripcionActiva();
+    }
+
+    public function verificarInscripcionActiva()
+    {
         $hoy = Carbon::now();
-        if ($this->planilla_inscripcion->apertura <= $hoy && $this->planilla_inscripcion->cierre >= $hoy) {
-            $this->inscripcion_activa = true;
+        $apertura = Carbon::parse($this->planilla_inscripcion->apertura)->setTimezone(config('app.timezone'));
+        $cierre = Carbon::parse($this->planilla_inscripcion->cierre)->setTimezone(config('app.timezone'));
+
+        if ($apertura <= $hoy && $cierre >= $hoy) {
+            if ($this->evento->cupo !== null) {
+                $inscriptos = InscripcionParticipante::where('planilla_id', $this->planilla_id)->count();
+                $this->inscripcion_activa = $inscriptos < $this->evento->cupo;
+            } else {
+                $this->inscripcion_activa = true;
+            }
+        } else {
+            $this->inscripcion_activa = false;
         }
     }
+
 
 
     public function buscarParticipante()
@@ -160,7 +175,6 @@ class RegistroEventoPublico extends Component
 
             DB::commit();
 
-            $this->dispatch('alert', '¡Inscripción completada con éxito!');
 
             // Enviar correo de confirmación al participante
             // Mail::to($this->mail)->send(new ConfirmacionInscripcion(
@@ -168,8 +182,11 @@ class RegistroEventoPublico extends Component
             //     $this->apellido,
             //     $this->evento
             // ));
+            $this->dispatch('success', message: '¡Inscripción completada con éxito!');
 
             $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos']);
+            $this->verificarInscripcionActiva(); // <-- Refresca el estado del formulario
+
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);
         } catch (\Exception $e) {
