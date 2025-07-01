@@ -92,7 +92,7 @@
                     <h2 class="text-lg font-semibold mb-4 text-gray-700">👤 Información del Participante</h2>
 
                     {{-- Línea: DNI --}}
-                    <div class="flex flex-col lg:flex-row lg:items-center">
+                    <div class="flex flex-col 2xl:flex-row 2xl:items-center">
                         <label for="dni" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Número
                             DNI:</label>
 
@@ -106,7 +106,7 @@
                     </div>
 
                     <!-- Campo: Nombre -->
-                    <div class="flex flex-col lg:flex-row lg:items-center mt-2">
+                    <div class="flex flex-col 2xl:flex-row 2xl:items-center mt-2">
                         <label for="nombre" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Nombre
                             Completo:</label>
                         <input type="text" id="nombre" wire:model="nombre"
@@ -117,7 +117,7 @@
                     </div>
 
                     <!-- Campo: Apellido -->
-                    <div class="flex flex-col lg:flex-row lg:items-center mt-2">
+                    <div class="flex flex-col 2xl:flex-row 2xl:items-center mt-2">
                         <label for="apellido" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Apellido:</label>
                         <input type="text" id="apellido" wire:model="apellido"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
@@ -126,7 +126,7 @@
                         @enderror
                     </div>
                     <!-- Campo: Correo Electrónico -->
-                    <div class="flex flex-col lg:flex-row lg:items-center mt-2">
+                    <div class="flex flex-col 2xl:flex-row 2xl:items-center mt-2">
                         <label for="mail" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Email:</label>
                         <input type="email" id="mail" wire:model="mail"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
@@ -135,7 +135,7 @@
                         @enderror
                     </div>
                     <!-- Campo: Teléfono -->
-                    <div class="flex flex-col lg:flex-row lg:items-center mt-2">
+                    <div class="flex flex-col 2xl:flex-row 2xl:items-center mt-2">
                         <label for="telefono" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Teléfono:</label>
                         <input type="number" id="telefono" wire:model="telefono"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
