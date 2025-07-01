@@ -16,9 +16,9 @@
             @if ($inscripcion_activa)
                 <form wire:submit.prevent="submit" class="space-y-6">
                     <!-- Datos principales -->
-                    <div class="flex flex-col 2xl:flex-row 2xl:items-center gap-4">
+                    <div class="flex-col gap-4">
                         <!-- Campo: DNI -->
-                        <div class="flex flex-col 2xl:flex-row 2xl:items-center">
+                        <div class="flex-col">
                             <label for="dni" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Número
                                 DNI:</label>
 
@@ -32,7 +32,7 @@
                         </div>
 
                         <!-- Campo: Nombre -->
-                        <div class="flex flex-col 2xl:flex-row 2xl:items-center">
+                        <div class="flex-col">
                             <label for="nombre" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Nombre
                                 Completo:</label>
                             <input type="text" id="nombre" wire:model="nombre"
@@ -43,7 +43,7 @@
                         </div>
 
                         <!-- Campo: Apellido -->
-                        <div class="flex flex-col 2xl:flex-row 2xl:items-center">
+                        <div class="flex-col">
                             <label for="apellido"
                                 class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Apellido:</label>
                             <input type="text" id="apellido" wire:model="apellido"
@@ -62,7 +62,7 @@
                             @enderror
                         </div>
                         <!-- Campo: Teléfono -->
-                        <div class="flex flex-col 2xl:flex-row 2xl:items-center">
+                        <div class="flex-col">
                             <label for="telefono"
                                 class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Teléfono:</label>
                             <input type="number" id="telefono" wire:model="telefono"
