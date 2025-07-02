@@ -37,7 +37,8 @@ class EventosPendientes extends Component
                 'lugar' => $eventoOriginal->lugar,
                 'fecha_inicio' => $eventoOriginal->fecha_inicio,
                 'cupo' => $eventoOriginal->cupo,
-                'estado' => 'pendiente'
+                'por_aprobacion' =>  (bool) $eventoOriginal->por_aprobacion,
+                'estado' => 'Pendiente',
             ]);
 
             // Copiar los indicadores asociados
@@ -46,9 +47,6 @@ class EventosPendientes extends Component
             DB::commit();
             // Disparar evento para refrescar el componente
             $this->dispatch('refreshMainComponent');
-
-            // Recargar los eventos pendientes después de la operación
-            $this->mount();
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo duplicar el evento: ' . $e->getMessage());

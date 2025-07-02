@@ -69,7 +69,7 @@
                     @enderror
                 </div>
 
-                <div>
+                <div class="mt-4">
                     <label>Email</label>
                     <input wire:model="email" type="email" class="w-full border p-2 rounded">
                     @error('email')
@@ -77,9 +77,10 @@
                     @enderror
                 </div>
 
-                <div>
+                <div class="mt-4">
                     <label>Nueva Contraseña (opcional)</label>
-                    <input wire:model="password" type="password" class="w-full border p-2 rounded">
+                    <input wire:model="password" type="password" autocomplete="new-password"
+                        class="w-full border p-2 rounded">
                     @error('password')
                         <span class="text-red-500">{{ $message }}</span>
                     @enderror

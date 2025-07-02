@@ -47,7 +47,7 @@
                                         <i class="fa-solid fa-edit fa-xl text-black"></i>
                                         Editar
                                     </a>
-                                    <a ire:click="duplicarEvento({{ $evento }})"
+                                    <a wire:click="duplicarEvento({{ $evento }})"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                         <i class="fa-regular fa-clone fa-xl  "></i>
                                         Clonar Evento
