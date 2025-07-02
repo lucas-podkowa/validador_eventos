@@ -37,7 +37,8 @@
                             class="btn btn-secondary w-full">Imagen de Cabecera
                         </button>
                         @if ($header)
-                            <img src="{{ asset('storage/' . $header) }}" class="max-h-24 w-auto object-contain mx-auto">
+                            <img src="{{ asset('storage/' . $header) }}"
+                                class="w-full h-auto object-contain rounded-md">
                         @endif
                         @error('header')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -50,7 +51,7 @@
                         </button>
                         @if ($footer)
                             <img src="{{ asset('storage/' . $footer) }}"
-                                class="max-h-24 w-auto object-contain mx-auto bg-red-300">
+                                class="w-full h-auto object-contain rounded-md">
                         @endif
                         @error('footer')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -112,8 +113,8 @@
                     @foreach ($imagenesDisponibles as $imagen)
                         <div class="cursor-pointer border rounded-lg bg-white p-2 shadow-md hover:scale-105 transition"
                             wire:click="seleccionarImagen('{{ $imagen }}', 'header')">
-                            <img src="{{ asset('storage/' . $imagen) }}" class="rounded-md w-full h-40 object-cover"
-                                alt="Imagen disponible">
+                            <img src="{{ asset('storage/' . $imagen) }}"
+                                class="w-full h-auto object-contain rounded-md" alt="Imagen disponible">
                         </div>
                     @endforeach
                 </div>
@@ -161,8 +162,8 @@
                     @foreach ($imagenesDisponibles as $imagen)
                         <div class="cursor-pointer border rounded-lg bg-white p-2 shadow-md hover:scale-105 transition"
                             wire:click="seleccionarImagen('{{ $imagen }}', 'footer')">
-                            <img src="{{ asset('storage/' . $imagen) }}" class="rounded-md w-full h-40 object-cover"
-                                alt="Imagen disponible">
+                            <img src="{{ asset('storage/' . $imagen) }}"
+                                class="w-full h-auto object-contain rounded-md" alt="Imagen disponible">
                         </div>
                     @endforeach
                 </div>

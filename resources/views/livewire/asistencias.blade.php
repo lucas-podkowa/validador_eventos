@@ -42,7 +42,7 @@
                     <h3 class="text-lg font-bold">Sesiones del evento: {{ $evento_selected->nombre }}</h3>
 
                     <x-button wire:click="abrirModalSesion" title="Crear Sesión"
-                        class="bg-green-500 text-white px-4 py-2 rounded">
+                        class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
                         <i class="fa-solid fa-plus"></i>
                     </x-button>
                 </div>

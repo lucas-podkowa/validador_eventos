@@ -92,8 +92,8 @@
                     <h2 class="text-lg font-semibold mb-4 text-gray-700">👤 Información del Participante</h2>
 
                     {{-- Línea: DNI --}}
-                    <div class="flex flex-col lg:items-center">
-                        <label for="dni" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Número
+                    <div class="flex flex-col">
+                        <label for="dni" class="mb-1 lg:mb-0 font-medium">Número
                             DNI:</label>
 
                         <input type="text" wire:model.defer="dni" wire:keydown.enter="buscarParticipante"
@@ -106,8 +106,8 @@
                     </div>
 
                     <!-- Campo: Nombre -->
-                    <div class="flex flex-col lg:items-center mt-2">
-                        <label for="nombre" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Nombre
+                    <div class="flex flex-col mt-2">
+                        <label for="nombre" class="mb-1 lg:mb-0 font-medium">Nombre
                             Completo:</label>
                         <input type="text" id="nombre" wire:model="nombre"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
@@ -117,8 +117,8 @@
                     </div>
 
                     <!-- Campo: Apellido -->
-                    <div class="flex flex-col lg:items-center mt-2">
-                        <label for="apellido" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Apellido:</label>
+                    <div class="flex flex-col mt-2">
+                        <label for="apellido" class="mb-1 lg:mb-0 font-medium">Apellido:</label>
                         <input type="text" id="apellido" wire:model="apellido"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                         @error('apellido')
@@ -126,8 +126,8 @@
                         @enderror
                     </div>
                     <!-- Campo: Correo Electrónico -->
-                    <div class="flex flex-col lg:items-center mt-2">
-                        <label for="mail" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Email:</label>
+                    <div class="flex flex-col mt-2">
+                        <label for="mail" class="mb-1 lg:mb-0 font-medium">Email:</label>
                         <input type="email" id="mail" wire:model="mail"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                         @error('mail')
@@ -135,8 +135,8 @@
                         @enderror
                     </div>
                     <!-- Campo: Teléfono -->
-                    <div class="flex flex-col lg:items-center mt-2">
-                        <label for="telefono" class="mb-1 lg:mb-0 lg:text-right lg:pr-4 font-medium">Teléfono:</label>
+                    <div class="flex flex-col mt-2">
+                        <label for="telefono" class="mb-1 lg:mb-0 font-medium">Teléfono:</label>
                         <input type="number" id="telefono" wire:model="telefono"
                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
                         @error('telefono')

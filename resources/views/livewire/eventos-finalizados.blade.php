@@ -76,13 +76,6 @@
                                     class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
                                     style="z-index: 9999;">
 
-                                    {{-- Siempre mostrar el botón de inscripción --}}
-                                    <a href="{{ route('inscripcion.evento', [Str::slug($evento->tipoEvento->nombre, '-'), $evento->evento_id]) }}"
-                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                                        style="text-decoration: none; color: inherit;">
-                                        <i class="fa fa-address-card fa-xl"></i> Formulario de Inscripción
-                                    </a>
-
                                     @if ($evento->por_aprobacion && !$evento->revisado)
                                         {{-- Mostrar solo alerta si requiere revisión --}}
                                         <div class="flex items-center justify-center text-yellow-600 py-2 px-4">
