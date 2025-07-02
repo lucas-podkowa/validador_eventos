@@ -102,13 +102,14 @@
 
             <x-slot name="footer">
                 <div class="flex">
-                    <x-secondary-button wire:click="$set('open_edit', false)">
+                    <x-secondary-button class="mr-2" wire:click="$set('open_edit', false)">
                         Cancelar
                     </x-secondary-button>
-                    <button type="button" wire:loading.attr="disabled" style="font-size: 0.75rem; font-weight: 600"
-                        class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+
+                    <x-button wire:loading.attr="disabled" style="font-size: 0.75rem; font-weight: 600"
+                        class="disabled:opacity-25 btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
                         Actualizar
-                    </button>
+                    </x-button>
                 </div>
             </x-slot>
 

@@ -59,28 +59,10 @@
                     </div>
                 @endrole
 
-
-
-                {{-- @role('Administrador')
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <x-nav-link href="{{ route('indicadores') }}" :active="request()->routeIs('indicadores')">
-                            {{ __('Indicadores') }}
-                        </x-nav-link>
-                    </div>
-                @endrole
-                
-                @role('Administrador')
-                    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <x-nav-link href="{{ route('usuarios') }}" :active="request()->routeIs('usuarios')">
-                            {{ __('Usuarios') }}
-                        </x-nav-link>
-                    </div>
-                @endrole --}}
-
                 @role('Administrador')
                     <div x-data="{ adminOpen: false }" class="hidden sm:ms-10 sm:flex relative">
                         <button @click="adminOpen = !adminOpen"
-                            class="inline-flex items-center px-3 py-2 text-md font-medium text-gray-700 bg-white hover:text-gray-900 focus:outline-none">
+                            class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-md font-medium leading-5 text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150 ease-in-out">
                             {{ __('Administración') }}
                             <svg class="ms-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 stroke-width="2">
@@ -90,8 +72,6 @@
 
                         <div x-show="adminOpen" @click.away="adminOpen = false"
                             class="absolute z-50 mt-10 px-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg">
-                            {{-- class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
-                                    style="z-index: 9999;"> --}}
                             <div class="py-1">
                                 <x-dropdown-link
                                     href="{{ route('indicadores') }}">{{ __('Indicadores') }}</x-dropdown-link>
@@ -104,8 +84,6 @@
                         </div>
                     </div>
                 @endrole
-
-
             </div>
 
             <div class="hidden sm:flex sm:items-center sm:ms-6">

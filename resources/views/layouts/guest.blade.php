@@ -30,8 +30,6 @@
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('alert', (event) => {
-                console.log("Evento recibido:", event); // <--- Agregar esto para depurar
-
                 Swal.fire({
                     position: "bottom-end",
                     icon: "success",
@@ -41,13 +39,10 @@
                 });
             });
             Livewire.on('oops', (event) => {
-                console.log("Error recibido:", event); // <--- Agregar esto para depurar
                 Swal.fire({
                     icon: "error",
                     title: event.message,
                     timer: 3000
-                    // text: "Something went wrong!",
-                    // footer: '<a href="#">Why do I have this issue?</a>'
                 });
             });
         });
