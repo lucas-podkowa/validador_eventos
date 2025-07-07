@@ -170,7 +170,7 @@ class CrearEvento extends Component
             Evento::findOrFail($this->evento_id)->delete();
 
             DB::commit();
-            $this->dispatch('success', message: 'El evento fue eliminado correctamente.');
+            $this->dispatch('alert', message: 'El evento fue eliminado correctamente.');
             return redirect()->route('eventos');
         } catch (\Exception $e) {
             DB::rollBack();

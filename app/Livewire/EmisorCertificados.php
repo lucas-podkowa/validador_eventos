@@ -133,7 +133,7 @@ class EmisorCertificados extends Component
             $this->generarCertificadoIndividual($participante, $evento, $backgroundPath);
 
             DB::commit();
-            $this->dispatch('ok', message: 'Participante registrado correctamente.');
+            $this->dispatch('alert', message: 'Participante registrado correctamente.');
             $this->modal_abierto = false;
         } catch (\Exception $e) {
             DB::rollBack();

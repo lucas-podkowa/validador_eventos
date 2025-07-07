@@ -44,11 +44,8 @@ class EventosActivos extends Component
     public $busqueda_usuario = '';
     public $usuarios_filtrados = [];
     public $usuario_seleccionado_id = null;
-
-    //public $open_edit_modal = false;
     public $apertura;
     public $cierre;
-    //public $eventosEnCurso;
 
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
@@ -123,7 +120,7 @@ class EventosActivos extends Component
             $this->evento_selected->revisor_id = $this->usuario_seleccionado_id;
             $this->evento_selected->save();
 
-            $this->dispatch('success', message: 'Revisor asignado correctamente.');
+            $this->dispatch('alert', message: 'Revisor asignado correctamente.');
         }
 
         $this->reset(['open_modal_revisor', 'evento_selected', 'busqueda_usuario', 'usuarios_filtrados', 'usuario_seleccionado_id']);
@@ -144,6 +141,16 @@ class EventosActivos extends Component
 
             if (!$planilla) {
                 throw new \Exception('No se encontró la planilla de inscripción para este evento.');
+            }
+
+            // // Validar si el evento es por aprobación y no tiene revisores (en el caso que sean multiples)
+            // if ($evento->por_aprobacion && $evento->revisores()->count() === 0) {
+            //     throw new \Exception('El evento requiere al menos un revisor asignado para poder finalizarse.');
+            // }
+
+            // Validación: si el evento es por aprobación, debe tener un revisor asignado
+            if ($evento->esPorAprobacion() && is_null($evento->revisor_id)) {
+                throw new \Exception('Este evento requiere que se asigne un revisor antes de poder finalizarlo.');
             }
 
             // Obtener los participantes con asistencia confirmada
@@ -213,7 +220,7 @@ class EventosActivos extends Component
 
             DB::commit();
 
-            $this->dispatch('success', message: 'El evento fue cancelado correctamente.');
+            $this->dispatch('alert', message: 'El evento fue cancelado correctamente.');
             $this->mount(); // Refrescar la lista de eventos activos
 
         } catch (\Exception $e) {

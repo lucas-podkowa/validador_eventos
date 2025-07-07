@@ -73,7 +73,7 @@ class ProcesarAprobaciones extends Component
             //$this->eventoSeleccionado->update(['revisado' => true]);
 
             DB::commit();
-            $this->dispatch('success', message: 'Participantes actualizados correctamente.');
+            $this->dispatch('alert', message: 'Participantes actualizados correctamente.');
             $this->reset(['eventoSeleccionado', 'participantes']);
             $this->mount(); // recargar eventos
         } catch (\Throwable $e) {

@@ -47,7 +47,13 @@ class Asistencias extends Component
     public function crearSesion()
     {
         $this->validate([
-            'nombre' => 'required',
+            'nombre' => [
+                'required',
+                'string',
+                'min:3',
+                'max:100',
+                'regex:/^[a-zA-Z0-9\s]+$/u',
+            ],
             'fecha_hora_inicio' => 'required',
             'fecha_hora_fin' => 'required|after:fecha_hora_inicio',
         ]);

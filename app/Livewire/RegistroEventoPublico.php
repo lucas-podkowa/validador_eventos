@@ -182,7 +182,7 @@ class RegistroEventoPublico extends Component
             //     $this->apellido,
             //     $this->evento
             // ));
-            $this->dispatch('success', message: '¡Inscripción completada con éxito!');
+            $this->dispatch('alert', message: '¡Inscripción completada con éxito!');
 
             $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos']);
             $this->verificarInscripcionActiva(); // <-- Refresca el estado del formulario

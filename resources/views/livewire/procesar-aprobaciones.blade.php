@@ -32,8 +32,8 @@
                             {{ $evento->participantesConAsistencia()->count() }}</td>
                         <td class="px-6 py-3">
 
-                            <a wire:click="seleccionarEvento('{{ $evento->evento_id }}')"
-                                class="bg-blue-500 text-white px-2 py-1" title="Procesar">
+                            <a wire:click="seleccionarEvento('{{ $evento->evento_id }}')" class="text-white px-2 py-1"
+                                title="Procesar">
                                 <i class="fa-solid fa-eye fa-xl text-black"></i>
                             </a>
                         </td>

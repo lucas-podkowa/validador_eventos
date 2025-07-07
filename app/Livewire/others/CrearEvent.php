@@ -230,7 +230,7 @@ class CrearEvent extends Component
                     $evento->participantes()->attach($participante_id, $data);
                 }
 
-                $this->dispatch('success', message: 'Evento y participantes procesados exitosamente.');
+                $this->dispatch('alert', message: 'Evento y participantes procesados exitosamente.');
             }
         } catch (Exception $e) {
             $this->dispatch('oops', message: 'Error abriendo archivo: ' . $e->getMessage());
