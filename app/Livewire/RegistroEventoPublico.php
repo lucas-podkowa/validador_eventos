@@ -30,11 +30,11 @@ class RegistroEventoPublico extends Component
 
 
     protected $rules = [
-        'nombre' => 'required|string|max:100',
-        'apellido' => 'required|string|max:100',
-        'dni' => 'required|string|max:15',
-        'mail' => 'required|email|max:100',
-        'telefono' => 'required|string|min:6|max:15',
+        'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
+        'nombre'   => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+        'dni'      => ['required', 'digits_between:6,10', 'numeric'],
+        'mail'     => ['required', 'email'],
+        'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
     ];
 
     public function mount($tipoEvento, $eventoId)
@@ -102,14 +102,22 @@ class RegistroEventoPublico extends Component
         try {
             if (!$this->planilla_inscripcion) {
                 DB::rollBack();
-                $this->dispatch('oops', ['message' => 'Error: No hay una planilla de inscripción asociada a este evento.']);
+                $this->dispatch('oops', message: 'Error: No hay una planilla de inscripción asociada a este evento.');
                 return;
             }
 
-            // Buscar si el participante ya existe por DNI
             $participante = Participante::where('dni', $this->dni)->first();
 
             if (!$participante) {
+                // Verificar si el email ya existe en otro participante
+                $mailExistente = Participante::where('mail', $this->mail)->exists();
+
+                if ($mailExistente) {
+                    DB::rollBack();
+                    $this->dispatch('oops', message: 'El correo electrónico ingresado ya está registrado para otro participante.');
+                    return;
+                }
+
                 $participante = Participante::create([
                     'nombre' => $this->nombre,
                     'apellido' => $this->apellido,
@@ -123,15 +131,30 @@ class RegistroEventoPublico extends Component
                 if ($participante->nombre !== $this->nombre) {
                     $datosActualizados['nombre'] = $this->nombre;
                 }
+
                 if ($participante->apellido !== $this->apellido) {
                     $datosActualizados['apellido'] = $this->apellido;
                 }
+
                 if ($participante->mail !== $this->mail) {
+                    // Verificar si ese nuevo mail ya lo usa otro participante
+                    $mailUsadoPorOtro = Participante::where('mail', $this->mail)
+                        ->where('participante_id', '!=', $participante->participante_id)
+                        ->exists();
+
+                    if ($mailUsadoPorOtro) {
+                        DB::rollBack();
+                        $this->dispatch('oops', message: 'El correo ingresado ya está siendo utilizado por otro participante.');
+                        return;
+                    }
+
                     $datosActualizados['mail'] = $this->mail;
                 }
+
                 if ($participante->telefono !== $this->telefono) {
                     $datosActualizados['telefono'] = $this->telefono;
                 }
+
                 if (!empty($datosActualizados)) {
                     $participante->update($datosActualizados);
                 }
@@ -144,7 +167,7 @@ class RegistroEventoPublico extends Component
 
             if ($yaInscripto) {
                 DB::rollBack();
-                $this->dispatch('oops', ['message' => 'Este participante ya está inscrito en esta planilla.']);
+                $this->dispatch('oops', message: 'Este participante ya está inscrito en esta planilla.');
                 return;
             }
 

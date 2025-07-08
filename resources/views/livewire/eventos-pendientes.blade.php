@@ -67,8 +67,6 @@
                                             Asignar Gestores
                                         </a>
                                     @endcan
-
-
                                 </div>
                             </div>
                         </td>

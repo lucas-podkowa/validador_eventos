@@ -26,20 +26,11 @@ class CrearEvento extends Component
     public $fecha_inicio = null;
     public $lugar_evento = null;
     public $cupo = null;
+    public $estado_evento = null;
 
     public $tiposEventos = [];
     public $tiposIndicadores = [];
     public $indicadoresSeleccionados = [];
-
-    // Reglas de validación
-    protected $rules = [
-        'tipo_evento_id'  => 'required',
-        'nombre_evento' => 'required|string|min:3|max:255',
-        'fecha_inicio' => 'required|date|after_or_equal:today',
-        'lugar_evento'  => 'required|string|min:2|max:255',
-        'cupo' => 'nullable|integer|min:0',
-
-    ];
 
     public function mount($evento_id = null)
     {
@@ -56,6 +47,7 @@ class CrearEvento extends Component
                 $this->fecha_inicio = $evento->fecha_inicio;
                 $this->lugar_evento = $evento->lugar;
                 $this->cupo = $evento->cupo;
+                $this->estado_evento = $evento->estado;
                 $this->por_aprobacion = (bool) $evento->por_aprobacion;
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
             }
@@ -68,8 +60,22 @@ class CrearEvento extends Component
 
     public function save()
     {
+        $reglas = [
+            'tipo_evento_id'  => 'required',
+            'nombre_evento' => 'required|string|min:3|max:255',
+            'lugar_evento'  => 'required|string|min:2|max:255',
+            'cupo' => 'nullable|integer|min:0',
+        ];
+
+        // Solo validar la fecha si estamos creando o el estado es Pendiente
+        if (!$this->evento_id || $this->estado_evento === 'Pendiente') {
+            $reglas['fecha_inicio'] = 'required|date|after_or_equal:today';
+        }
+
+        $this->validate($reglas);
+
+
         // Validar los datos del formulario
-        $this->validate();
         $this->nombre_evento = mb_strtoupper(trim($this->nombre_evento));
 
         DB::beginTransaction();

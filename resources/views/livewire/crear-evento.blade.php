@@ -44,6 +44,7 @@
                         <label for="fecha_inicio" class="block text-sm font-medium text-gray-700">Fecha de
                             Inicio</label>
                         <input type="date" id="fecha_inicio" wire:model.live="fecha_inicio"
+                            min="{{ now()->format('Y-m-d') }}" @if ($esEdicion && $estado_evento === 'En Curso') disabled @endif
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('fecha_inicio')
                             <span class="text-sm text-red-500">{{ $message }}</span>

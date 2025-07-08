@@ -12,6 +12,7 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
+use Barryvdh\DomPDF\PDF;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -46,6 +47,9 @@ class EventosActivos extends Component
     public $usuario_seleccionado_id = null;
     public $apertura;
     public $cierre;
+
+    public $open_modal_detalles = false;
+    public $evento_detalles = null;
 
     protected $rules = [
         'apertura' => 'required|date_format:Y-m-d H:i',
@@ -89,6 +93,30 @@ class EventosActivos extends Component
     {
         return redirect()->route('eventos', ['tab' => $tab]);
     }
+
+    //----------------------------------------------------------------------------
+    //------ Metodo disparado por el boton "Ver detalle de la columna Detalle" ---
+    //----------------------------------------------------------------------------
+    public function verDetalles($evento_id)
+    {
+        $this->evento_detalles = Evento::with(['planillaInscripcion', 'revisor', 'gestores', 'tipoEvento'])
+            ->findOrFail($evento_id);
+        $this->open_modal_detalles = true;
+    }
+
+    public function descargarResumenPDF($evento_id)
+    {
+        // $evento = Evento::with(['planillaInscripcion', 'revisor', 'gestores', 'tipoEvento'])
+        //     ->findOrFail($evento_id);
+
+        // // Lógica para generar PDF (ej: con DomPDF o Laravel Snappy)
+        // $pdf = PDF::loadView('pdf.resumen_evento', ['evento' => $evento]);
+
+        // return response()->streamDownload(function () use ($pdf) {
+        //     echo $pdf->output();
+        // }, 'resumen_evento.pdf');
+    }
+
 
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton "Asignar Revisor" --------

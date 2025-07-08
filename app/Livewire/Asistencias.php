@@ -52,7 +52,7 @@ class Asistencias extends Component
                 'string',
                 'min:3',
                 'max:100',
-                'regex:/^[a-zA-Z0-9\s]+$/u',
+                'regex:/^[\pL\pN\s]+$/u',
             ],
             'fecha_hora_inicio' => 'required',
             'fecha_hora_fin' => 'required|after:fecha_hora_inicio',

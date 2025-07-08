@@ -75,8 +75,6 @@
                 </div>
 
             </div>
-
-
             <div class="mb-4">
                 <label class="block">DNI:</label>
                 <input type="text" wire:model="dni" class="w-full border rounded p-2">

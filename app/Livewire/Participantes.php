@@ -48,12 +48,13 @@ class Participantes extends Component
     public function update()
     {
         $this->validate([
-            'nombre' => 'required|string|max:255',
-            'apellido' => 'required|string|max:255',
-            'dni' => "required|integer|unique:participante,dni,{$this->participante_id},participante_id",
-            'mail' => "required|email|unique:participante,mail,{$this->participante_id},participante_id",
-            'telefono' => 'required|string|max:20',
+            'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
+            'nombre'   => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+            'dni'      => ['required', 'digits_between:6,10', 'numeric'],
+            'mail'     => ['required', 'email'],
+            'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         ]);
+
 
         // Normalizar nombre y apellido antes de guardar o actualizar
         $this->nombre = ucfirst(mb_strtolower(trim($this->nombre)));

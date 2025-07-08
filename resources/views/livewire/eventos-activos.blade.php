@@ -16,9 +16,6 @@
                         @endif
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
-                        Tipo de Evento
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
                         Fecha de Inicio
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
@@ -38,8 +35,9 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach ($eventos as $evento)
                     <tr>
-                        <td class="px-6 py-2">{{ $evento->nombre }}</td>
-                        <td class="px-6 py-2">{{ $evento->tipoEvento->nombre }}</td>
+                        <td class="px-6 py-2"><i class="fa solid fa-info-circle text-blue-500 mr-1 "
+                                wire:click="verDetalles('{{ $evento->evento_id }}')"></i> {{ $evento->nombre }} </td>
+                        {{-- <td class="px-6 py-2">{{ $evento->tipoEvento->nombre }}</td> --}}
                         <td class="px-6 py-2">{{ $evento->fecha_inicio_formatted }}</td>
                         <td>
                             @if ($evento->por_aprobacion)
@@ -92,14 +90,22 @@
                                         style="text-decoration: none; color: inherit;">
                                         <i class="fa-solid fa-calendar-alt fa-xl"></i> Editar Planilla
                                     </a>
-
-                                    <hr class="border-gray-200">
+                                    @can('crear_eventos')
+                                        <a href="{{ route('asignar_gestores', ['evento_id' => $evento->evento_id]) }}"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                            style="text-decoration: none; color: inherit;">
+                                            <i class="fa-regular fa-user fa-xl "></i>
+                                            Editar Gestores
+                                        </a>
+                                    @endcan
                                     @if ($evento->por_aprobacion)
                                         <a wire:click="modalRevisor('{{ addslashes($evento->evento_id) }}')"
                                             class="block px-4 py-1 text-blue-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                             <i class="fas fa-user-check fa-xl"></i>Asignar Revisor
                                         </a>
                                     @endif
+
+                                    <hr class="border-gray-200">
 
                                     <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
@@ -196,6 +202,124 @@
             <div class="px-6 py-4">Aún no se han registrado Participantes</div>
         @endif
     @endif
+
+    <x-dialog-modal wire:model="open_modal_detalles">
+        <x-slot name="title">
+            Detalles del Evento
+        </x-slot>
+
+        <x-slot name="content">
+            @if ($evento_detalles)
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+
+                    {{-- Nombre (col-span-2) --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border col-span-1 sm:col-span-2">
+                        <p class="text-gray-500 text-xs uppercase">Nombre</p>
+                        <p class="mb-0 font-semibold">{{ $evento_detalles->nombre }}</p>
+                    </div>
+
+                    {{-- Fecha de Inicio --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Fecha de Inicio</p>
+                        <p class="mb-0 font-semibold">{{ $evento_detalles->fecha_inicio_formatted }}</p>
+                    </div>
+
+                    {{-- Tipo de Evento --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Tipo de Evento</p>
+                        <p class="mb-0 font-semibold">{{ $evento_detalles->tipoEvento->nombre ?? 'N/A' }}</p>
+                    </div>
+
+                    {{-- Lugar --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Lugar</p>
+                        <p class="mb-0 font-semibold">{{ $evento_detalles->lugar }}</p>
+                    </div>
+
+                    {{-- CERTIFICACIÓN --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Certificación</p>
+                        <p class="mb-0 font-semibold">
+                            {{ $evento_detalles->por_aprobacion ? 'Por Aprobación' : 'Por Asistencia' }}
+                        </p>
+                    </div>
+
+                    {{-- Revisor --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Revisor</p>
+                        <p class="mb-0 font-semibold">
+                            @if ($evento_detalles->por_aprobacion)
+                                {{ $evento_detalles->revisor->name ?? 'No asignado' }}
+                            @else
+                                No Requiere
+                            @endif
+                        </p>
+                    </div>
+
+                    {{-- Gestores --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Gestores</p>
+                        <p class="mb-0 font-semibold">
+                            @if ($evento_detalles->gestores->isEmpty())
+                                Sin Asignar
+                            @else
+                                {{ $evento_detalles->gestores->pluck('name')->join(', ') }}
+                            @endif
+                        </p>
+                    </div>
+
+                    {{-- Cupo --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Cupo</p>
+                        <p class="mb-0 font-semibold">{{ $evento_detalles->cupo }}</p>
+                    </div>
+
+                    {{-- Inscriptos --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Inscriptos</p>
+                        <p class="mb-0 font-semibold">{{ $evento_detalles->inscriptos()->count() }}</p>
+                    </div>
+
+                    {{-- Inicio Inscripción --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Inicio Inscripción</p>
+                        <p class="mb-0 font-semibold">
+                            {{ $evento_detalles->planillaInscripcion->apertura
+                                ? \Carbon\Carbon::parse($evento_detalles->planillaInscripcion->apertura)->format('d/m/Y H:i')
+                                : 'N/A' }}
+                        </p>
+                    </div>
+
+                    {{-- Fin Inscripción --}}
+                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                        <p class="text-gray-500 text-xs uppercase">Fin Inscripción</p>
+                        <p class="mb-0 font-semibold">
+                            {{ $evento_detalles->planillaInscripcion->cierre
+                                ? \Carbon\Carbon::parse($evento_detalles->planillaInscripcion->cierre)->format('d/m/Y H:i')
+                                : 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+            @endif
+        </x-slot>
+
+        <x-slot name="footer">
+            <x-secondary-button wire:click="$set('open_modal_detalles', false)">
+                Cerrar
+            </x-secondary-button>
+
+            {{-- PDF opcional --}}
+            {{-- 
+        <x-button wire:click="descargarResumenPDF('{{ $evento_detalles->evento_id ?? '' }}')" class="ml-2">
+            <i class="fas fa-file-pdf mr-1"></i> Descargar PDF
+        </x-button> 
+        --}}
+        </x-slot>
+    </x-dialog-modal>
+
+
+
+
 
     <!-- Modal -->
 </div>
