@@ -15,7 +15,7 @@
     <p>Gracias por su interés en participar. Si requiere información adicional, no dude en comunicarse con nosotros.</p>
 
     <p>Atentamente,<br>
-        <em>El equipo organizador</em>
+        <em>Secretaría de Extensión Universitaria - Facultad de Ingeniería</em>
     </p>
 </body>
 

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Mail\ConfirmacionInscripcion;
 use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
@@ -200,11 +201,7 @@ class RegistroEventoPublico extends Component
 
 
             // Enviar correo de confirmación al participante
-            // Mail::to($this->mail)->send(new ConfirmacionInscripcion(
-            //     $this->nombre,
-            //     $this->apellido,
-            //     $this->evento
-            // ));
+            Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento));
             $this->dispatch('alert', message: '¡Inscripción completada con éxito!');
 
             $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos']);
