@@ -176,6 +176,18 @@
                 placeholder="Buscar por nombre, apellido o DNI...">
         </div>
         @if (count($inscriptos))
+            <div class="flex justify-end space-x-2 mb-3">
+                <button wire:click="exportarPDF"
+                    class="border border-red-600 text-red-600 px-2 py-1 rounded-xl text-sm transition">
+                    📄 PDF
+                </button>
+
+                <button wire:click="descargarCSV"
+                    class="border border-blue-600 text-blue-600 px-2 py-1 rounded-xl text-sm transition">
+                    📥 CSV
+                </button>
+            </div>
+
             <table class="w-full min-w-full divide-y divide-gray-200 mt-2">
                 <thead class="bg-gray-50">
                     <tr>

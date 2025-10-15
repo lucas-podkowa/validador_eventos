@@ -12,7 +12,8 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
-use Barryvdh\DomPDF\PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -93,6 +94,75 @@ class EventosActivos extends Component
     {
         return redirect()->route('eventos', ['tab' => $tab]);
     }
+
+    // ----------------------------------------
+    // EXPORTAR LISTADO DE INSCRIPTOS A PDF
+    // ----------------------------------------
+    public function exportarPDF()
+    {
+        if (!$this->evento_selected) {
+            session()->flash('error', 'Debe seleccionar un evento primero.');
+            return;
+        }
+
+        $inscriptos = $this->inscriptos;
+
+        $pdf = Pdf::setOption(['isPhpEnabled' => true])
+            ->loadView('pdf.listado-inscriptos', [
+                'evento' => $this->evento_selected,
+                'inscriptos' => $inscriptos
+            ])
+            ->setPaper('A4', 'portrait');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'inscriptos_' . Str::slug($this->evento_selected->nombre) . '.pdf');
+    }
+
+
+    // ----------------------------------------
+    // EXPORTAR LISTADO DE INSCRIPTOS A CSV
+    // ----------------------------------------
+
+    public function descargarCSV()
+    {
+        if (!$this->evento_selected) {
+            session()->flash('error', 'Debe seleccionar un evento primero.');
+            return;
+        }
+
+        $inscriptos = $this->inscriptos;
+
+        if (empty($inscriptos)) {
+            abort(404, 'No hay inscriptos para exportar.');
+        }
+
+        $filename = 'inscriptos_' . Str::slug($this->evento_selected->nombre) . '.csv';
+
+        return response()->streamDownload(function () use ($inscriptos) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nombre', 'Apellido', 'DNI', 'Email', 'Teléfono'], ';');
+
+            foreach ($inscriptos as $inscripto) {
+                fputcsv($handle, [
+                    $inscripto->participante->nombre ?? '',
+                    $inscripto->participante->apellido ?? '',
+                    $inscripto->participante->dni ?? '',
+                    $inscripto->participante->mail ?? '',
+                    $inscripto->participante->telefono ?? '',
+                ], ';');
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+            'Pragma'              => 'no-cache',
+        ]);
+    }
+
+
 
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton "Ver detalle de la columna Detalle" ---
@@ -257,12 +327,8 @@ class EventosActivos extends Component
         }
     }
 
-
     public function get_inscriptos($evento)
     {
-        $this->evento_selected = Evento::find($evento['evento_id']);
-
-        // Obtener el evento con la planilla de inscripción y sus inscritos
         $this->evento_selected = Evento::with(['planillaInscripcion.participantes'])
             ->find($evento['evento_id']);
 
@@ -281,7 +347,7 @@ class EventosActivos extends Component
             $this->inscriptos = $query->get();
             $this->mostrar_inscriptos = true;
         } else {
-            $this->inscriptos = collect(); // No hay participantes inscritos
+            $this->inscriptos = collect();
         }
     }
 

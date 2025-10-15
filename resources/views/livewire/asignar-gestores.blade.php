@@ -10,15 +10,18 @@
         <form wire:submit.prevent="guardar" enctype="multipart/form-data" class="space-y-4">
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Seleccionar Gestores</label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    @foreach ($gestores as $gestor)
-                        <label class="flex items-center space-x-2">
+                <input type="text" wire:model.live="searchGestor" placeholder="Buscar gestor por nombre..."
+                    class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-4">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
+                    @forelse ($gestores as $gestor)
+                        <label class="flex items-center space-x-2" wire:key="gestor-{{ $gestor->id }}">
                             <input type="checkbox" wire:model="gestoresSeleccionados" value="{{ $gestor->id }}"
                                 class="rounded text-indigo-600">
                             <span>{{ $gestor->name }}</span>
                         </label>
-                    @endforeach
+                    @empty
+                        <p class="text-gray-500 col-span-full">No se encontraron gestores con ese nombre.</p>
+                    @endforelse
                 </div>
             </div>
 

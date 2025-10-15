@@ -95,9 +95,9 @@ class RegistroEventoPublico extends Component
     {
         $this->validate();
 
-        // Normalizar nombre y apellido antes de guardar o actualizar
-        $this->nombre = ucfirst(mb_strtolower(trim($this->nombre)));
-        $this->apellido = ucfirst(mb_strtolower(trim($this->apellido)));
+        // Normalizar nombre y apellido para que cada palabra inicie con mayúscula
+        $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, "UTF-8");
+        $this->apellido = mb_convert_case(mb_strtolower(trim($this->apellido)), MB_CASE_TITLE, "UTF-8");
 
         DB::beginTransaction();
         try {

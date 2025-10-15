@@ -10,15 +10,13 @@ class AsignarGestores extends Component
 {
     public $evento_id;
     public $evento;
-    public $gestores = [];
     public $gestoresSeleccionados = [];
+    public $searchGestor = '';
 
     public function mount($evento_id)
     {
         $this->evento_id = $evento_id;
         $this->evento = Evento::findOrFail($evento_id);
-        $this->gestores = User::role('gestor')->get();
-
         $this->gestoresSeleccionados = $this->evento->gestores->pluck('id')->toArray();
     }
 
@@ -34,6 +32,20 @@ class AsignarGestores extends Component
 
     public function render()
     {
-        return view('livewire.asignar-gestores');
+        $query = User::role('gestor');
+
+        // Si hay algo en el buscador, aplica el filtro
+        if (!empty($this->searchGestor)) {
+            $searchTerm = '%' . $this->searchGestor . '%';
+            // Asumiendo que el nombre y apellido están en la columna 'name'
+            $query->where('name', 'like', $searchTerm);
+        }
+
+        // Obtiene los gestores filtrados (o todos si el buscador está vacío)
+        $gestores = $query->orderBy('name')->get();
+
+        return view('livewire.asignar-gestores', [
+            'gestores' => $gestores,
+        ]);
     }
 }
