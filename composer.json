@@ -13,8 +13,8 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "^3.0",
-        "maatwebsite/excel": "^1.1",
         "phpoffice/phpspreadsheet": "^3.3",
+        "rap2hpoutre/fast-excel": "^5.6",
         "spatie/laravel-permission": "^6.18"
     },
     "require-dev": {

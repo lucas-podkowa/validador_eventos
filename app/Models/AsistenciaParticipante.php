@@ -9,20 +9,20 @@ class AsistenciaParticipante extends Model
 {
     use HasFactory;
 
-    protected $table = 'asistencia_participante'; // Nombre de la tabla
-    protected $primaryKey = 'asistencia_participante_id'; // Clave primaria
-    public $timestamps = false; // Habilita timestamps
+    protected $table = 'asistencia_participante';
+    protected $primaryKey = 'asistencia_participante_id';
+    public $timestamps = false;
 
     protected $fillable = [
-        'participante_id',
+        'inscripcion_participante_id',
         'sesion_evento_id',
         'asistio'
     ];
 
-    // Relación con el participante
-    public function participante()
+    //acceder al participante a través de la inscripción: $asistencia->inscripcionParticipante->participante
+    public function inscripcionParticipante()
     {
-        return $this->belongsTo(Participante::class, 'participante_id', 'participante_id');
+        return $this->belongsTo(InscripcionParticipante::class, 'inscripcion_participante_id');
     }
 
     // Relación con la sesión del evento

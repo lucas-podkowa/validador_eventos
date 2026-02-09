@@ -39,6 +39,32 @@ class PlanillaInscripcion extends Model
         return $this->hasMany(InscripcionParticipante::class, 'planilla_id');
     }
 
+    public function inscripcionesAsistentes()
+    {
+        return $this->hasMany(InscripcionParticipante::class, 'planilla_id')
+            ->asistentes()
+            ->with('participante');
+    }
+    public function inscripcionesDisertantes()
+    {
+        return $this->hasMany(InscripcionParticipante::class, 'planilla_id')
+            ->disertantes()
+            ->with('participante');
+    }
+
+    public function inscripcionesColaboradores()
+    {
+        return $this->hasMany(InscripcionParticipante::class, 'planilla_id')
+            ->colaboradores()
+            ->with('participante');
+    }
+
+    public function inscripcionesDisertantesYColaboradores()
+    {
+        return $this->hasMany(InscripcionParticipante::class, 'planilla_id')
+            ->disertantesYColaboradores()
+            ->with('participante');
+    }
 
     public function participantes()
     {

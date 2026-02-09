@@ -25,7 +25,9 @@ class EventosActivos extends Component
 
     public $tipos_eventos = [];
     public $inscriptos = [];
+    public $disertantes_colaboradores = [];
     public $mostrar_inscriptos = false;
+    public $mostrar_disertantes_colaboradores = false;
     public $evento_selected = null;
     public $planilla_selected = null;
     public $search = '';
@@ -35,10 +37,13 @@ class EventosActivos extends Component
     public $sort = 'nombre';
     public $direction = 'asc';
     public $searchParticipante = '';
+    public $searchDisertante = '';
+
     protected $listeners = [
         'toggleAsistencia',
-        'finalizarEvento', // Debe coincidir con el evento emitido
+        'finalizarEvento',
         'cancelarEvento',
+        'confirmDesmatricular',
     ];
 
     // para revisor
@@ -61,9 +66,12 @@ class EventosActivos extends Component
 
     public function mount()
     {
-        //$this->eventosEnCurso = Evento::where('estado', 'en curso')->orderBy($this->sort, $this->direction)->get();
         $this->tipos_eventos = TipoEvento::all();
         $this->listeners[] = 'toggleAsistencia';
+        // Verificar si se debe abrir automáticamente la tabla de disertantes
+        if (request('mostrar') === 'disertantes' && request('evento_id')) {
+            $this->get_staff(['evento_id' => request('evento_id')]);
+        }
     }
 
     public function updatingSearch()
@@ -74,9 +82,10 @@ class EventosActivos extends Component
     public function updatedEventoSelected($value)
     {
         if (is_null($value)) {
-            $this->resetPage(); // Resetea la paginación
+            $this->resetPage();
         }
     }
+
     public function updatedSearch()
     {
         $this->get_inscriptos($this->evento_selected);
@@ -86,10 +95,12 @@ class EventosActivos extends Component
     {
         $this->apertura = Carbon::parse($value)->format('Y-m-d H:i');
     }
+
     public function updatedCierre($value)
     {
         $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
     }
+
     public function redirectToEventos($tab)
     {
         return redirect()->route('eventos', ['tab' => $tab]);
@@ -119,11 +130,9 @@ class EventosActivos extends Component
         }, 'inscriptos_' . Str::slug($this->evento_selected->nombre) . '.pdf');
     }
 
-
     // ----------------------------------------
     // EXPORTAR LISTADO DE INSCRIPTOS A CSV
     // ----------------------------------------
-
     public function descargarCSV()
     {
         if (!$this->evento_selected) {
@@ -162,8 +171,6 @@ class EventosActivos extends Component
         ]);
     }
 
-
-
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton "Ver detalle de la columna Detalle" ---
     //----------------------------------------------------------------------------
@@ -176,17 +183,8 @@ class EventosActivos extends Component
 
     public function descargarResumenPDF($evento_id)
     {
-        // $evento = Evento::with(['planillaInscripcion', 'revisor', 'gestores', 'tipoEvento'])
-        //     ->findOrFail($evento_id);
-
-        // // Lógica para generar PDF (ej: con DomPDF o Laravel Snappy)
-        // $pdf = PDF::loadView('pdf.resumen_evento', ['evento' => $evento]);
-
-        // return response()->streamDownload(function () use ($pdf) {
-        //     echo $pdf->output();
-        // }, 'resumen_evento.pdf');
+        // Implementación pendiente
     }
-
 
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton "Asignar Revisor" --------
@@ -202,7 +200,7 @@ class EventosActivos extends Component
 
     public function updatedBusquedaUsuario()
     {
-        $this->usuarios_filtrados = User::role('Revisor') // filtra por rol "Revisor"
+        $this->usuarios_filtrados = User::role('Revisor')
             ->where(function ($query) {
                 $query->where('name', 'like', '%' . $this->busqueda_usuario . '%')
                     ->orWhere('email', 'like', '%' . $this->busqueda_usuario . '%');
@@ -210,7 +208,6 @@ class EventosActivos extends Component
             ->limit(10)
             ->get();
     }
-
 
     public function guardarRevisor()
     {
@@ -224,12 +221,9 @@ class EventosActivos extends Component
         $this->reset(['open_modal_revisor', 'evento_selected', 'busqueda_usuario', 'usuarios_filtrados', 'usuario_seleccionado_id']);
     }
 
-
-
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton "Finalizar Evento" --------
     //----------------------------------------------------------------------------
-
     public function finalizarEvento($evento_id)
     {
         DB::beginTransaction();
@@ -241,37 +235,36 @@ class EventosActivos extends Component
                 throw new \Exception('No se encontró la planilla de inscripción para este evento.');
             }
 
-            // // Validar si el evento es por aprobación y no tiene revisores (en el caso que sean multiples)
-            // if ($evento->por_aprobacion && $evento->revisores()->count() === 0) {
-            //     throw new \Exception('El evento requiere al menos un revisor asignado para poder finalizarse.');
-            // }
-
-            // Validación: si el evento es por aprobación, debe tener un revisor asignado
             if ($evento->esPorAprobacion() && is_null($evento->revisor_id)) {
                 throw new \Exception('Este evento requiere que se asigne un revisor antes de poder finalizarlo.');
             }
 
-            // Obtener los participantes con asistencia confirmada
-            $presentes = $evento->participantesConAsistencia();
-
-            if ($presentes->isEmpty()) {
+            $inscripcionesPresentes = $evento->inscripcionesConAsistencia();
+            if ($inscripcionesPresentes->isEmpty()) {
+                // Se mantiene el mensaje de error para el usuario final
                 throw new \Exception('No hay participantes con asistencia confirmada para este evento.');
             }
 
-            // Instanciar generador de QR
+            $inscripcionesFinales = $evento->inscripcionesFinales();
+
             $renderer = new ImageRenderer(
                 new RendererStyle(200),
                 new SvgImageBackEnd()
             );
             $writer = new Writer($renderer);
 
-            // Insertar en evento_participantes
-            foreach ($presentes as $participante) {
-                $url = route('validar.participante', ['evento_id' => $evento_id, 'participante_id' => $participante['participante_id']]); // URL de validación
-                $qrcode = $writer->writeString($url); // Generar código QR en formato SVG
+            foreach ($inscripcionesFinales as $inscripcion) {
+                $participanteId = $inscripcion->participante_id;
+                $rolId = $inscripcion->rol_id;
+
+                $url = route('validar.participante', ['evento_id' => $evento_id, 'participante_id' => $participanteId]);
+                $qrcode = $writer->writeString($url);
+
+                // Usamos el ID de participante obtenido
                 EventoParticipante::create([
                     'evento_id' =>  $evento_id,
-                    'participante_id' => $participante['participante_id'],
+                    'participante_id' => $participanteId,
+                    'rol_id' => $rolId,
                     'url' => $url,
                     'qrcode' => $qrcode,
                 ]);
@@ -281,15 +274,12 @@ class EventosActivos extends Component
             PlanillaInscripcion::where('evento_id', $evento_id)->update(['cierre' => Carbon::now()]);
 
             DB::commit();
-            $this->reset([
-                'evento_selected',
-            ]);
+            $this->reset(['evento_selected']);
             $this->redirectToEventos('finalizados');
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo finalizar el Evento: ' . $e->getMessage());
         }
-        // Disparar evento para refrescar el componente
         $this->dispatch('refreshMainComponent');
     }
 
@@ -302,55 +292,120 @@ class EventosActivos extends Component
 
         DB::beginTransaction();
         try {
-            // Buscar la planilla asociada al evento
             $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
 
             if ($planilla) {
                 $planilla_id = $planilla->planilla_inscripcion_id;
-
-                // Eliminar todas las inscripciones de la planilla
                 InscripcionParticipante::where('planilla_id', $planilla_id)->delete();
-                $planilla->delete(); // Eliminar la planilla
+                $planilla->delete();
             }
 
-            // Actualizar el estado del evento a "pendiente"
             Evento::where('evento_id', $evento_id)->update(['estado' => 'Pendiente']);
 
             DB::commit();
 
             $this->dispatch('alert', message: 'El evento fue cancelado correctamente.');
-            $this->mount(); // Refrescar la lista de eventos activos
-
+            $this->mount();
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo cancelar el evento: ' . $e->getMessage());
         }
     }
 
+    // ----------------------------------------
+    // Método para desmatricular
+    // ----------------------------------------
+    public function desmatricularParticipante($inscripcion_id)
+    {
+        DB::beginTransaction();
+        try {
+            $inscripcion = InscripcionParticipante::findOrFail($inscripcion_id);
+            $participante_nombre = $inscripcion->participante->nombre . ' ' . $inscripcion->participante->apellido;
+
+            $inscripcion->delete();
+
+            DB::commit();
+
+            $this->get_inscriptos(['evento_id' => $this->evento_selected->evento_id]);
+
+            $this->dispatch('alert', message: "El participante {$participante_nombre} ha sido desmatriculado con éxito.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'No se pudo desmatricular al participante: ' . $e->getMessage());
+        }
+    }
+
+    // ----------------------------------------
+    // Listener para confirmar la desmatriculación
+    // ----------------------------------------
+    public function confirmDesmatricular($inscripcion_id)
+    {
+        // Se llama al método real de desmatriculación con el ID que viene de la confirmación JS
+        $this->desmatricularParticipante($inscripcion_id);
+    }
+
+    // ----------------------------------------
+    // Obtener inscriptos con rol "Asistente"
+    // ----------------------------------------
+
     public function get_inscriptos($evento)
     {
-        $this->evento_selected = Evento::with(['planillaInscripcion.participantes'])
+        $this->evento_selected = Evento::with(['planillaInscripcion.inscripcionesAsistentes'])
             ->find($evento['evento_id']);
 
         if ($this->evento_selected && $this->evento_selected->planillaInscripcion) {
-
-            $query = InscripcionParticipante::where('planilla_id', $this->evento_selected->planillaInscripcion->planilla_inscripcion_id)
-                ->with('participante');
+            $query = $this->evento_selected
+                ->planillaInscripcion
+                ->inscripcionesAsistentes(); // Obtiene el Query Builder de la relación
 
             if (!empty($this->searchParticipante)) {
-                $query->whereHas('participante', function ($q) {
-                    $q->where('nombre', 'like', "%{$this->searchParticipante}%")
-                        ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
-                        ->orWhere('dni', 'like', '%' . $this->searchParticipante . '%');
+                $searchTerm = $this->searchParticipante;
+                $query->whereHas('participante', function ($q) use ($searchTerm) {
+                    $q->where('nombre', 'like', "%{$searchTerm}%")
+                        ->orWhere('apellido', 'like', "%{$searchTerm}%")
+                        ->orWhere('dni', 'like', "%{$searchTerm}%");
                 });
             }
+
             $this->inscriptos = $query->get();
             $this->mostrar_inscriptos = true;
+            $this->mostrar_disertantes_colaboradores = false;
         } else {
             $this->inscriptos = collect();
         }
     }
 
+
+    // ----------------------------------------
+    // Obtener Disertantes y Colaboradores
+    // ----------------------------------------
+
+    public function get_staff($evento)
+    {
+        $this->evento_selected = Evento::with(['planillaInscripcion.inscripcionesDisertantesYColaboradores'])
+            ->find($evento['evento_id']);
+
+        if ($this->evento_selected && $this->evento_selected->planillaInscripcion) {
+            $query = $this->evento_selected
+                ->planillaInscripcion
+                ->inscripcionesDisertantesYColaboradores();
+
+            if (!empty($this->searchDisertante)) {
+                $searchTerm = $this->searchDisertante;
+                $query->whereHas('participante', function ($q) use ($searchTerm) {
+                    $q->where('nombre', 'like', "%{$searchTerm}%")
+                        ->orWhere('apellido', 'like', "%{$searchTerm}%")
+                        ->orWhere('dni', 'like', "%{$searchTerm}%");
+                });
+            }
+
+            $this->disertantes_colaboradores = $query->get();
+            $this->mostrar_disertantes_colaboradores = true;
+            $this->mostrar_inscriptos = false;
+        } else {
+            $this->disertantes_colaboradores = collect();
+        }
+    }
     public function render()
     {
         $user = auth()->user();
@@ -376,9 +431,9 @@ class EventosActivos extends Component
 
     public function order($field)
     {
-        if ($this->sort == $field) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+        if ($this->sort == $field) {
             $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
-        } else { //si es una columna nueva, ordeno de forma ascendente
+        } else {
             $this->sort = $field;
             $this->direction = 'asc';
         }

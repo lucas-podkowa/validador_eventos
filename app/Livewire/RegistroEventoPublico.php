@@ -8,6 +8,7 @@ use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\ParticipanteIndicador;
 use App\Models\PlanillaInscripcion;
+use App\Models\Rol;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -15,6 +16,7 @@ use Livewire\Component;
 
 class RegistroEventoPublico extends Component
 {
+    public $asunto = 'asistente';
     public $evento = null;
     public $evento_id = null;
     public $nombre = null;
@@ -28,6 +30,7 @@ class RegistroEventoPublico extends Component
     public ?array $participante = null;
     public $indicadoresMultiples = []; // para checkboxes
     public $indicadoresUnicos = []; // para radios
+    public $rol_asistente_id = null; // para cachear el ID del rol
 
 
     protected $rules = [
@@ -51,6 +54,12 @@ class RegistroEventoPublico extends Component
         }
 
         $this->evento = Evento::findOrFail($eventoId);
+
+        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
+        if (!$rolAsistente) {
+            dd("Error: No se encontró el rol 'Asistente'. Ejecuta el seeder RolSeeder.");
+        }
+        $this->rol_asistente_id = $rolAsistente->rol_id;
 
         $this->verificarInscripcionActiva();
     }
@@ -176,6 +185,7 @@ class RegistroEventoPublico extends Component
             $inscripcion = InscripcionParticipante::create([
                 'planilla_id' => $this->planilla_id,
                 'participante_id' => $participante->participante_id,
+                'rol_id' => $this->rol_asistente_id,
                 'fecha_inscripcion' => now(),
                 'asistencia' => false,
             ]);
@@ -183,7 +193,6 @@ class RegistroEventoPublico extends Component
             // Guardar indicadores 
 
             $ids = collect($this->indicadoresMultiples);
-
             foreach ($this->indicadoresUnicos as $radioValue) {
                 if ($radioValue) {
                     $ids->push($radioValue);
@@ -196,17 +205,14 @@ class RegistroEventoPublico extends Component
                     'indicador_id' => $id,
                 ]);
             }
-
             DB::commit();
 
-
             // Enviar correo de confirmación al participante
-            Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento));
+            Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento, $this->asunto));
             $this->dispatch('alert', message: '¡Inscripción completada con éxito!');
 
             $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos']);
             $this->verificarInscripcionActiva(); // <-- Refresca el estado del formulario
-
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);
         } catch (\Exception $e) {

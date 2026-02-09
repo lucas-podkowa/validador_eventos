@@ -19,46 +19,6 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                {{-- @foreach ($eventosFinalizados as $evento)
-                    <tr>
-                        <td class="px-6 py-3">{{ $evento->nombre }}</td>
-                        <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
-                        <td class="px-6 py-3">{{ $evento->fecha_inicio }}</td>
-
-                        <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
-                            <div x-data="{ open: false }">
-                                <button @click="open = !open"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-md focus:outline-none flex items-center">
-                                    <i class="fa-solid fa-chevron-down"></i>
-                                </button>
-
-                                <div x-show="open" @click.away="open = false"
-                                    class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
-                                    style="z-index: 9999;">
-
-                                    <a wire:click="detail({{ $evento }})"
-                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                        <i class="mr-2 fa-solid fa-qrcode fa-xl"></i>
-                                        Ver Códigos QR
-                                    </a>
-
-                                    <a wire:click="emitir({{ $evento }})"
-                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                        <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
-                                        Emitir Certificados
-                                    </a>
-
-                                    <a wire:click="abrirCarpeta('{{ $evento->certificado_path }}')"
-                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                        <i class="mr-1 fa-solid fa-folder-open fa-xl"></i>
-                                        Descargar Certificados
-                                    </a>
-
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach --}}
                 @foreach ($eventosFinalizados as $evento)
                     <tr>
                         <td class="px-6 py-3">{{ $evento->nombre }}</td>
@@ -98,6 +58,11 @@
                                         </a>
 
                                         @if ($evento->certificados_disponibles)
+                                            <a wire:click="abrirModalMail({{ $evento }})"
+                                                class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                                <i class="mr-1 fa-solid fa-envelope fa-xl text-purple-600"></i>
+                                                Enviar por Mail
+                                            </a>
                                             <a wire:click="abrirCarpeta('{{ $evento->certificado_path }}')"
                                                 class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                                 <i class="mr-1 fa-solid fa-folder-open fa-xl"></i>
@@ -165,15 +130,17 @@
 
     <x-dialog-modal wire:model="open_emitir">
         <x-slot name="title">
-            Selector de Plantilla para Certificados
+            <h4 class="text-md font-semibold mb-2 mt-4 text-blue-600">Selector de Plantillas para Certificados</h4>
+
         </x-slot>
 
         <x-slot name="content">
             @if ($evento_selected && $evento_selected->por_aprobacion)
+                </h4>
                 <div class="mb-4">
                     <label for="background_image_asistencia" class="block text-sm font-medium text-gray-700">
                         <i class="fa-solid fa-file-lines text-blue-500 mr-1"></i>
-                        Plantilla para Certificado de Asistencia
+                        Plantilla para Certificado de Asistencia (No Aprobados)
                     </label>
                     <input type="file" id="background_image_asistencia" wire:model="background_image_asistencia"
                         accept="image/png, image/jpeg"
@@ -186,7 +153,7 @@
                 <div class="mb-4">
                     <label for="background_image_aprobacion" class="block text-sm font-medium text-gray-700">
                         <i class="fa-solid fa-award text-green-600 mr-1"></i>
-                        Plantilla para Certificado de Aprobación
+                        Plantilla para Certificado de Aprobación (Aprobados)
                     </label>
                     <input type="file" id="background_image_aprobacion" wire:model="background_image_aprobacion"
                         accept="image/png, image/jpeg"
@@ -195,11 +162,36 @@
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
+                <div class="mb-4">
+                    <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
+                        Plantilla para Certificado de Disertante
+                    </label>
+                    <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image_disertante')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
+                        Plantilla para Certificado de Colaborador
+                    </label>
+                    <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image_colaborador')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
             @else
                 <div class="mb-4">
                     <label for="background_image" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-file-image text-indigo-500 mr-1"></i>
-                        Plantilla para Certificado
+                        <i class="fa-solid fa-user text-indigo-500 mr-1"></i>
+                        Plantilla para Certificado de Asistentes
                     </label>
                     <input type="file" id="background_image" wire:model="background_image"
                         accept="image/png, image/jpeg"
@@ -208,13 +200,39 @@
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
-            @endif
+                <div class="mb-4">
+                    <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
+                        Plantilla para Certificado de Disertante
+                    </label>
+                    <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image_disertante')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
 
+                <div class="mb-4">
+                    <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
+                        <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
+                        Plantilla para Certificado de Colaborador
+                    </label>
+                    <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
+                        accept="image/png, image/jpeg"
+                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    @error('background_image_colaborador')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+            @endif
         </x-slot>
+
         <div wire:loading wire:target="emitirCertificados" class="flex items-center justify-center py-4">
             <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                    stroke-width="4">
                 </circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
             </svg>
@@ -232,5 +250,93 @@
                 Emitir
             </button>
         </x-slot>
+    </x-dialog-modal>
+
+    {{-- ------------------------ NUEVO: DIALOG MODAL para Enviar Mails --------------------------- --}}
+    <x-dialog-modal wire:model="open_enviar_mail">
+        <x-slot name="title">
+            Enviar Certificados por Mail
+            @if ($evento_selected)
+                <span class="text-sm font-normal text-gray-500">- {{ $evento_selected->nombre }}</span>
+            @endif
+        </x-slot>
+
+        <x-slot name="content">
+            <div class="max-h-96 overflow-y-auto pr-2">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="w-10 px-2 py-2">
+                                {{-- Checkbox para seleccionar todos (opcional, por ahora desactivado) --}}
+                            </th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Nombre y Apellido</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Email</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse ($participantes_mail as $participante)
+                            <tr class="hover:bg-gray-50">
+                                <td class="w-10 px-2 py-2 text-center">
+                                    <input type="checkbox" wire:model.defer="selected_participantes"
+                                        value="{{ $participante->participante_id }}"
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                    {{ $participante->nombre }} {{ $participante->apellido }}
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $participante->mail }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-4 py-4 text-center text-sm text-gray-500">
+                                    No hay participantes en este evento.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div wire:loading wire:target="enviarMailsTodos, enviarMailsSeleccionados"
+                class="flex items-center justify-center py-4">
+                <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                        stroke-width="4">
+                    </circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span class="ml-2 text-sm text-gray-600">Enviando correos, por favor espere...</span>
+            </div>
+        </x-slot>
+
+        <x-slot name="footer">
+            <div class="w-full flex justify-between items-center">
+                <!-- Botón izquierdo -->
+                <x-secondary-button wire:click="$set('open_enviar_mail', false)">
+                    <i class="fa-solid fa-xmark mr-2"></i>
+                    Cancelar
+                </x-secondary-button>
+
+                <!-- Botones derechos -->
+                <div class="flex gap-2">
+                    <button wire:click="enviarMailsTodos"
+                        class="inline-flex items-center px-2 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring focus:ring-blue-300 disabled:opacity-25 transition">
+                        <i class="fa-solid fa-users mr-2"></i>
+                        Enviar a Todos
+                    </button>
+
+                    <button wire:click="enviarMailsSeleccionados"
+                        class="inline-flex items-center px-2 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-900 focus:outline-none focus:border-green-900 focus:ring focus:ring-green-300 disabled:opacity-25 transition">
+                        <i class="fa-solid fa-user-check mr-2"></i>
+                        Solo Seleccionados
+                    </button>
+                </div>
+            </div>
+        </x-slot>
+
     </x-dialog-modal>
 </div>

@@ -2,10 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Mail\CertificadoEventoMail;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
+use App\Models\Participante;
+use App\Models\Rol;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,41 +31,107 @@ class EventosFinalizados extends Component
 
     public $open_emitir = false;
 
+    public $open_enviar_mail = false;
+    public $participantes_mail = [];
+    public $selected_participantes = [];
 
-    public $background_image;
+    public $background_image; // <- Usada como plantilla genérica (Asistente en evento simple)
+    public $background_image_disertante;
+    public $background_image_colaborador;
     public $background_image_asistencia;
     public $background_image_aprobacion;
+
+    public $hasDisertantes = false;
+    public $hasColaboradores = false;
 
 
     protected $paginationTheme = 'tailwind';
 
-    protected $rules = [
-        'background_image' => 'required|image|mimes:jpeg,png|max:2048',
-    ];
 
     protected function rules()
     {
-        return $this->evento_selected && $this->evento_selected->por_aprobacion
-            ? [
-                'background_image_asistencia' => 'required|image|mimes:jpeg,png|max:10240',
-                'background_image_aprobacion' => 'required|image|mimes:jpeg,png|max:10240',
-            ]
-            : [
-                'background_image' => 'required|image|mimes:jpeg,png|max:10240',
-            ];
+        $rules = [];
+        $maxSize = '10240'; // 10MB
+
+        // 1. Reglas para Asistentes (Siempre obligatorio)
+        if ($this->evento_selected && $this->evento_selected->por_aprobacion) {
+            // Evento con aprobación: Se necesitan Asistencia y Aprobación
+            $rules['background_image_asistencia'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            $rules['background_image_aprobacion'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+        } else {
+            // Evento simple: Se necesita la plantilla genérica para Asistente
+            $rules['background_image'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+        }
+
+        // 2. Reglas CONDICIONALES para Disertantes
+        if ($this->evento_selected && $this->hasDisertantes) {
+            $rules['background_image_disertante'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+        }
+
+        // 3. Reglas CONDICIONALES para Colaboradores
+        if ($this->evento_selected && $this->hasColaboradores) {
+            $rules['background_image_colaborador'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+        }
+
+        return $rules;
     }
 
-
+    /**
+     * Abre el modal de emisión y verifica si existen disertantes y colaboradores.
+     */
     public function emitir($evento)
     {
         $this->evento_selected = Evento::find($evento['evento_id']);
+
+        $roles = Rol::whereIn('nombre', ['Disertante', 'Colaborador'])
+            ->pluck('rol_id', 'nombre');
+
+        $rolDisertanteId = $roles['Disertante'] ?? null;
+        $rolColaboradorId = $roles['Colaborador'] ?? null;
+
+        // 3. Verificar existencia de participantes con esos roles
+        $this->hasDisertantes = $rolDisertanteId
+            ? $this->evento_selected->participantes()->wherePivot('rol_id', $rolDisertanteId)->exists()
+            : false;
+
+        $this->hasColaboradores = $rolColaboradorId
+            ? $this->evento_selected->participantes()->wherePivot('rol_id', $rolColaboradorId)->exists()
+            : false;
+
+        // 4. Resetear campos de imagen (opcional, pero buena práctica)
+        $this->reset([
+            'background_image',
+            'background_image_disertante',
+            'background_image_colaborador',
+            'background_image_asistencia',
+            'background_image_aprobacion',
+        ]);
+
         $this->open_emitir = true;
     }
 
+
+    /**
+     * Emite los certificados, solo subiendo las plantillas que son necesarias.
+     */
     public function emitirCertificados()
     {
         $this->validate();
 
+        // 1. OBTENER IDS DE ROLES
+        $roles = Rol::whereIn('nombre', ['Asistente', 'Disertante', 'Colaborador'])
+            ->pluck('rol_id', 'nombre');
+
+        $rolAsistenteId = $roles['Asistente'] ?? null;
+        $rolDisertanteId = $roles['Disertante'] ?? null;
+        $rolColaboradorId = $roles['Colaborador'] ?? null;
+
+        if (!$rolAsistenteId || !$rolDisertanteId || !$rolColaboradorId) {
+            $this->dispatch('oops', message: 'Faltan IDs de roles esenciales (Asistente, Disertante, Colaborador) en la base de datos.');
+            return;
+        }
+
+        // 2. CONFIGURACIÓN DE RUTAS Y PARTICIPANTES
         $year = now()->year;
         $tipoEvento = $this->evento_selected->tipoEvento->nombre;
         $nombreEvento = $this->evento_selected->nombre;
@@ -69,55 +139,86 @@ class EventosFinalizados extends Component
 
         $participantes = $this->evento_selected->participantes;
 
-        //$backgroundPath = $this->background_image->store('certificados');
-        //$backgroundPath = $this->background_image ? $this->background_image->store('images', 'public') : null;
+        $paths = [];
+        $isPorAprobacion = $this->evento_selected->por_aprobacion;
 
+        try {
+            if ($isPorAprobacion) {
+                // Asistentes (Obligatorios en este flujo)
+                $paths['asistencia'] = $this->background_image_asistencia->store('images', 'public');
+                $paths['aprobacion'] = $this->background_image_aprobacion->store('images', 'public');
 
-        // Si el evento requiere aprobación, subimos dos plantillas
-        if ($this->evento_selected->por_aprobacion) {
-            $bgAsistenciaPath = $this->background_image_asistencia->store('images', 'public');
-            $bgAprobacionPath = $this->background_image_aprobacion->store('images', 'public');
+                // Disertantes (Condicionales)
+                if ($this->hasDisertantes && $this->background_image_disertante) {
+                    $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
+                }
 
-            foreach ($participantes as $participante) {
-                $background = $participante->pivot->aprobado ? $bgAprobacionPath : $bgAsistenciaPath;
-                $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
+                // Colaboradores (Condicionales)
+                if ($this->hasColaboradores && $this->background_image_colaborador) {
+                    $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
+                }
+            } else {
+                // Asistente genérico (Obligatorio en este flujo)
+                $paths['asistente_generico'] = $this->background_image->store('images', 'public');
 
-                $pdf = Pdf::loadView('certificado', [
-                    'nombre' => $participante->nombre,
-                    'apellido' => $participante->apellido,
-                    'dni' => $participante->dni,
-                    'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
-                    'background' => $background
-                ])->setPaper('a4', 'landscape');
+                // Disertantes (Condicionales)
+                if ($this->hasDisertantes && $this->background_image_disertante) {
+                    $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
+                }
 
-                Storage::put($filename, $pdf->output());
-
-                EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
-                    ->where('participante_id', $participante->participante_id)
-                    ->update(['certificado_path' => $filename]);
+                // Colaboradores (Condicionales)
+                if ($this->hasColaboradores && $this->background_image_colaborador) {
+                    $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
+                }
             }
-        } else {
-            // Evento tradicional (solo un background)
-            $backgroundPath = $this->background_image->store('images', 'public');
-
-            foreach ($participantes as $participante) {
-                $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-
-                $pdf = Pdf::loadView('certificado', [
-                    'nombre' => $participante->nombre,
-                    'apellido' => $participante->apellido,
-                    'dni' => $participante->dni,
-                    'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
-                    'background' => $backgroundPath
-                ])->setPaper('a4', 'landscape');
-
-                Storage::put($filename, $pdf->output());
-
-                EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
-                    ->where('participante_id', $participante->participante_id)
-                    ->update(['certificado_path' => $filename]);
-            }
+        } catch (\Exception $e) {
+            $this->dispatch('oops', message: 'Error al subir una o más plantillas: ' . $e->getMessage());
+            return;
         }
+
+
+        // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
+        foreach ($participantes as $participante) {
+            $rolParticipanteId = $participante->pivot->rol_id;
+            $background = null;
+
+            // COMPRUEBA que el rol existe Y que su plantilla fue subida
+            if ($rolParticipanteId == $rolDisertanteId && isset($paths['disertante'])) {
+                $background = $paths['disertante'];
+            } elseif ($rolParticipanteId == $rolColaboradorId && isset($paths['colaborador'])) {
+                $background = $paths['colaborador'];
+            } elseif ($rolParticipanteId == $rolAsistenteId) {
+                if ($isPorAprobacion) {
+                    // Si es por aprobación, usamos aprobacion o asistencia (ambos paths son obligatorios en este flujo)
+                    $background = $participante->pivot->aprobado ? $paths['aprobacion'] : $paths['asistencia'];
+                } else {
+                    // Si es genérico, usamos el path genérico (obligatorio en este flujo)
+                    $background = $paths['asistente_generico'];
+                }
+            }
+
+            if (is_null($background)) {
+                Log::warning("No se encontró plantilla o la plantilla no fue requerida/subida para el rol ID {$rolParticipanteId} del participante {$participante->participante_id}");
+                continue; // Saltar si no se pudo determinar la plantilla (ej. rol no reconocido o plantilla no requerida)
+            }
+
+            $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
+
+            $pdf = Pdf::loadView('certificado', [
+                'nombre' => $participante->nombre,
+                'apellido' => $participante->apellido,
+                'dni' => $participante->dni,
+                'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
+                'background' => $background
+            ])->setPaper('a4', 'landscape');
+
+            Storage::put($filename, $pdf->output());
+
+            EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+                ->where('participante_id', $participante->participante_id)
+                ->update(['certificado_path' => $filename]);
+        }
+
         $this->evento_selected->update([
             'certificado_path' => $folderPath
         ]);
@@ -125,9 +226,13 @@ class EventosFinalizados extends Component
         $this->reset([
             'open_emitir',
             'background_image',
+            'background_image_disertante',
+            'background_image_colaborador',
             'background_image_asistencia',
             'background_image_aprobacion',
             'evento_selected',
+            'hasDisertantes', // También resetear estas propiedades
+            'hasColaboradores',
         ]);
         session()->flash('message', 'Certificados generados correctamente.');
     }
@@ -164,6 +269,73 @@ class EventosFinalizados extends Component
 
         return response()->download($zipPath);
     }
+
+    //----------------------------------------------------------------------------
+    //------------  MÉTODOS PARA ENVÍO DE CORREOS --------------------------------
+    //----------------------------------------------------------------------------
+
+
+    public function abrirModalMail($evento)
+    {
+        $this->evento_selected = Evento::find($evento['evento_id']);
+        $this->participantes_mail = $this->evento_selected->participantes()->get();
+        $this->selected_participantes = []; // Resetea la selección
+        $this->open_enviar_mail = true;
+    }
+
+
+    public function enviarMailsTodos()
+    {
+        $participantes = $this->evento_selected->participantes;
+        foreach ($participantes as $participante) {
+            $this->_enviarMailParticipante($participante);
+        }
+
+        session()->flash('message', 'Correos enviados a todos los participantes.');
+        $this->reset(['open_enviar_mail', 'evento_selected', 'participantes_mail', 'selected_participantes']);
+    }
+
+
+    public function enviarMailsSeleccionados()
+    {
+        if (empty($this->selected_participantes)) {
+            session()->flash('error', 'No ha seleccionado ningún participante.');
+            return;
+        }
+
+        $participantes = Participante::whereIn('participante_id', $this->selected_participantes)->get();
+
+        foreach ($participantes as $participante) {
+            $this->_enviarMailParticipante($participante);
+        }
+
+        session()->flash('message', 'Correos enviados a los participantes seleccionados.');
+        $this->reset(['open_enviar_mail', 'evento_selected', 'participantes_mail', 'selected_participantes']);
+    }
+
+    /**
+     * Lógica centralizada para enviar un correo a un participante.
+     */
+    private function _enviarMailParticipante(Participante $participante)
+    {
+        $relacion = EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+            ->where('participante_id', $participante->participante_id)
+            ->first();
+
+        if ($relacion && $relacion->certificado_path && Storage::disk('private')->exists($relacion->certificado_path)) {
+            try {
+                Mail::to($participante->mail)->send(new CertificadoEventoMail($this->evento_selected, $participante, $relacion->certificado_path));
+            } catch (\Exception $e) {
+                $this->dispatch('oops', message: $e->getMessage());
+                return;
+            }
+        } else {
+            $this->dispatch('oops', "No se encontró certificado para {$participante->nombre} {$participante->apellido} en el evento {$this->evento_selected->nombre}");
+        }
+    }
+
+    //----------------------------------------------------------------------------
+    //----------------------------------------------------------------------------
 
     public function updatingSearchParticipante()
     {

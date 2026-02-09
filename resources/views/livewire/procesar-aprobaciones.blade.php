@@ -27,9 +27,9 @@
                         <td class="px-6 py-3">{{ $evento->fecha_inicio }}
                         </td>
                         <td class="px-6 py-3">
-                            {{ $evento->inscriptos()->count() }}</td>
+                            {{ $evento->asistentesInscritos()->count() }}</td>
                         <td class="px-6 py-3">
-                            {{ $evento->participantesConAsistencia()->count() }}</td>
+                            {{ $evento->inscripcionesConAsistencia()->count() }}</td>
                         <td class="px-6 py-3">
 
                             <a wire:click="seleccionarEvento('{{ $evento->evento_id }}')" class="text-white px-2 py-1"

@@ -13,9 +13,10 @@ return new class extends Migration
             $table->id('inscripcion_participante_id');
             $table->uuid('planilla_id');
             $table->uuid('participante_id');
+            $table->unsignedBigInteger('rol_id');
             $table->timestamp('fecha_inscripcion');
             $table->boolean('asistencia')->default(false);
-
+            $table->foreign('rol_id')->references('rol_id')->on('rol')->onDelete('restrict');
             $table->foreign('planilla_id')->references('planilla_inscripcion_id')->on('planilla_inscripcion')->onDelete('cascade');
             $table->foreign('participante_id')->references('participante_id')->on('participante')->onDelete('cascade');
 

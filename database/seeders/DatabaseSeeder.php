@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Indicador;
+use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use App\Models\User;
@@ -100,6 +101,15 @@ class DatabaseSeeder extends Seeder
             'email' => 'invitado@mail.com',
             'password' => bcrypt('password123')
         ])->assignRole('Invitado');
+
+
+        //crear roles para participantes
+
+        Rol::insert([
+            ['nombre' => 'Asistente'],
+            ['nombre' => 'Disertante'],
+            ['nombre' => 'Colaborador'],
+        ]);
 
         $this->call([
             //EventoSeeder::class,

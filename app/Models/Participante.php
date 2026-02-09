@@ -61,6 +61,12 @@ class Participante extends Model
     public function eventos()
     {
         return $this->belongsToMany(Evento::class, 'evento_participantes', 'participante_id', 'evento_id')
-            ->withPivot('url', 'qrcode')->withTimestamps();
+            ->withPivot('url', 'qrcode', 'rol_id', 'aprobado');
+    }
+
+
+    public function inscripciones()
+    {
+        return $this->hasMany(InscripcionParticipante::class, 'participante_id', 'participante_id');
     }
 }

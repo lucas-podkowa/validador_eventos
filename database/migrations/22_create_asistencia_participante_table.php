@@ -10,12 +10,15 @@ return new class extends Migration
     {
         Schema::create('asistencia_participante', function (Blueprint $table) {
             $table->id('asistencia_participante_id');
-            $table->uuid('participante_id');
+            $table->unsignedBigInteger('inscripcion_participante_id');
             $table->unsignedBigInteger('sesion_evento_id');
             $table->boolean('asistio')->default(false);
-            $table->foreign('participante_id')->references('participante_id')->on('participante')->onDelete('cascade');
+            $table->foreign('inscripcion_participante_id')
+                ->references('inscripcion_participante_id')
+                ->on('inscripcion_participante')
+                ->onDelete('cascade');
             $table->foreign('sesion_evento_id')->references('sesion_evento_id')->on('sesion_evento')->onDelete('cascade');
-            $table->unique(['participante_id', 'sesion_evento_id']); // Un participante solo puede tener una asistencia por sesión
+            $table->unique(['inscripcion_participante_id', 'sesion_evento_id'], 'asistencia_unica_por_inscripcion_sesion');
         });
     }
 

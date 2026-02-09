@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -62,7 +63,7 @@ class Evento extends Model
     public function participantes()
     {
         return $this->belongsToMany(Participante::class, 'evento_participantes', 'evento_id', 'participante_id')
-            ->withPivot('url', 'qrcode', 'aprobado');
+            ->withPivot('url', 'qrcode', 'aprobado', 'rol_id');
     }
 
 
@@ -95,20 +96,105 @@ class Evento extends Model
         })->where('asistio', true)->exists();
     }
 
-    public function participantesConAsistencia()
+
+
+    public function inscripcionesConAsistencia() // Renombramos para claridad
     {
-        return Participante::whereIn('participante_id', function ($query) {
+        $planillaId = $this->planillaInscripcion?->planilla_inscripcion_id;
+
+        if (!$planillaId) {
+            return collect();
+        }
+
+        return InscripcionParticipante::where('planilla_id', $planillaId)
+            // La inscripción debe tener al menos una asistencia registrada y confirmada.
+            ->whereHas('asistencias', function ($queryAsistencia) {
+                $queryAsistencia->where('asistio', true)
+                    // La asistencia debe corresponder a una sesión de este evento.
+                    ->whereHas('sesionEvento', function ($querySesion) {
+                        $querySesion->where('evento_id', $this->evento_id);
+                    });
+            })
+            // Opcional: Cargar el Participante si aún lo necesitas para acceder a sus datos
+            //->with('participante')
+            ->get();
+    }
+
+
+    public function inscripcionesFinales()
+    {
+        $planillaId = $this->planillaInscripcion?->planilla_inscripcion_id;
+
+        if (!$planillaId) {
+            return collect();
+        }
+
+        // Obtener los IDs de los roles de staff
+        $rolesStaffIds = Rol::whereIn('nombre', ['Disertante', 'Colaborador'])->pluck('rol_id')->toArray();
+
+        return InscripcionParticipante::where('planilla_id', $planillaId)
+            ->where(function (Builder $query) use ($rolesStaffIds) {
+
+                // CRITERIO A: Asistentes con asistencia registrada
+                $query->whereHas('asistencias', function ($queryAsistencia) {
+                    $queryAsistencia->where('asistio', true)
+                        // La asistencia debe corresponder a una sesión de este evento.
+                        ->whereHas('sesionEvento', function ($querySesion) {
+                            $querySesion->where('evento_id', $this->evento_id);
+                        });
+                })
+
+                    // CRITERIO B: Disertantes o Colaboradores (sin importar la asistencia)
+                    ->orWhereIn('rol_id', $rolesStaffIds);
+            })
+            ->get();
+    }
+
+    /**
+     * Obtener solo inscriptos con rol "Asistente"
+     */
+    public function asistentesInscritos()
+    {
+        $planilla = $this->planillaInscripcion;
+
+        if (!$planilla) {
+            return collect();
+        }
+
+        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
+
+        return Participante::whereIn('participante_id', function ($query) use ($planilla, $rolAsistente) {
             $query->select('participante_id')
-                ->from('asistencia_participante')
-                ->where('asistio', true)
-                ->whereIn('sesion_evento_id', function ($subquery) {
-                    $subquery->select('sesion_evento_id')
-                        ->from('sesion_evento')
-                        ->where('evento_id', $this->evento_id);
-                });
+                ->from('inscripcion_participante')
+                ->where('planilla_id', $planilla->planilla_inscripcion_id)
+                ->where('rol_id', $rolAsistente->rol_id ?? null);
         })->get();
     }
 
+    /**
+     * Obtener disertantes y colaboradores
+     */
+    public function disentantesYColaboradores()
+    {
+        $planilla = $this->planillaInscripcion;
+
+        if (!$planilla) {
+            return collect();
+        }
+
+        $roles = Rol::whereIn('nombre', ['Disertante', 'Colaborador'])->pluck('rol_id');
+
+        return Participante::whereIn('participante_id', function ($query) use ($planilla, $roles) {
+            $query->select('participante_id')
+                ->from('inscripcion_participante')
+                ->where('planilla_id', $planilla->planilla_inscripcion_id)
+                ->whereIn('rol_id', $roles);
+        })->get();
+    }
+
+    //uso en Livewire
+    //$asistentes = $evento->asistentesInscritos();
+    //$disertantesYColaboradores = $evento->disentantesYColaboradores();
 
     public function getFechaInicioFormattedAttribute()
     {

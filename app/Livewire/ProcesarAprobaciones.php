@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Evento;
 use App\Models\EventoParticipante;
+use App\Models\Rol;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
@@ -42,8 +43,17 @@ class ProcesarAprobaciones extends Component
 
         $this->eventoSeleccionado = $evento;
 
+        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
+
+        if (!$rolAsistente) {
+            $this->dispatch('oops', message: 'Error: No se encontró el Rol "Asistente" en la base de datos.');
+            $this->reset('eventoSeleccionado');
+            return;
+        }
+
         $this->participantes = EventoParticipante::with('participante')
             ->where('evento_id', $eventoId)
+            ->where('rol_id', $rolAsistente->rol_id)
             ->get();
 
         foreach ($this->participantes as $p) {

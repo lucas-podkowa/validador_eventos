@@ -73,6 +73,19 @@
                             <span class="text-red-500 text-sm">{{ $message }}</span>
                         @enderror
                     </div>
+                    <div class="mb-4">
+                        <label class="block font-medium text-sm text-gray-700">🏆 Rol del Participante</label>
+                        <select wire:model="rol_id" class="form-select w-full mt-1">
+                            <option value="">-- Seleccionar Rol --</option>
+                            {{-- $roles fue cargado en el mount() del componente --}}
+                            @foreach ($roles as $rol)
+                                <option value="{{ $rol->rol_id }}">{{ $rol->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('rol_id')
+                            <span class="text-red-500 text-sm">{{ $message }}</span>
+                        @enderror
+                    </div>
 
                     <div class="mb-2">
                         <label for="background_image" class="block text-sm font-medium text-gray-700">

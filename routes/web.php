@@ -9,7 +9,9 @@ use App\Livewire\CrearEvento;
 use App\Livewire\EmisorCertificados;
 use App\Livewire\Eventos;
 use App\Livewire\HabilitarPlanilla;
+use App\Livewire\ImportarParticipantes;
 use App\Livewire\Indicadores;
+use App\Livewire\InscribirStaff;
 use App\Livewire\Participantes;
 use App\Livewire\ProcesarAprobaciones;
 use App\Livewire\RegistroEventoPublico;
@@ -40,7 +42,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::middleware('can:eventos')->group(function () {
         Route::get('/eventos/{tab?}', Eventos::class)->name('eventos');
         Route::get('/eventos/{evento_id}/habilitar', HabilitarPlanilla::class)->name('habilitar_planilla');
+        Route::get('/eventos/{evento_id}/staff', InscribirStaff::class)->name('inscribir.staff');
         Route::get('/planilla/{evento_id}/editar', HabilitarPlanilla::class)->name('editar_planilla');
+        Route::get('/planilla/{evento_id}/importar', ImportarParticipantes::class)->name('importar_participantes');
     });
 
     // Participantes visibles para administrador y gestor

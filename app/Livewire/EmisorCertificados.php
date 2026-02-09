@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Evento;
 use App\Models\Participante;
 use App\Models\EventoParticipante;
+use App\Models\Rol;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
@@ -24,12 +25,14 @@ class EmisorCertificados extends Component
 
     public $modal_abierto = false;
     public $evento_id;
+    public $rol_id;
     public $nombre, $apellido, $dni, $telefono, $mail;
     public ?array $participanteExistente = null;
     public $background_image;
 
     public $eventoParticipantes = [];
     public $eventos = [];
+    public $roles = [];
 
     protected $rules = [
         'evento_id' => 'required|exists:evento,evento_id',
@@ -39,12 +42,14 @@ class EmisorCertificados extends Component
         'telefono' => 'required|string|min:6|max:15',
         'mail' => 'required|email|max:100',
         'background_image' => 'required|image|mimes:jpeg,png|max:2048',
+        'rol_id' => 'required|exists:rol,rol_id',
     ];
 
     public function mount()
     {
 
         $this->eventos = Evento::where('estado', 'Finalizado')->get();
+        $this->roles = Rol::whereIn('nombre', ['Asistente', 'Disertante', 'Colaborador'])->get();
         $this->eventoParticipantes = EventoParticipante::with(['participante', 'evento'])
             ->where('emision_directa', true)
             ->whereHas('evento', function ($query) {
@@ -55,7 +60,7 @@ class EmisorCertificados extends Component
 
     public function abrirModal()
     {
-        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente']);
+        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'rol_id']);
         $this->modal_abierto = true;
     }
 
@@ -123,6 +128,7 @@ class EmisorCertificados extends Component
             EventoParticipante::create([
                 'evento_id' => $this->evento_id,
                 'participante_id' => $participante->participante_id,
+                'rol_id' => $this->rol_id,
                 'url' => $url,
                 'qrcode' => $qrcode,
                 'emision_directa' => true,
@@ -178,31 +184,6 @@ class EmisorCertificados extends Component
 
         $evento->update(['certificado_path' => $folderPath]);
     }
-
-    // private function generarCertificadoIndividual(Participante $participante, Evento $evento, string $backgroundPath)
-    // {
-    //     $year = now()->year;
-    //     $tipoEvento = $evento->tipoEvento->nombre;
-    //     $nombreEvento = $evento->nombre;
-
-    //     $pdf = Pdf::loadView('certificado', [
-    //         'nombre' => $participante->nombre,
-    //         'apellido' => $participante->apellido,
-    //         'dni' => $participante->dni,
-    //         'qr' => 'data:image/svg+xml;base64,' . base64_encode(
-    //             $evento->participantes()->where('participante_id', $participante->participante_id)->first()->pivot->qrcode
-    //         ),
-    //         'background' => $backgroundPath
-    //     ])->setPaper('a4', 'landscape');
-
-    //     $folderPath = "certificados/{$year}/{$tipoEvento}/{$nombreEvento}";
-    //     $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-
-    //     Storage::put($filename, $pdf->output());
-
-    //     $evento->update(['certificado_path' => $folderPath]);
-    // }
-
 
     public function render()
     {

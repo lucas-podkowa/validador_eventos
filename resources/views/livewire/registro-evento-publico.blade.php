@@ -101,6 +101,20 @@
                         @endforeach
                     </div>
 
+                    {{-- Nota informativa --}}
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                        <div class="flex items-start">
+                            <i class="fa-solid fa-lightbulb text-amber-600 text-xl mr-3 mt-1"></i>
+                            <div>
+                                <h4 class="font-semibold text-amber-900 mb-1">Información importante</h4>
+                                <p class="text-sm text-amber-800">
+                                    Si el DNI ya está registrado en el sistema, los datos se autocompletarán
+                                    automáticamente.
+                                    Los campos pueden editarse y se actualizarán en el sistema.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Botón -->
                     <button type="submit"

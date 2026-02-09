@@ -89,5 +89,25 @@
                 }
             })
         }
+
+        // Función para confirmar desmatriculación
+        function confirmUnregister(inscripcionId) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "¡No podrás revertir la desmatriculación de este participante!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, desmatricular',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Livewire.dispatch('confirmDesmatricular', {
+                        inscripcion_id: inscripcionId
+                    });
+                }
+            });
+        }
     </script>
 </div>

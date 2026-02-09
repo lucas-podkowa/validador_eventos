@@ -41,16 +41,19 @@ return [
             'transport' => 'smtp',
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 25),
-            'encryption' => env('MAIL_ENCRYPTION', null),
+            'encryption' => env('MAIL_ENCRYPTION'),  // Debe quedar en null
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'auth_mode' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', 'localhost'),
+            'verify_peer' => env('MAIL_VERIFY_PEER', false),
             'stream' => [
                 'ssl' => [
                     'allow_self_signed' => true,
                     'verify_peer' => false,
                     'verify_peer_name' => false,
+                    'crypto_method' => STREAM_CRYPTO_METHOD_ANY_CLIENT,
                 ],
             ],
         ],
@@ -115,7 +118,7 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
+        'address' => env('MAIL_FROM_ADDRESS', 'no-responder@mail.fio.unam.edu.ar'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 

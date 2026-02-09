@@ -8,6 +8,8 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
+
 
 class ConfirmacionInscripcion extends Mailable
 {
@@ -15,15 +17,14 @@ class ConfirmacionInscripcion extends Mailable
     public $nombre;
     public $apellido;
     public $evento;
+    public $asunto;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct($nombre, $apellido, $evento)
+    public function __construct($nombre, $apellido, $evento, $asunto)
     {
         $this->nombre = $nombre;
         $this->apellido = $apellido;
         $this->evento = $evento;
+        $this->asunto = $asunto;
     }
 
     public function build()
@@ -31,34 +32,4 @@ class ConfirmacionInscripcion extends Mailable
         return $this->subject('Confirmación de inscripción al evento')
             ->view('emails.confirmacion_inscripcion');
     }
-
-    // /**
-    //  * Get the message envelope.
-    //  */
-    // public function envelope(): Envelope
-    // {
-    //     return new Envelope(
-    //         subject: 'Confirmacion Inscripcion',
-    //     );
-    // }
-
-    // /**
-    //  * Get the message content definition.
-    //  */
-    // public function content(): Content
-    // {
-    //     return new Content(
-    //         view: 'view.name',
-    //     );
-    // }
-
-    // /**
-    //  * Get the attachments for the message.
-    //  *
-    //  * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-    //  */
-    // public function attachments(): array
-    // {
-    //     return [];
-    // }
 }
