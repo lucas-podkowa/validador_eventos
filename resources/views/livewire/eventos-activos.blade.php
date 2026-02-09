@@ -196,13 +196,13 @@
             </a>
 
             <div class="flex space-x-2">
-                <button wire:click="exportarPDF"
-                    class="border border-red-600 text-red-600 px-2 py-1 rounded-xl text-sm transition hover:bg-red-50">
+                <button wire:click="exportarPDF" @if (!count($inscriptos)) disabled @endif
+                    class="border border-red-600 text-red-600 px-2 py-1 rounded-xl text-sm transition {{ count($inscriptos) ? 'hover:bg-red-50' : 'opacity-50 cursor-not-allowed' }}">
                     📄 PDF
                 </button>
 
-                <button wire:click="descargarCSV"
-                    class="border border-blue-600 text-blue-600 px-2 py-1 rounded-xl text-sm transition hover:bg-blue-50">
+                <button wire:click="descargarCSV" @if (!count($inscriptos)) disabled @endif
+                    class="border border-blue-600 text-blue-600 px-2 py-1 rounded-xl text-sm transition {{ count($inscriptos) ? 'hover:bg-blue-50' : 'opacity-50 cursor-not-allowed' }}">
                     📥 CSV
                 </button>
             </div>

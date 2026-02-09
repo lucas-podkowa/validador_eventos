@@ -23,8 +23,66 @@
             </div>
         </form> --}}
 
+        <div class="w-full mb-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 w-full">
+                <div class="flex items-center mb-3">
+                    <i class="fa-solid fa-circle-info text-blue-600 mr-2"></i>
+                    <span class="font-semibold text-blue-700">Formato esperado del archivo</span>
+                </div>
+                <p class="mb-4 text-gray-700 text-sm">
+                    El archivo debe ser <b>.xlsx</b> o <b>.csv</b> y la primera fila debe contener exactamente las
+                    siguientes columnas (los datos previsualizados a continuación son solo un ejemplo):
+                </p>
+
+                <!-- Simulación de cabecera del archivo -->
+                <div class="bg-white border-2 border-blue-300 rounded-lg overflow-x-auto mb-4 shadow-sm">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-blue-600">
+                                <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
+                                    DNI</th>
+                                <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
+                                    APELLIDO</th>
+                                <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
+                                    NOMBRE</th>
+                                <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
+                                    MAIL</th>
+                                <th class="text-white font-bold text-sm p-3 whitespace-nowrap">TELÉFONO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-gray-50">
+                                <td class="text-gray-600 text-sm p-3 border-r border-gray-200 text-center">12345678</td>
+                                <td class="text-gray-600 text-sm p-3 border-r border-gray-200 text-center">Perez</td>
+                                <td class="text-gray-600 text-sm p-3 border-r border-gray-200 text-center">Juan</td>
+                                <td class="text-gray-600 text-sm p-3 border-r border-gray-200 text-center">juan@mail.com
+                                </td>
+                                <td class="text-gray-600 text-sm p-3 text-center">3755998877</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- <div class="flex items-center gap-2 text-sm text-gray-700 mb-4">
+                    <i class="fa-solid fa-download text-green-600"></i>
+                    <span>Puedes descargar una plantilla y completarla para evitar errores de formato.</span>
+                </div> --}}
+
+                <button type="button" wire:click="descargarPlantilla" style="background-color: #16a34a;"
+                    class="w-full px-6 py-3 text-white font-semibold rounded-lg inline-flex items-center justify-center gap-3 hover:bg-green-700 transition shadow-md hover:shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 384 512">
+                        <path
+                            d="M64 0C28.7 0 0 28.7 0 64V448c0 35.3 28.7 64 64 64H320c35.3 0 64-28.7 64-64V160H256c-17.7 0-32-14.3-32-32V0H64zM256 0V128H384L256 0zM155.7 250.2L192 286.5l36.3-36.3c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6l-48 48c-6.2 6.2-16.4 6.2-22.6 0l-48-48c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0zM192 368c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16s-16 7.2-16 16v80c0 8.8 7.2 16 16 16z" />
+                    </svg>
+                    <span class="text-base">Descargar una plantilla y completarla para evitar errores de formato</span>
+                    <i class="fa-solid fa-download text-lg"></i>
+                </button>
+            </div>
+        </div>
+
         <form wire:submit.prevent="importar" class="space-y-6">
             <div class="flex flex-col items-center justify-center w-full">
+
                 <label for="archivo"
                     class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition relative">
                     <div class="flex flex-col items-center justify-center pt-5 pb-6 text-gray-500" wire:loading.remove
@@ -69,14 +127,12 @@
                 @error('archivo')
                     <span class="text-red-600 text-sm mt-2">{{ $message }}</span>
                 @enderror
-            </div>
-
-            <div class="flex justify-end">
-                <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow transition">
-                    Importar
-                </button>
-            </div>
+                <div class="flex justify-end">
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow transition">
+                        Importar
+                    </button>
+                </div>
         </form>
 
 

@@ -12,7 +12,7 @@ use Livewire\WithPagination;
 class Usuarios extends Component
 {
     public $open_edit = false;
-    public $search;
+    public $search = '';
 
     public $usuarioEdit_id;
     public $usuario_edit;
@@ -89,6 +89,11 @@ class Usuarios extends Component
 
         $this->dispatch('alert', message: 'Usuario actualizado');
         $this->reset(['usuarioEdit_id', 'name', 'email', 'password', 'roles_selected', 'open_edit']);
+    }
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
     }
 
 

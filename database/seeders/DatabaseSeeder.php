@@ -102,6 +102,11 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password123')
         ])->assignRole('Invitado');
 
+        // // Crear 100 usuarios aleatorios con roles distintos
+        // $roles = ['Administrador', 'Gestor', 'Revisor', 'Asistente', 'Invitado'];
+        // User::factory(500)->create()->each(function ($user) use ($roles) {
+        //     $user->assignRole($roles[array_rand($roles)]);
+        // });
 
         //crear roles para participantes
 

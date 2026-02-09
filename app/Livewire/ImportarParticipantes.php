@@ -69,6 +69,27 @@ class ImportarParticipantes extends Component
         }
     }
 
+    public function descargarPlantilla()
+    {
+        $ejemplo = [
+            [
+                'dni' => '12345678',
+                'apellido' => 'Perez',
+                'nombre' => 'Juan',
+                'mail' => 'juanperez@mail.com',
+                'telefono' => '3755998877',
+            ]
+        ];
+
+        $fileName = 'plantilla_importar_participantes.xlsx';
+        return response()->streamDownload(function () use ($ejemplo) {
+            (new \Rap2hpoutre\FastExcel\FastExcel(collect($ejemplo)))->export('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ]);
+    }
+
     private function leerCSV($path): Collection
     {
         $rows = collect();
