@@ -41,7 +41,7 @@
                                     class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg"
                                     style="z-index: 9999;">
 
-                                    <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
+                                    <a href="{{ route('editar_evento', ['evento_id' => $evento->evento_id]) }}"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                                         style="text-decoration: none; color: inherit;">
                                         <i class="fa-solid fa-edit fa-xl text-black"></i>

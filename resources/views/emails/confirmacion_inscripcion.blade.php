@@ -17,7 +17,7 @@
         </p>
         <p>Agradecemos su participación y colaboración. Si requiere información adicional, no dude en comunicarse con
             nosotros.</p>
-    @elseif(Str::contains(strtolower($asunto), 'asistente'))
+    @elseif(Str::contains(strtolower($asunto), 'participante'))
         <p>Le informamos que su inscripción al evento <strong>{{ $evento->nombre }}</strong> ha sido registrada
             exitosamente.</p>
         <p>Gracias por su interés en participar. Si requiere información adicional, no dude en comunicarse con nosotros.

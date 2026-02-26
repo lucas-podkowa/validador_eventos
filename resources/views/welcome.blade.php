@@ -47,7 +47,7 @@
                                                 $user->hasRole('Administrador') => route('eventos'),
                                                 $user->hasRole('Gestor') => route('eventos'),
                                                 $user->hasRole('Revisor') => route('procesar_aprobaciones'),
-                                                $user->hasRole('Asistente') => route('asistencias'),
+                                                $user->hasRole('Colaborador') => route('asistencias'),
                                                 default => null,
                                             };
                                         @endphp

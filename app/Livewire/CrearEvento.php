@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\PlanillaInscripcion;
+use App\Models\Responsable;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use Carbon\Carbon;
@@ -32,8 +33,21 @@ class CrearEvento extends Component
     public $tiposIndicadores = [];
     public $indicadoresSeleccionados = [];
 
+    // Responsable
+    public $responsable_id = null;
+    public $responsable_dni = null;
+    public $responsable_nombre = null;
+    public $responsable_apellido = null;
+    public $responsable_encontrado = false;
+    public $open_responsable = false;
+
     public function mount($evento_id = null)
     {
+        // Gestores solo pueden editar eventos existentes, no crear nuevos.
+        if (!auth()->user()->hasRole('Administrador') && !$evento_id) {
+            abort(403, 'No tenés permiso para crear eventos.');
+        }
+
         $this->tiposEventos = TipoEvento::all();
         $this->tiposIndicadores = TipoIndicador::all();
 
@@ -50,6 +64,16 @@ class CrearEvento extends Component
                 $this->estado_evento = $evento->estado;
                 $this->por_aprobacion = (bool) $evento->por_aprobacion;
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
+
+                // Cargar responsable si existe
+                if ($evento->responsable_id) {
+                    $responsable = $evento->responsable;
+                    $this->responsable_id = $responsable->responsable_id;
+                    $this->responsable_dni = $responsable->dni;
+                    $this->responsable_nombre = $responsable->getAttributes()['nombre'];
+                    $this->responsable_apellido = $responsable->getAttributes()['apellido'];
+                    $this->responsable_encontrado = true;
+                }
             }
         }
     }
@@ -65,6 +89,7 @@ class CrearEvento extends Component
             'nombre_evento' => 'required|string|min:3|max:255',
             'lugar_evento'  => 'required|string|min:2|max:255',
             'cupo' => 'nullable|integer|min:0',
+            'responsable_id' => 'required',
         ];
 
         // Solo validar la fecha si estamos creando o el estado es Pendiente
@@ -87,6 +112,7 @@ class CrearEvento extends Component
                 'fecha_inicio' => Carbon::parse($this->fecha_inicio),
                 'cupo' => $this->cupo,
                 'por_aprobacion' =>  (bool) $this->por_aprobacion,
+                'responsable_id' => $this->responsable_id,
             ];
 
 
@@ -140,6 +166,11 @@ class CrearEvento extends Component
                 'cupo',
                 'indicadoresSeleccionados',
                 'por_aprobacion',
+                'responsable_id',
+                'responsable_dni',
+                'responsable_nombre',
+                'responsable_apellido',
+                'responsable_encontrado',
             ]);
 
             // Redirigir a la ruta de eventos después de la creación exitosa
@@ -157,6 +188,9 @@ class CrearEvento extends Component
 
     public function eliminarEvento()
     {
+        // Solo el Administrador puede eliminar eventos.
+        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'No tenés permiso para eliminar eventos.');
+
         if (!$this->evento_id) {
             return;
         }
@@ -187,6 +221,55 @@ class CrearEvento extends Component
     public function cancelarEdicion()
     {
         return redirect()->route('eventos');
+    }
+
+    //----------------------------------------------------------------
+    //-----  Responsable del Evento ----------------------------------
+    //----------------------------------------------------------------
+
+    public function buscarResponsable()
+    {
+        $this->validate([
+            'responsable_dni' => 'required|integer',
+        ]);
+
+        $responsable = Responsable::where('dni', $this->responsable_dni)->first();
+
+        if ($responsable) {
+            $this->responsable_id = $responsable->responsable_id;
+            $this->responsable_nombre = $responsable->getAttributes()['nombre'];
+            $this->responsable_apellido = $responsable->getAttributes()['apellido'];
+            $this->responsable_encontrado = true;
+        } else {
+            $this->responsable_id = null;
+            $this->responsable_nombre = null;
+            $this->responsable_apellido = null;
+            $this->responsable_encontrado = false;
+        }
+    }
+
+    public function seleccionarResponsable()
+    {
+        $this->validate([
+            'responsable_dni' => 'required|integer',
+            'responsable_nombre' => 'required|string|min:2|max:255',
+            'responsable_apellido' => 'required|string|min:2|max:255',
+        ]);
+
+        if ($this->responsable_encontrado && $this->responsable_id) {
+            // Responsable existente, ya tenemos el ID
+        } else {
+            // Crear nuevo responsable
+            $nuevoResponsable = Responsable::create([
+                'nombre' => mb_strtoupper(trim($this->responsable_nombre)),
+                'apellido' => mb_strtoupper(trim($this->responsable_apellido)),
+                'dni' => $this->responsable_dni,
+            ]);
+            $this->responsable_id = $nuevoResponsable->responsable_id;
+            $this->responsable_encontrado = true;
+        }
+
+        $this->open_responsable = false;
     }
 
 

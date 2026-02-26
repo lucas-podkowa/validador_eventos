@@ -18,7 +18,19 @@ class Evento extends Model
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['evento_id', 'nombre', 'lugar', 'fecha_inicio', 'tipo_evento_id', 'certificado_path', 'cupo', 'por_aprobacion', 'revisor_id', 'revisado'];
+    protected $fillable = [
+        'evento_id',
+        'nombre',
+        'lugar',
+        'fecha_inicio',
+        'tipo_evento_id',
+        'certificado_path',
+        'cupo',
+        'por_aprobacion',
+        'revisor_id',
+        'revisado',
+        'responsable_id'
+    ];
 
     protected static function boot()
     {
@@ -33,6 +45,11 @@ class Evento extends Model
     public function gestores()
     {
         return $this->belongsToMany(User::class, 'evento_gestor', 'evento_id', 'user_id');
+    }
+
+    public function responsable()
+    {
+        return $this->belongsTo(Responsable::class, 'responsable_id');
     }
 
     public function tipoEvento()
@@ -135,7 +152,7 @@ class Evento extends Model
         return InscripcionParticipante::where('planilla_id', $planillaId)
             ->where(function (Builder $query) use ($rolesStaffIds) {
 
-                // CRITERIO A: Asistentes con asistencia registrada
+                // CRITERIO A: Participantes con asistencia registrada
                 $query->whereHas('asistencias', function ($queryAsistencia) {
                     $queryAsistencia->where('asistio', true)
                         // La asistencia debe corresponder a una sesión de este evento.
@@ -151,9 +168,9 @@ class Evento extends Model
     }
 
     /**
-     * Obtener solo inscriptos con rol "Asistente"
+     * Obtener solo inscriptos con rol "Participante"
      */
-    public function asistentesInscritos()
+    public function participantesInscritos()
     {
         $planilla = $this->planillaInscripcion;
 
@@ -161,13 +178,13 @@ class Evento extends Model
             return collect();
         }
 
-        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
+        $rolParticipante = Rol::where('nombre', 'Participante')->first();
 
-        return Participante::whereIn('participante_id', function ($query) use ($planilla, $rolAsistente) {
+        return Participante::whereIn('participante_id', function ($query) use ($planilla, $rolParticipante) {
             $query->select('participante_id')
                 ->from('inscripcion_participante')
                 ->where('planilla_id', $planilla->planilla_inscripcion_id)
-                ->where('rol_id', $rolAsistente->rol_id ?? null);
+                ->where('rol_id', $rolParticipante->rol_id ?? null);
         })->get();
     }
 
@@ -193,7 +210,7 @@ class Evento extends Model
     }
 
     //uso en Livewire
-    //$asistentes = $evento->asistentesInscritos();
+    //$participantes = $evento->participantesInscritos();
     //$disertantesYColaboradores = $evento->disentantesYColaboradores();
 
     public function getFechaInicioFormattedAttribute()

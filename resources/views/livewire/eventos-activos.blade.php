@@ -123,7 +123,7 @@
 
                                     <hr class="border-gray-200">
 
-                                    <a href="{{ route('registrar_evento', ['evento_id' => $evento->evento_id]) }}"
+                                    <a href="{{ route('editar_evento', ['evento_id' => $evento->evento_id]) }}"
                                         class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
                                         style="text-decoration: none; color: inherit;">
                                         <i class="fa-solid fa-edit fa-xl text-black"></i> Editar Evento
@@ -382,7 +382,7 @@
                     <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
                         <p class="text-gray-500 text-xs uppercase">Inscriptos</p>
                         <p class="mb-0 font-semibold">
-                            {{ $evento_detalles->asistentesInscritos()->count() }} (Participantes)</p>
+                            {{ $evento_detalles->participantesInscritos()->count() }} (Participantes)</p>
                         <p class="mb-0 font-semibold">
                             {{ $evento_detalles->disentantesYColaboradores()->count() }} (Disertantes y/o
                             Colaboradores)</p>

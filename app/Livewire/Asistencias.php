@@ -25,21 +25,21 @@ class Asistencias extends Component
     public $asistencias = [];
     public $searchParticipante;
 
-    private $rol_asistente_id;
+    private $rol_participante_id;
 
     public function mount()
     {
         $this->eventos = Evento::where('estado', 'en curso')->get();
 
-        // Obtener el ID del rol "Asistente" una sola vez
-        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
+        // Obtener el ID del rol "Participante" una sola vez
+        $rolParticipante = Rol::where('nombre', 'Participante')->first();
 
-        if (!$rolAsistente) {
-            session()->flash('error', 'Error crítico: No se encontró el rol "Asistente" en el sistema.');
+        if (!$rolParticipante) {
+            session()->flash('error', 'Error crítico: No se encontró el rol "Participante" en el sistema.');
             return;
         }
 
-        $this->rol_asistente_id = $rolAsistente->rol_id;
+        $this->rol_participante_id = $rolParticipante->rol_id;
     }
 
     // Seleccionar un evento para gestionar sesiones
@@ -97,7 +97,7 @@ class Asistencias extends Component
 
         $query = $this->evento_selected
             ->planillaInscripcion
-            ->inscripcionesAsistentes(); // Esto ya filtra por rol "Asistente" y hace with('participante')
+            ->inscripcionesParticipantes(); // Filtra por rol "Participante" y hace with('participante')
 
         // Filtro de búsqueda por nombre, apellido o DNI
         if (!empty($this->searchParticipante)) {
@@ -204,17 +204,17 @@ class Asistencias extends Component
             return;
         }
 
-        $evento = Evento::with(['sesiones', 'planillaInscripcion.inscripcionesAsistentes'])
+        $evento = Evento::with(['sesiones', 'planillaInscripcion.inscripcionesParticipantes'])
             ->find($this->evento_selected->evento_id);
 
         $sesiones = $evento->sesiones;
-        $inscripciones = $evento->planillaInscripcion->inscripcionesAsistentes;
+        $inscripciones = $evento->planillaInscripcion->inscripcionesParticipantes;
 
 
 
-        // Si no hay asistentes registrados
+        // Si no hay participantes registrados
         if ($inscripciones->isEmpty()) {
-            $this->dispatch('oops', message: 'No hay asistentes registrados en este evento.');
+            $this->dispatch('oops', message: 'No hay participantes registrados en este evento.');
             return;
         }
 

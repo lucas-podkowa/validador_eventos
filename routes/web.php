@@ -31,7 +31,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Rutas exclusivas del administrador
     Route::middleware('can:crear_eventos')->group(function () {
-        Route::get('/registrar_evento/{evento_id?}', CrearEvento::class)->name('registrar_evento');
+        Route::get('/registrar_evento', CrearEvento::class)->name('registrar_evento');
         Route::get('/eventos/{evento_id}/gestores', AsignarGestores::class)->name('asignar_gestores');
         Route::get('/indicadores', Indicadores::class)->name('indicadores');
         Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // Rutas compartidas entre administrador y gestor
     Route::middleware('can:eventos')->group(function () {
         Route::get('/eventos/{tab?}', Eventos::class)->name('eventos');
+        Route::get('/registrar_evento/{evento_id}', CrearEvento::class)->name('editar_evento');
         Route::get('/eventos/{evento_id}/habilitar', HabilitarPlanilla::class)->name('habilitar_planilla');
         Route::get('/eventos/{evento_id}/staff', InscribirStaff::class)->name('inscribir.staff');
         Route::get('/planilla/{evento_id}/editar', HabilitarPlanilla::class)->name('editar_planilla');

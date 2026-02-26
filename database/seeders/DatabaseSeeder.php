@@ -59,7 +59,7 @@ class DatabaseSeeder extends Seeder
         Role::create(['name' => 'Administrador']);
         Role::create(['name' => 'Gestor']);
         Role::create(['name' => 'Revisor']);
-        Role::create(['name' => 'Asistente']);
+        Role::create(['name' => 'Colaborador']);
         Role::create(['name' => 'Invitado']); // sin permisos
 
         // Crear permisos y asignar a lor roles
@@ -69,7 +69,7 @@ class DatabaseSeeder extends Seeder
         Permission::create(['name' => 'eventos'])->syncRoles(['Administrador', 'Gestor']);
         Permission::create(['name' => 'ver_participantes'])->syncRoles(['Administrador', 'Gestor']);
         Permission::create(['name' => 'procesar_aprobaciones'])->syncRoles(['Administrador', 'Gestor', 'Revisor']);
-        Permission::create(['name' => 'asistencias'])->syncRoles(['Administrador', 'Gestor', 'Asistente']);
+        Permission::create(['name' => 'asistencias'])->syncRoles(['Administrador', 'Gestor', 'Colaborador']);
 
         // Crear usuarios de ejemplo
         // User::factory()->create([
@@ -91,10 +91,10 @@ class DatabaseSeeder extends Seeder
         ])->assignRole('Revisor');
 
         User::factory()->create([
-            'name' => 'Usuario Asistente',
-            'email' => 'asistente@mail.com',
+            'name' => 'Usuario Colaborador',
+            'email' => 'colaborador@mail.com',
             'password' => bcrypt('password123')
-        ])->assignRole('Asistente');
+        ])->assignRole('Colaborador');
 
         User::factory()->create([
             'name' => 'Usuario Invitado',
@@ -111,7 +111,7 @@ class DatabaseSeeder extends Seeder
         //crear roles para participantes
 
         Rol::insert([
-            ['nombre' => 'Asistente'],
+            ['nombre' => 'Participante'],
             ['nombre' => 'Disertante'],
             ['nombre' => 'Colaborador'],
         ]);

@@ -286,7 +286,7 @@ class EventosActivos extends Component
     //----------------------------------------------------------------------------
     //------ Metodo disparado por el boton Cancelar Evento" ---
     //----------------------------------------------------------------------------
-    public function cancelarEvento($evento_id)
+    public function cancelarEvento($evento_id, $mantener_inscripciones = false)
     {
         $this->mostrar_inscriptos = false;
 
@@ -295,9 +295,15 @@ class EventosActivos extends Component
             $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
 
             if ($planilla) {
-                $planilla_id = $planilla->planilla_inscripcion_id;
-                InscripcionParticipante::where('planilla_id', $planilla_id)->delete();
-                $planilla->delete();
+                if ($mantener_inscripciones) {
+                    // Suspender la planilla conservando todas las inscripciones
+                    $planilla->update(['estado' => 'suspendida']);
+                } else {
+                    // Eliminar inscripciones y planilla (comportamiento original)
+                    $planilla_id = $planilla->planilla_inscripcion_id;
+                    InscripcionParticipante::where('planilla_id', $planilla_id)->delete();
+                    $planilla->delete();
+                }
             }
 
             Evento::where('evento_id', $evento_id)->update(['estado' => 'Pendiente']);
@@ -345,18 +351,18 @@ class EventosActivos extends Component
     }
 
     // ----------------------------------------
-    // Obtener inscriptos con rol "Asistente"
+    // Obtener inscriptos con rol "Participante"
     // ----------------------------------------
 
     public function get_inscriptos($evento)
     {
-        $this->evento_selected = Evento::with(['planillaInscripcion.inscripcionesAsistentes'])
+        $this->evento_selected = Evento::with(['planillaInscripcion.inscripcionesParticipantes'])
             ->find($evento['evento_id']);
 
         if ($this->evento_selected && $this->evento_selected->planillaInscripcion) {
             $query = $this->evento_selected
                 ->planillaInscripcion
-                ->inscripcionesAsistentes(); // Obtiene el Query Builder de la relación
+                ->inscripcionesParticipantes(); // Obtiene el Query Builder de la relación
 
             if (!empty($this->searchParticipante)) {
                 $searchTerm = $this->searchParticipante;

@@ -27,7 +27,7 @@
                         <td class="px-6 py-3">{{ $evento->fecha_inicio }}
                         </td>
                         <td class="px-6 py-3">
-                            {{ $evento->asistentesInscritos()->count() }}</td>
+                            {{ $evento->participantesInscritos()->count() }}</td>
                         <td class="px-6 py-3">
                             {{ $evento->inscripcionesConAsistencia()->count() }}</td>
                         <td class="px-6 py-3">

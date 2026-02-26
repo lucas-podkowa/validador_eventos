@@ -66,7 +66,16 @@
         function confirmCancel(evento_id) {
             Swal.fire({
                 title: '¿Estás seguro de Cancelar el Evento?',
-                text: "Esto eliminará todas las incripciones y su respectiva Planilla. El evento volverá al estado Pendiente",
+                html: `
+                    <p class="text-sm text-gray-600 mb-3">El evento volverá al estado <strong>Pendiente</strong>.</p>
+                    <div class="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-left">
+                        <input type="checkbox" id="swal-mantener-inscripciones" class="mt-1 w-4 h-4 accent-blue-600 cursor-pointer flex-shrink-0">
+                        <div>
+                            <label for="swal-mantener-inscripciones" class="text-sm font-semibold text-gray-800 cursor-pointer">Mantener inscripciones realizadas</label>
+                            <p class="text-xs text-gray-500 mt-1">Las inscripciones se conservarán y podrán retomarse al reactivar el evento.</p>
+                        </div>
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -75,8 +84,11 @@
                 cancelButtonText: 'Volver'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    const mantenerInscripciones = document.getElementById('swal-mantener-inscripciones')?.checked ??
+                        false;
                     window.Livewire.dispatch('cancelarEvento', {
-                        evento_id
+                        evento_id,
+                        mantener_inscripciones: mantenerInscripciones
                     });
                     Swal.fire({
                         timer: 2000,

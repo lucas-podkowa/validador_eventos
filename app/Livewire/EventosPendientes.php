@@ -38,13 +38,9 @@ class EventosPendientes extends Component
                 'fecha_inicio' => $eventoOriginal->fecha_inicio,
                 'cupo' => $eventoOriginal->cupo,
                 'por_aprobacion' =>  (bool) $eventoOriginal->por_aprobacion,
-                'estado' => 'Pendiente',
+                'responsable_id' => $eventoOriginal->responsable_id,
             ]);
 
-            // Copiar los indicadores asociados
-            $nuevoEvento->tipoIndicadores()->attach($eventoOriginal->tipoIndicadores->pluck('tipo_indicador_id'));
-
-            DB::commit();
             // Disparar evento para refrescar el componente
             $this->dispatch('refreshMainComponent');
         } catch (\Exception $e) {

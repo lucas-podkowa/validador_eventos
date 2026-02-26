@@ -15,7 +15,7 @@ class PlanillaInscripcion extends Model
     protected $primaryKey = 'planilla_inscripcion_id';
     public $incrementing = false; // Clave primaria no incrementa automáticamente
     protected $keyType = 'string'; // Tipo de clave primaria es string
-    protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer', 'qr_formulario', 'disposicion'];
+    protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer', 'qr_formulario', 'disposicion', 'estado'];
 
     protected static function boot()
     {
@@ -39,10 +39,10 @@ class PlanillaInscripcion extends Model
         return $this->hasMany(InscripcionParticipante::class, 'planilla_id');
     }
 
-    public function inscripcionesAsistentes()
+    public function inscripcionesParticipantes()
     {
         return $this->hasMany(InscripcionParticipante::class, 'planilla_id')
-            ->asistentes()
+            ->participantes()
             ->with('participante');
     }
     public function inscripcionesDisertantes()

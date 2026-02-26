@@ -51,11 +51,13 @@
                                             Ver Códigos QR
                                         </a>
 
-                                        <a wire:click="emitir({{ $evento }})"
-                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                            <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
-                                            Emitir Certificados
-                                        </a>
+                                        @role('Administrador')
+                                            <a wire:click="emitir({{ $evento }})"
+                                                class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                                <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
+                                                Emitir Certificados
+                                            </a>
+                                        @endrole
 
                                         @if ($evento->certificados_disponibles)
                                             <a wire:click="abrirModalMail({{ $evento }})"
@@ -131,12 +133,36 @@
     <x-dialog-modal wire:model="open_emitir">
         <x-slot name="title">
             <h4 class="text-md font-semibold mb-2 mt-4 text-blue-600">Selector de Plantillas para Certificados</h4>
-
         </x-slot>
 
         <x-slot name="content">
+            {{-- Información del Evento --}}
+            @if ($evento_selected)
+                <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md space-y-1">
+                    {{-- Responsable del Evento --}}
+                    @if ($evento_selected->responsable)
+                        <div class="flex items-center text-sm text-gray-700">
+                            <i class="fa-solid fa-user-tie text-indigo-600 mr-2 w-5 text-center"></i>
+                            <span class="font-medium mr-1">Responsable:</span>
+                            {{ $evento_selected->responsable->nombre }} {{ $evento_selected->responsable->apellido }}
+                        </div>
+                    @endif
+
+                    {{-- Descargar Disposición Respaldatoria --}}
+                    @if ($evento_selected->planillaInscripcion?->disposicion)
+                        <div class="flex items-center text-sm">
+                            <i class="fa-solid fa-file-pdf text-red-500 mr-2 w-5 text-center"></i>
+                            <a wire:click="descargarDisposicion"
+                                class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
+                                Descargar Disposición Respaldatoria
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            {{-- Plantillas de Certificados --}}
             @if ($evento_selected && $evento_selected->por_aprobacion)
-                </h4>
                 <div class="mb-4">
                     <label for="background_image_asistencia" class="block text-sm font-medium text-gray-700">
                         <i class="fa-solid fa-file-lines text-blue-500 mr-1"></i>
@@ -162,31 +188,36 @@
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
-                <div class="mb-4">
-                    <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
-                        Plantilla para Certificado de Disertante
-                    </label>
-                    <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
-                        accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image_disertante')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
 
-                <div class="mb-4">
-                    <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
-                        Plantilla para Certificado de Colaborador
-                    </label>
-                    <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
-                        accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image_colaborador')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
+                @if ($hasDisertantes)
+                    <div class="mb-4">
+                        <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
+                            <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
+                            Plantilla para Certificado de Disertante
+                        </label>
+                        <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
+                            accept="image/png, image/jpeg"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        @error('background_image_disertante')
+                            <span class="text-red-500 text-sm">{{ $message }}</span>
+                        @enderror
+                    </div>
+                @endif
+
+                @if ($hasColaboradores)
+                    <div class="mb-4">
+                        <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
+                            <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
+                            Plantilla para Certificado de Colaborador
+                        </label>
+                        <input type="file" id="background_image_colaborador"
+                            wire:model="background_image_colaborador" accept="image/png, image/jpeg"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        @error('background_image_colaborador')
+                            <span class="text-red-500 text-sm">{{ $message }}</span>
+                        @enderror
+                    </div>
+                @endif
             @else
                 <div class="mb-4">
                     <label for="background_image" class="block text-sm font-medium text-gray-700">
@@ -200,31 +231,36 @@
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
-                <div class="mb-4">
-                    <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
-                        Plantilla para Certificado de Disertante
-                    </label>
-                    <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
-                        accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image_disertante')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
 
-                <div class="mb-4">
-                    <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
-                        Plantilla para Certificado de Colaborador
-                    </label>
-                    <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
-                        accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image_colaborador')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
+                @if ($hasDisertantes)
+                    <div class="mb-4">
+                        <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
+                            <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
+                            Plantilla para Certificado de Disertante
+                        </label>
+                        <input type="file" id="background_image_disertante"
+                            wire:model="background_image_disertante" accept="image/png, image/jpeg"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        @error('background_image_disertante')
+                            <span class="text-red-500 text-sm">{{ $message }}</span>
+                        @enderror
+                    </div>
+                @endif
+
+                @if ($hasColaboradores)
+                    <div class="mb-4">
+                        <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
+                            <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
+                            Plantilla para Certificado de Colaborador
+                        </label>
+                        <input type="file" id="background_image_colaborador"
+                            wire:model="background_image_colaborador" accept="image/png, image/jpeg"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        @error('background_image_colaborador')
+                            <span class="text-red-500 text-sm">{{ $message }}</span>
+                        @enderror
+                    </div>
+                @endif
             @endif
         </x-slot>
 

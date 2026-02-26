@@ -16,7 +16,7 @@ use Livewire\Component;
 
 class RegistroEventoPublico extends Component
 {
-    public $asunto = 'asistente';
+    public $asunto = 'participante';
     public $evento = null;
     public $evento_id = null;
     public $nombre = null;
@@ -30,7 +30,7 @@ class RegistroEventoPublico extends Component
     public ?array $participante = null;
     public $indicadoresMultiples = []; // para checkboxes
     public $indicadoresUnicos = []; // para radios
-    public $rol_asistente_id = null; // para cachear el ID del rol
+    public $rol_participante_id = null; // para cachear el ID del rol
 
 
     protected $rules = [
@@ -55,11 +55,11 @@ class RegistroEventoPublico extends Component
 
         $this->evento = Evento::findOrFail($eventoId);
 
-        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
-        if (!$rolAsistente) {
-            dd("Error: No se encontró el rol 'Asistente'. Ejecuta el seeder RolSeeder.");
+        $rolParticipante = Rol::where('nombre', 'Participante')->first();
+        if (!$rolParticipante) {
+            dd("Error: No se encontró el rol 'Participante'. Ejecuta el seeder.");
         }
-        $this->rol_asistente_id = $rolAsistente->rol_id;
+        $this->rol_participante_id = $rolParticipante->rol_id;
 
         $this->verificarInscripcionActiva();
     }
@@ -185,7 +185,7 @@ class RegistroEventoPublico extends Component
             $inscripcion = InscripcionParticipante::create([
                 'planilla_id' => $this->planilla_id,
                 'participante_id' => $participante->participante_id,
-                'rol_id' => $this->rol_asistente_id,
+                'rol_id' => $this->rol_participante_id,
                 'fecha_inscripcion' => now(),
                 'asistencia' => false,
             ]);

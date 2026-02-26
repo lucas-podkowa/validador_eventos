@@ -8,9 +8,12 @@ use App\Models\PlanillaInscripcion;
 use App\Models\Participante;
 use App\Models\InscripcionParticipante;
 use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ConfirmacionInscripcion;
+use App\Mail\CredencialesColaborador;
 
 class InscribirStaff extends Component
 {
@@ -187,9 +190,31 @@ class InscribirStaff extends Component
                 'asistencia' => false,
             ]);
 
+            // Si el rol es Colaborador, crear o asignar usuario en el sistema
+            $usuarioNuevo = false;
+            $passwordPlano = null;
+
+            if ($this->rol_seleccionado === 'Colaborador') {
+                $user = User::where('email', $this->mail)->first();
+
+                if (!$user) {
+                    // Crear nuevo usuario con el DNI como contraseña inicial
+                    $passwordPlano = $this->dni;
+                    $user = User::create([
+                        'name'     => "{$this->nombre} {$this->apellido}",
+                        'email'    => $this->mail,
+                        'password' => Hash::make($passwordPlano),
+                    ]);
+                    $usuarioNuevo = true;
+                }
+
+                // Asignar rol Spatie "Colaborador" (si ya lo tiene, Spatie lo ignora)
+                $user->assignRole('Colaborador');
+            }
+
             DB::commit();
 
-            // Enviar correo de confirmación
+            // Enviar correo de confirmación de inscripción
             try {
                 Mail::to($this->mail)->send(new ConfirmacionInscripcion(
                     $this->nombre,
@@ -199,6 +224,22 @@ class InscribirStaff extends Component
                 ));
             } catch (\Exception $mailException) {
                 $this->dispatch('oops', message: 'Error enviando correo de confirmación: ' . $mailException->getMessage());
+            }
+
+            // Enviar credenciales si se creó o asignó usuario Colaborador
+            if ($this->rol_seleccionado === 'Colaborador') {
+                try {
+                    Mail::to($this->mail)->send(new CredencialesColaborador(
+                        $this->nombre,
+                        $this->apellido,
+                        $this->mail,
+                        $passwordPlano ?? '',
+                        $this->evento,
+                        $usuarioNuevo,
+                    ));
+                } catch (\Exception $mailException) {
+                    $this->dispatch('oops', message: 'Error enviando credenciales de acceso: ' . $mailException->getMessage());
+                }
             }
 
             // Redirigir de vuelta a eventos activos con la tabla abierta

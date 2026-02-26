@@ -8,6 +8,55 @@
             </h2>
         @endif
 
+        {{-- Aviso de planilla suspendida: el evento fue cancelado con inscripciones conservadas --}}
+        @if ($tiene_planilla_suspendida)
+            <div class="mb-6 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-triangle-exclamation text-yellow-500 mt-1 text-lg"></i>
+                    <div class="w-full">
+                        <p class="font-semibold text-yellow-800">Este evento tiene una planilla suspendida</p>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            Hay <strong>{{ $inscriptos_suspendidos_count }}</strong>
+                            {{ $inscriptos_suspendidos_count === 1 ? 'inscripción conservada' : 'inscripciones conservadas' }}
+                            de la activación anterior. ¿Qué deseas hacer?
+                        </p>
+                        <div class="flex flex-wrap gap-3 mt-3">
+                            <button type="button" wire:click="setAccionPlanilla('retomar')"
+                                class="px-4 py-2 rounded-md text-sm font-semibold border-2 transition
+                                    {{ $accion_planilla_suspendida === 'retomar'
+                                        ? 'bg-green-600 text-white border-green-600'
+                                        : 'bg-white text-green-700 border-green-500 hover:bg-green-50' }}">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>
+                                Retomar planilla anterior (conservar inscripciones)
+                            </button>
+                            <button type="button" wire:click="setAccionPlanilla('nueva')"
+                                class="px-4 py-2 rounded-md text-sm font-semibold border-2 transition
+                                    {{ $accion_planilla_suspendida === 'nueva'
+                                        ? 'bg-red-600 text-white border-red-600'
+                                        : 'bg-white text-red-700 border-red-500 hover:bg-red-50' }}">
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Crear nueva planilla (descartar inscripciones anteriores)
+                            </button>
+                        </div>
+                        @if ($accion_planilla_suspendida === 'retomar')
+                            <p class="text-xs text-green-700 mt-2">
+                                <i class="fa-solid fa-circle-check mr-1"></i>
+                                Se retomará la planilla existente con sus {{ $inscriptos_suspendidos_count }}
+                                {{ $inscriptos_suspendidos_count === 1 ? 'inscripción' : 'inscripciones' }}.
+                                Podés actualizar las fechas y archivos si es necesario.
+                            </p>
+                        @elseif ($accion_planilla_suspendida === 'nueva')
+                            <p class="text-xs text-red-700 mt-2">
+                                <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                                Se eliminarán las inscripciones anteriores y se creará una planilla nueva. Esta acción
+                                no se puede deshacer.
+                            </p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <form wire:submit.prevent="guardar_planilla" enctype="multipart/form-data" class="space-y-4">
 
             <div class="flex pt-4 px-6 gap-4">

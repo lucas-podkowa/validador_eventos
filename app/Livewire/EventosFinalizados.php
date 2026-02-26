@@ -81,6 +81,8 @@ class EventosFinalizados extends Component
      */
     public function emitir($evento)
     {
+        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
+
         $this->evento_selected = Evento::find($evento['evento_id']);
 
         $roles = Rol::whereIn('nombre', ['Disertante', 'Colaborador'])
@@ -116,18 +118,20 @@ class EventosFinalizados extends Component
      */
     public function emitirCertificados()
     {
+        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
+
         $this->validate();
 
         // 1. OBTENER IDS DE ROLES
-        $roles = Rol::whereIn('nombre', ['Asistente', 'Disertante', 'Colaborador'])
+        $roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])
             ->pluck('rol_id', 'nombre');
 
-        $rolAsistenteId = $roles['Asistente'] ?? null;
+        $rolAsistenteId = $roles['Participante'] ?? null;
         $rolDisertanteId = $roles['Disertante'] ?? null;
         $rolColaboradorId = $roles['Colaborador'] ?? null;
 
         if (!$rolAsistenteId || !$rolDisertanteId || !$rolColaboradorId) {
-            $this->dispatch('oops', message: 'Faltan IDs de roles esenciales (Asistente, Disertante, Colaborador) en la base de datos.');
+            $this->dispatch('oops', message: 'Faltan IDs de roles esenciales (Participante, Disertante, Colaborador) en la base de datos.');
             return;
         }
 
@@ -235,6 +239,26 @@ class EventosFinalizados extends Component
             'hasColaboradores',
         ]);
         session()->flash('message', 'Certificados generados correctamente.');
+    }
+
+    /**
+     * Descarga el archivo PDF de disposición respaldatoria del evento.
+     */
+    public function descargarDisposicion()
+    {
+        if (!$this->evento_selected || !$this->evento_selected->planillaInscripcion) {
+            $this->dispatch('oops', message: 'No se encontró la planilla de inscripción.');
+            return;
+        }
+
+        $disposicion = $this->evento_selected->planillaInscripcion->disposicion;
+
+        if (!$disposicion || !Storage::disk('private')->exists($disposicion)) {
+            $this->dispatch('oops', message: 'No se encontró el archivo de disposición respaldatoria.');
+            return;
+        }
+
+        return Storage::disk('private')->download($disposicion);
     }
 
 

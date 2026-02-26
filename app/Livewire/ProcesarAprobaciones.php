@@ -43,17 +43,17 @@ class ProcesarAprobaciones extends Component
 
         $this->eventoSeleccionado = $evento;
 
-        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
+        $rolParticipante = Rol::where('nombre', 'Participante')->first();
 
-        if (!$rolAsistente) {
-            $this->dispatch('oops', message: 'Error: No se encontró el Rol "Asistente" en la base de datos.');
+        if (!$rolParticipante) {
+            $this->dispatch('oops', message: 'Error: No se encontró el Rol "Participante" en la base de datos.');
             $this->reset('eventoSeleccionado');
             return;
         }
 
         $this->participantes = EventoParticipante::with('participante')
             ->where('evento_id', $eventoId)
-            ->where('rol_id', $rolAsistente->rol_id)
+            ->where('rol_id', $rolParticipante->rol_id)
             ->get();
 
         foreach ($this->participantes as $p) {

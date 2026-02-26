@@ -23,7 +23,9 @@ return new class extends Migration
             $table->integer('revisor_id')->nullable(); // ID del revisor, puede ser nulo si no se requiere revisión
             $table->unsignedTinyInteger('porcentaje_asistencia_requerido')->default(70); // 70% por defecto
             $table->string('certificado_path')->nullable();
+            $table->unsignedBigInteger('responsable_id');
             $table->foreign('tipo_evento_id')->references('tipo_evento_id')->on('tipo_evento')->onDelete('cascade');
+            $table->foreign('responsable_id')->references('responsable_id')->on('responsable')->onDelete('restrict');
         });
     }
 

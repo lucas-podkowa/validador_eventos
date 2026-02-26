@@ -36,6 +36,11 @@ class HabilitarPlanilla extends Component
     public $tipoModalActivo;
     public $modo = 'crear';
 
+    // Planilla suspendida de una cancelación anterior con inscripciones conservadas
+    public bool $tiene_planilla_suspendida = false;
+    public int $inscriptos_suspendidos_count = 0;
+    public ?string $accion_planilla_suspendida = null;
+
 
     protected function rules()
     {
@@ -60,12 +65,23 @@ class HabilitarPlanilla extends Component
 
         $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
         if ($planilla) {
-            $this->modo = 'editar';
-            $this->apertura = Carbon::parse($planilla->apertura)->format('Y-m-d H:i');
-            $this->cierre = Carbon::parse($planilla->cierre)->format('Y-m-d H:i');
-            $this->header = $planilla->header;
-            $this->footer = $planilla->footer;
-            $this->disposicion = $planilla->disposicion ?? null;
+            if ($planilla->estado === 'suspendida') {
+                // Planilla suspendida: cargar datos pero esperar decisión del usuario
+                $this->tiene_planilla_suspendida = true;
+                $this->inscriptos_suspendidos_count = $planilla->inscripciones()->count();
+                $this->apertura = Carbon::parse($planilla->apertura)->format('Y-m-d H:i');
+                $this->cierre = Carbon::parse($planilla->cierre)->format('Y-m-d H:i');
+                $this->header = $planilla->header;
+                $this->footer = $planilla->footer;
+                $this->disposicion = $planilla->disposicion ?? null;
+            } else {
+                $this->modo = 'editar';
+                $this->apertura = Carbon::parse($planilla->apertura)->format('Y-m-d H:i');
+                $this->cierre = Carbon::parse($planilla->cierre)->format('Y-m-d H:i');
+                $this->header = $planilla->header;
+                $this->footer = $planilla->footer;
+                $this->disposicion = $planilla->disposicion ?? null;
+            }
         }
     }
 
@@ -76,6 +92,22 @@ class HabilitarPlanilla extends Component
     public function updatedCierre($value)
     {
         $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
+    }
+
+    /**
+     * El usuario elige qué hacer con la planilla suspendida.
+     * 'retomar' = conservar inscripciones y reactvar la planilla existente.
+     * 'nueva'   = descartar inscripciones anteriores y crear desde cero.
+     */
+    public function setAccionPlanilla(string $accion): void
+    {
+        $this->accion_planilla_suspendida = $accion;
+        $this->modo = ($accion === 'retomar') ? 'editar' : 'crear';
+
+        if ($accion === 'nueva') {
+            // Limpiar campos para que el usuario los complete desde cero
+            $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion']);
+        }
     }
 
 
@@ -147,6 +179,12 @@ class HabilitarPlanilla extends Component
 
     public function guardar_planilla()
     {
+        // Validar que el usuario eligió una acción si hay planilla suspendida
+        if ($this->tiene_planilla_suspendida && $this->accion_planilla_suspendida === null) {
+            $this->dispatch('oops', message: 'Debés seleccionar qué hacer con la planilla anterior antes de continuar.');
+            return;
+        }
+
         $this->validate();
 
         if ($this->header instanceof \Illuminate\Http\UploadedFile) {
@@ -198,6 +236,11 @@ class HabilitarPlanilla extends Component
             $qrSvg = $writer->writeString($inscripcionUrl);
             $qrSvgBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
 
+            // Si hay planilla suspendida y el usuario elige empezar de cero, la eliminamos (cascade borra inscripciones)
+            if ($this->tiene_planilla_suspendida && $this->accion_planilla_suspendida === 'nueva') {
+                PlanillaInscripcion::where('evento_id', $this->evento->evento_id)->delete();
+            }
+
             PlanillaInscripcion::updateOrCreate(
                 ['evento_id' => $this->evento->evento_id],
                 [
@@ -207,6 +250,7 @@ class HabilitarPlanilla extends Component
                     'footer' => $this->footer,
                     'disposicion' => $this->disposicion,
                     'qr_formulario' => $qrSvgBase64,
+                    'estado' => 'activa',
                 ]
             );
 

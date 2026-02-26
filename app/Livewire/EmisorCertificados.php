@@ -49,7 +49,7 @@ class EmisorCertificados extends Component
     {
 
         $this->eventos = Evento::where('estado', 'Finalizado')->get();
-        $this->roles = Rol::whereIn('nombre', ['Asistente', 'Disertante', 'Colaborador'])->get();
+        $this->roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])->get();
         $this->eventoParticipantes = EventoParticipante::with(['participante', 'evento'])
             ->where('emision_directa', true)
             ->whereHas('evento', function ($query) {

@@ -33,7 +33,7 @@
 
 
                 {{-- Asistencias --}}
-                @role('Administrador|Asistente|Gestor')
+                @role('Administrador|Colaborador|Gestor')
                     <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                         <x-nav-link href="{{ route('asistencias') }}" :active="request()->routeIs('asistencias')">
                             {{ __('Asistencias') }}
@@ -243,7 +243,7 @@
                 </x-responsive-nav-link>
             @endrole
 
-            @role('Administrador|Asistente|Gestor')
+            @role('Administrador|Colaborador|Gestor')
                 <x-responsive-nav-link href="{{ route('asistencias') }}" :active="request()->routeIs('asistencias')">
                     {{ __('Asistencias') }}
                 </x-responsive-nav-link>

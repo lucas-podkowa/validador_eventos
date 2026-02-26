@@ -34,10 +34,10 @@ class InscripcionParticipante extends Model
         return $this->belongsTo(Rol::class, 'rol_id', 'rol_id');
     }
 
-    public function scopeAsistentes($query)
+    public function scopeParticipantes($query)
     {
-        $rolAsistente = Rol::where('nombre', 'Asistente')->first();
-        return $query->where('rol_id', $rolAsistente->rol_id ?? null);
+        $rolParticipante = Rol::where('nombre', 'Participante')->first();
+        return $query->where('rol_id', $rolParticipante->rol_id ?? null);
     }
 
     public function scopeDisertantes($query)
