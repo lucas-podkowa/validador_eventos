@@ -102,7 +102,7 @@
                                     <span class="text-gray-400">Sin asignar</span>
                                 @endif
                             </div>
-                            <button type="button" wire:click="$set('open_responsable', true)"
+                            <button type="button" wire:click="abrirSelectorResponsable"
                                 class="inline-flex items-center px-3 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                                 <i class="fa-solid fa-magnifying-glass mr-1"></i>
                                 {{ $responsable_id ? 'Cambiar' : 'Seleccionar' }}
@@ -177,9 +177,10 @@
         <x-slot name="content">
             {{-- Búsqueda por DNI --}}
             <div class="mb-4">
-                <label for="responsable_dni" class="block text-sm font-medium text-gray-700">DNI del Responsable</label>
+                <label for="modal_responsable_dni" class="block text-sm font-medium text-gray-700">DNI del Responsable</label>
                 <div class="flex gap-2 mt-1">
-                    <input type="number" id="responsable_dni" wire:model.defer="responsable_dni"
+                    <input type="text" id="modal_responsable_dni" wire:model.live="modal_responsable_dni"
+                        inputmode="numeric" maxlength="10" x-on:input="$el.value = $el.value.replace(/\D/g, '')"
                         placeholder="Ingrese el DNI"
                         class="flex-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     <button type="button" wire:click="buscarResponsable"
@@ -187,14 +188,15 @@
                         <i class="fa-solid fa-search mr-1"></i> Buscar
                     </button>
                 </div>
-                @error('responsable_dni')
+                <p class="mt-1 text-xs text-gray-500">Ingrese solo números.</p>
+                @error('modal_responsable_dni')
                     <span class="text-red-500 text-sm">{{ $message }}</span>
                 @enderror
             </div>
 
             {{-- Indicador de estado --}}
-            @if ($responsable_dni)
-                @if ($responsable_encontrado)
+            @if ($modal_responsable_buscado)
+                @if ($modal_responsable_encontrado)
                     <div
                         class="mb-4 p-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-700 flex items-center">
                         <i class="fa-solid fa-circle-check mr-2"></i>
@@ -212,22 +214,24 @@
             {{-- Campos de nombre y apellido --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="responsable_nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
-                    <input type="text" id="responsable_nombre" wire:model.defer="responsable_nombre"
+                    <label for="modal_responsable_nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input type="text" id="modal_responsable_nombre" wire:model.live="modal_responsable_nombre"
+                        x-on:input="$el.value = $el.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
                         placeholder="Nombre del responsable"
-                        @if ($responsable_encontrado) readonly class="block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm"
+                        @if ($modal_responsable_encontrado || !$modal_responsable_buscado) readonly class="block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm"
                         @else class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @endif>
-                    @error('responsable_nombre')
+                    @error('modal_responsable_nombre')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
                 <div>
-                    <label for="responsable_apellido" class="block text-sm font-medium text-gray-700">Apellido</label>
-                    <input type="text" id="responsable_apellido" wire:model.defer="responsable_apellido"
+                    <label for="modal_responsable_apellido" class="block text-sm font-medium text-gray-700">Apellido</label>
+                    <input type="text" id="modal_responsable_apellido" wire:model.live="modal_responsable_apellido"
+                        x-on:input="$el.value = $el.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
                         placeholder="Apellido del responsable"
-                        @if ($responsable_encontrado) readonly class="block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm"
+                        @if ($modal_responsable_encontrado || !$modal_responsable_buscado) readonly class="block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm"
                         @else class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @endif>
-                    @error('responsable_apellido')
+                    @error('modal_responsable_apellido')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
@@ -235,15 +239,21 @@
         </x-slot>
 
         <x-slot name="footer">
-            <x-secondary-button wire:click="$set('open_responsable', false)">
+            <x-secondary-button wire:click="cancelarSelectorResponsable">
                 Cancelar
             </x-secondary-button>
 
             <button type="button" wire:click="seleccionarResponsable" style="font-size: 0.75rem; font-weight: 600"
                 class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4"
-                @if (!$responsable_dni) disabled @endif>
+                @if (!$modal_responsable_buscado) disabled @endif>
                 <i class="fa-solid fa-check mr-1"></i>
-                Seleccionar
+                @if (!$modal_responsable_buscado)
+                    Buscar primero
+                @elseif ($modal_responsable_encontrado)
+                    Seleccionar
+                @else
+                    Registrar responsable
+                @endif
             </button>
         </x-slot>
     </x-dialog-modal>

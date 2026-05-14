@@ -1,20 +1,52 @@
 <div>
-    <!-- Buscadores -->
-    <div class="flex mb-2 space-x-2">
-        <input type="text" wire:model.lazy="search" placeholder="Buscar Evento"
-            class="w-1/2 p-2 border border-gray-300 rounded" />
+    <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar Evento"
+            class="w-full p-2 border border-gray-300 rounded" />
 
-        <input type="text" wire:model.lazy="searchParticipante" placeholder="Buscar Participante por DNI"
-            class="w-1/2 p-2 border border-gray-300 rounded" />
+        <input type="text" wire:model.live.debounce.300ms="searchParticipante" placeholder="Buscar Participante por DNI"
+            class="w-full p-2 border border-gray-300 rounded" />
+
+        <select wire:model.live="searchTipoEvento" class="w-full p-2 border border-gray-300 rounded">
+            <option value="">Todos</option>
+            @foreach ($tiposEvento as $tipoEvento)
+                <option value="{{ $tipoEvento->tipo_evento_id }}">{{ $tipoEvento->nombre }}</option>
+            @endforeach
+        </select>
     </div>
-    <!-- Contenido de Eventos Finalizados -->
+
     <x-table>
         <table class="w-full min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tipo de Evento</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Fecha de Inicio</th>
+                    <th wire:click="order('nombre')"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
+                        Nombre
+                        @if ($sort === 'nombre')
+                            <i
+                                class="fas {{ $direction === 'asc' ? 'fa-sort-alpha-up-alt' : 'fa-sort-alpha-down-alt' }} float-right mt-1"></i>
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
+                    </th>
+                    <th wire:click="order('tipo_evento')"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
+                        Tipo de Evento
+                        @if ($sort === 'tipo_evento')
+                            <i
+                                class="fas {{ $direction === 'asc' ? 'fa-sort-alpha-up-alt' : 'fa-sort-alpha-down-alt' }} float-right mt-1"></i>
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
+                    </th>
+                    <th wire:click="order('fecha_inicio')"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
+                        Fecha de Inicio
+                        @if ($sort === 'fecha_inicio')
+                            <i class="fas {{ $direction === 'asc' ? 'fa-sort-up' : 'fa-sort-down' }} float-right mt-1"></i>
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Acciones</th>
                 </tr>
             </thead>
@@ -23,7 +55,7 @@
                     <tr>
                         <td class="px-6 py-3">{{ $evento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
-                        <td class="px-6 py-3">{{ $evento->fecha_inicio }}</td>
+                        <td class="px-6 py-3">{{ $evento->fecha_inicio_formatted }}</td>
                         <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
 
                             <div x-data="{ open: false }">
@@ -52,11 +84,11 @@
                                         </a>
 
                                         @role('Administrador')
-                                            <a wire:click="emitir({{ $evento }})"
-                                                class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                                <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
-                                                Emitir Certificados
-                                            </a>
+                                        <a wire:click="emitir({{ $evento }})"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
+                                            Emitir Certificados
+                                        </a>
                                         @endrole
 
                                         @if ($evento->certificados_disponibles)
@@ -95,7 +127,7 @@
         {{ $eventosFinalizados->links() }}
     </div>
 
-    {{-- ------------------------  DIALOG MODAL ver QR--------------------------- --}}
+    {{-- ------------------------ DIALOG MODAL ver QR--------------------------- --}}
 
     <x-dialog-modal wire:model="open_detail">
         <x-slot name="title">
@@ -128,7 +160,7 @@
         </x-slot>
     </x-dialog-modal>
 
-    {{-- ------------------------  DIALOG MODAL subir plantilla certificado--------------------------- --}}
+    {{-- ------------------------ DIALOG MODAL subir plantilla certificado--------------------------- --}}
 
     <x-dialog-modal wire:model="open_emitir">
         <x-slot name="title">
@@ -210,8 +242,8 @@
                             <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
                             Plantilla para Certificado de Colaborador
                         </label>
-                        <input type="file" id="background_image_colaborador"
-                            wire:model="background_image_colaborador" accept="image/png, image/jpeg"
+                        <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
+                            accept="image/png, image/jpeg"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('background_image_colaborador')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -224,8 +256,7 @@
                         <i class="fa-solid fa-user text-indigo-500 mr-1"></i>
                         Plantilla para Certificado de Asistentes
                     </label>
-                    <input type="file" id="background_image" wire:model="background_image"
-                        accept="image/png, image/jpeg"
+                    <input type="file" id="background_image" wire:model="background_image" accept="image/png, image/jpeg"
                         class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     @error('background_image')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -238,8 +269,8 @@
                             <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
                             Plantilla para Certificado de Disertante
                         </label>
-                        <input type="file" id="background_image_disertante"
-                            wire:model="background_image_disertante" accept="image/png, image/jpeg"
+                        <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
+                            accept="image/png, image/jpeg"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('background_image_disertante')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -253,8 +284,8 @@
                             <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
                             Plantilla para Certificado de Colaborador
                         </label>
-                        <input type="file" id="background_image_colaborador"
-                            wire:model="background_image_colaborador" accept="image/png, image/jpeg"
+                        <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
+                            accept="image/png, image/jpeg"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('background_image_colaborador')
                             <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -267,8 +298,7 @@
         <div wire:loading wire:target="emitirCertificados" class="flex items-center justify-center py-4">
             <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                    stroke-width="4">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                 </circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
             </svg>
@@ -340,8 +370,7 @@
                 class="flex items-center justify-center py-4">
                 <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                        stroke-width="4">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                     </circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                 </svg>

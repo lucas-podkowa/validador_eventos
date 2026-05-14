@@ -9,6 +9,7 @@ use App\Livewire\CrearEvento;
 use App\Livewire\EmisorCertificados;
 use App\Livewire\Eventos;
 use App\Livewire\HabilitarPlanilla;
+use App\Livewire\Informes;
 use App\Livewire\ImportarParticipantes;
 use App\Livewire\Indicadores;
 use App\Livewire\InscribirStaff;
@@ -35,6 +36,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/eventos/{evento_id}/gestores', AsignarGestores::class)->name('asignar_gestores');
         Route::get('/indicadores', Indicadores::class)->name('indicadores');
         Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
+        Route::get('/informes', Informes::class)->name('informes');
         Route::get('/emision', EmisorCertificados::class)->name('emisor_certificados');
     });
 

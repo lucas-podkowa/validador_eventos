@@ -62,8 +62,18 @@
 
                         <td class="item-center px-6">
                             @if ($evento->planillaInscripcion && $evento->planillaInscripcion->qr_formulario)
-                                <img src="{{ $evento->planillaInscripcion->qr_formulario }}" alt="QR"
-                                    width="50" height="50" class="cursor-pointer" />
+                                @php
+                                    $formularioUrl = route('inscripcion.evento', [Str::slug($evento->tipoEvento->nombre, '-'), $evento->evento_id]);
+                                @endphp
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ $evento->planillaInscripcion->qr_formulario }}" alt="QR" width="50" height="50"
+                                        class="cursor-pointer" />
+                                    <button type="button" onclick='copyFormularioLink(@json($formularioUrl))'
+                                        class="text-blue-600 hover:text-blue-800 transition"
+                                        title="Copiar enlace del formulario">
+                                        <i class="fa-solid fa-share-nodes fa-lg"></i>
+                                    </button>
+                                </div>
                             @else
                                 No definido
                             @endif
@@ -323,90 +333,92 @@
 
         <x-slot name="content">
             @if ($evento_detalles)
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
 
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border col-span-1 sm:col-span-2">
-                        <p class="text-gray-500 text-xs uppercase">Nombre</p>
-                        <p class="mb-0 font-semibold">{{ $evento_detalles->nombre }}</p>
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border col-span-1 sm:col-span-2">
+                            <p class="text-gray-500 text-xs uppercase">Nombre</p>
+                            <p class="mb-0 font-semibold">{{ $evento_detalles->nombre }}</p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Fecha de Inicio</p>
+                            <p class="mb-0 font-semibold">{{ $evento_detalles->fecha_inicio_formatted }}</p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Tipo de Evento</p>
+                            <p class="mb-0 font-semibold">{{ $evento_detalles->tipoEvento->nombre ?? 'N/A' }}</p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Lugar</p>
+                            <p class="mb-0 font-semibold">{{ $evento_detalles->lugar }}</p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Certificación</p>
+                            <p class="mb-0 font-semibold">
+                                {{ $evento_detalles->por_aprobacion ? 'Por Aprobación' : 'Por Asistencia' }}
+                            </p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Revisor</p>
+                            <p class="mb-0 font-semibold">
+                                @if ($evento_detalles->por_aprobacion)
+                                    {{ $evento_detalles->revisor->name ?? 'No asignado' }}
+                                @else
+                                    No Requiere
+                                @endif
+                            </p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Gestores</p>
+                            <p class="mb-0 font-semibold">
+                                @if ($evento_detalles->gestores->isEmpty())
+                                    Sin Asignar
+                                @else
+                                    {{ $evento_detalles->gestores->pluck('name')->join(', ') }}
+                                @endif
+                            </p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Cupo</p>
+                            <p class="mb-0 font-semibold">{{ $evento_detalles->cupo }}</p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Inscriptos</p>
+                            <p class="mb-0 font-semibold">
+                                {{ $evento_detalles->participantesInscritos()->count() }} (Participantes)
+                            </p>
+                            <p class="mb-0 font-semibold">
+                                {{ $evento_detalles->disentantesYColaboradores()->count() }} (Disertantes y/o
+                                Colaboradores)
+                            </p>
+                        </div>
+
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Inicio Inscripción</p>
+                            <p class="mb-0 font-semibold">
+                                {{ $evento_detalles->planillaInscripcion->apertura
+                ? \Carbon\Carbon::parse($evento_detalles->planillaInscripcion->apertura)->format('d/m/Y H:i')
+                : 'N/A' }}
+                            </p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Fin Inscripción</p>
+                            <p class="mb-0 font-semibold">
+                                {{ $evento_detalles->planillaInscripcion->cierre
+                ? \Carbon\Carbon::parse($evento_detalles->planillaInscripcion->cierre)->format('d/m/Y H:i')
+                : 'N/A' }}
+                            </p>
+                        </div>
                     </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Fecha de Inicio</p>
-                        <p class="mb-0 font-semibold">{{ $evento_detalles->fecha_inicio_formatted }}</p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Tipo de Evento</p>
-                        <p class="mb-0 font-semibold">{{ $evento_detalles->tipoEvento->nombre ?? 'N/A' }}</p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Lugar</p>
-                        <p class="mb-0 font-semibold">{{ $evento_detalles->lugar }}</p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Certificación</p>
-                        <p class="mb-0 font-semibold">
-                            {{ $evento_detalles->por_aprobacion ? 'Por Aprobación' : 'Por Asistencia' }}
-                        </p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Revisor</p>
-                        <p class="mb-0 font-semibold">
-                            @if ($evento_detalles->por_aprobacion)
-                                {{ $evento_detalles->revisor->name ?? 'No asignado' }}
-                            @else
-                                No Requiere
-                            @endif
-                        </p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Gestores</p>
-                        <p class="mb-0 font-semibold">
-                            @if ($evento_detalles->gestores->isEmpty())
-                                Sin Asignar
-                            @else
-                                {{ $evento_detalles->gestores->pluck('name')->join(', ') }}
-                            @endif
-                        </p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Cupo</p>
-                        <p class="mb-0 font-semibold">{{ $evento_detalles->cupo }}</p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Inscriptos</p>
-                        <p class="mb-0 font-semibold">
-                            {{ $evento_detalles->participantesInscritos()->count() }} (Participantes)</p>
-                        <p class="mb-0 font-semibold">
-                            {{ $evento_detalles->disentantesYColaboradores()->count() }} (Disertantes y/o
-                            Colaboradores)</p>
-                    </div>
-
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Inicio Inscripción</p>
-                        <p class="mb-0 font-semibold">
-                            {{ $evento_detalles->planillaInscripcion->apertura
-                                ? \Carbon\Carbon::parse($evento_detalles->planillaInscripcion->apertura)->format('d/m/Y H:i')
-                                : 'N/A' }}
-                        </p>
-                    </div>
-
-                    <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
-                        <p class="text-gray-500 text-xs uppercase">Fin Inscripción</p>
-                        <p class="mb-0 font-semibold">
-                            {{ $evento_detalles->planillaInscripcion->cierre
-                                ? \Carbon\Carbon::parse($evento_detalles->planillaInscripcion->cierre)->format('d/m/Y H:i')
-                                : 'N/A' }}
-                        </p>
-                    </div>
-                </div>
             @endif
         </x-slot>
 
@@ -418,3 +430,84 @@
     </x-dialog-modal>
 
 </div>
+
+@once
+    <script>
+        function fallbackCopyFormularioLink(url) {
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            textArea.setAttribute('readonly', 'readonly');
+            textArea.style.position = 'fixed';
+            textArea.style.top = '-9999px';
+            textArea.style.left = '-9999px';
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, textArea.value.length);
+
+            let copied = false;
+
+            try {
+                copied = document.execCommand('copy');
+            } catch (error) {
+                copied = false;
+            }
+
+            document.body.removeChild(textArea);
+
+            return copied;
+        }
+
+        function showCopySuccess() {
+            Swal.fire({
+                position: 'bottom-end',
+                icon: 'success',
+                title: 'Enlace copiado',
+                text: 'El formulario ya está listo para compartir.',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+
+        function showCopyError(message) {
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo copiar el enlace',
+                text: message
+            });
+        }
+
+        async function copyFormularioLink(url) {
+            if (!url) {
+                showCopyError('No se encontró una URL válida para el formulario.');
+                return;
+            }
+
+            if (window.isSecureContext && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    showCopySuccess();
+                    return;
+                } catch (error) {
+                    if (fallbackCopyFormularioLink(url)) {
+                        showCopySuccess();
+                        return;
+                    }
+
+                    showCopyError('El navegador bloqueó el acceso al portapapeles. Intente nuevamente o copie el enlace manualmente.');
+                    return;
+                }
+            }
+
+            if (fallbackCopyFormularioLink(url)) {
+                showCopySuccess();
+                return;
+            }
+
+            showCopyError('Este navegador o contexto no permite copiar automáticamente. Abra el formulario y copie la URL manualmente.');
+        }
+
+        window.copyFormularioLink = copyFormularioLink;
+    </script>
+@endonce

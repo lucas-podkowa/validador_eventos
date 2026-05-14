@@ -70,4 +70,14 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Evento::class, 'evento_gestor', 'user_id', 'evento_id');
     }
+
+    public function dashboardRouteName(): ?string
+    {
+        return match (true) {
+            $this->hasRole('Administrador'), $this->hasRole('Gestor') => 'eventos',
+            $this->hasRole('Revisor') => 'procesar_aprobaciones',
+            $this->hasRole('Colaborador') => 'asistencias',
+            default => null,
+        };
+    }
 }

@@ -17,7 +17,7 @@
     <!-- for bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
         integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous">
-    </script>
+        </script>
 
 </head>
 
@@ -41,23 +41,19 @@
                                 @endphp
 
                                 @if ($user)
-                                    @if (!$user->hasRole('Invitado'))
+                                    @php
+                                        $panelRouteName = $user->dashboardRouteName();
+                                    @endphp
+
+                                    @if ($panelRouteName)
                                         @php
-                                            $panelRoute = match (true) {
-                                                $user->hasRole('Administrador') => route('eventos'),
-                                                $user->hasRole('Gestor') => route('eventos'),
-                                                $user->hasRole('Revisor') => route('procesar_aprobaciones'),
-                                                $user->hasRole('Colaborador') => route('asistencias'),
-                                                default => null,
-                                            };
+                                            $panelRoute = route($panelRouteName);
                                         @endphp
 
-                                        @if ($panelRoute)
-                                            <a href="{{ $panelRoute }}"
-                                                class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
-                                                Panel de Control
-                                            </a>
-                                        @endif
+                                        <a href="{{ $panelRoute }}"
+                                            class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
+                                            Panel de Control
+                                        </a>
                                     @else
                                         <form method="POST" action="{{ route('logout') }}">
                                             @csrf

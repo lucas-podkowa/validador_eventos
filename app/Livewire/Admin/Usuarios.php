@@ -13,6 +13,7 @@ class Usuarios extends Component
 {
     public $open_edit = false;
     public $search = '';
+    public $selectedRole = 'Todos';
 
     public $usuarioEdit_id;
     public $usuario_edit;
@@ -20,14 +21,17 @@ class Usuarios extends Component
 
     public $name, $email, $password, $role;
     public $roles_selected = [];
+    public $previous_roles_selected = [];
     public $roles;
     public $confirmingUserEdit = false;
+    public $invitadoRoleId = null;
 
     use WithPagination;
 
     public function mount($usuarioEdit_id = null)
     {
         $this->roles = Role::all();
+        $this->invitadoRoleId = Role::where('name', 'Invitado')->value('id');
         //$this->roles_selected = $this->usuario_edit?->roles->pluck('id')->toArray() ?? [];
 
 
@@ -54,6 +58,32 @@ class Usuarios extends Component
         $this->email = $usuario->email;
         $this->rol_id_edit = $usuario->roles->first()?->id;
         $this->roles_selected = $usuario->roles->pluck('id')->toArray();
+        $this->previous_roles_selected = $this->roles_selected;
+    }
+
+    public function updatingRolesSelected()
+    {
+        $this->previous_roles_selected = $this->roles_selected;
+    }
+
+    public function updatedRolesSelected()
+    {
+        if (!$this->invitadoRoleId) {
+            return;
+        }
+
+        $tieneInvitado = in_array($this->invitadoRoleId, $this->roles_selected);
+
+        if (!$tieneInvitado || count($this->roles_selected) <= 1) {
+            return;
+        }
+
+        if (in_array($this->invitadoRoleId, $this->previous_roles_selected)) {
+            $this->roles_selected = array_values(array_diff($this->roles_selected, [$this->invitadoRoleId]));
+            return;
+        }
+
+        $this->roles_selected = [$this->invitadoRoleId];
     }
 
 
@@ -68,7 +98,7 @@ class Usuarios extends Component
         ]);
 
         // Validación: si seleccionaron más de un rol y uno es 'Invitado', lanzar error
-        $invitadoId = Role::where('name', 'Invitado')->value('id');
+        $invitadoId = $this->invitadoRoleId;
 
         if (in_array($invitadoId, $this->roles_selected) && count($this->roles_selected) > 1) {
             $this->addError('roles_selected', 'El rol "Invitado" no puede combinarse con otros roles.');
@@ -96,13 +126,25 @@ class Usuarios extends Component
         $this->resetPage();
     }
 
+    public function updatingSelectedRole()
+    {
+        $this->resetPage();
+    }
+
 
     public function render()
     {
         $usuarios = User::with('roles')
-            ->where(function ($query) {
-                $query->where('name', 'LIKE', '%' . $this->search . '%')
-                    ->orWhere('email', 'LIKE', '%' . $this->search . '%');
+            ->when($this->search !== '', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('name', 'LIKE', '%' . $this->search . '%')
+                        ->orWhere('email', 'LIKE', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->selectedRole !== 'Todos', function ($query) {
+                $query->whereHas('roles', function ($roleQuery) {
+                    $roleQuery->where('name', $this->selectedRole);
+                });
             })
             ->paginate(10);
 

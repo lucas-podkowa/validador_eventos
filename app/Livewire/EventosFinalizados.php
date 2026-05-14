@@ -7,6 +7,7 @@ use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\Rol;
+use App\Models\TipoEvento;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -27,7 +28,9 @@ class EventosFinalizados extends Component
     public $direction = 'asc';
     public $search = ''; // Búsqueda por evento
     public $searchParticipante = ''; // Búsqueda por participante (DNI)
+    public $searchTipoEvento = '';
     public $participantes = [];
+    public $tiposEvento = [];
 
     public $open_emitir = false;
 
@@ -46,6 +49,11 @@ class EventosFinalizados extends Component
 
 
     protected $paginationTheme = 'tailwind';
+
+    public function mount()
+    {
+        $this->tiposEvento = TipoEvento::orderBy('nombre')->get();
+    }
 
 
     protected function rules()
@@ -258,7 +266,7 @@ class EventosFinalizados extends Component
             return;
         }
 
-        return Storage::disk('private')->download($disposicion);
+        return response()->download(Storage::disk('private')->path($disposicion));
     }
 
 
@@ -340,7 +348,7 @@ class EventosFinalizados extends Component
     /**
      * Lógica centralizada para enviar un correo a un participante.
      */
-    private function _enviarMailParticipante(Participante $participante)
+    private function _enviarMailParticipante($participante)
     {
         $relacion = EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
             ->where('participante_id', $participante->participante_id)
@@ -363,14 +371,16 @@ class EventosFinalizados extends Component
 
     public function updatingSearchParticipante()
     {
-        // Si el usuario ingresa un DNI, reseteamos la búsqueda de eventos
-        $this->search = '';
         $this->resetPage();
     }
 
     public function updatingSearch()
     {
-        $this->searchParticipante = '';
+        $this->resetPage();
+    }
+
+    public function updatingSearchTipoEvento()
+    {
         $this->resetPage();
     }
 
@@ -378,23 +388,29 @@ class EventosFinalizados extends Component
     {
         $user = auth()->user();
 
-        $eventosFinalizados = Evento::with(['gestores', 'participantes'])
-            ->where('estado', 'finalizado')
+        $eventosFinalizados = Evento::query()
+            ->select('evento.*')
+            ->with(['gestores', 'participantes', 'tipoEvento'])
+            ->leftJoin('tipo_evento as tipo_evento_orden', 'evento.tipo_evento_id', '=', 'tipo_evento_orden.tipo_evento_id')
+            ->where('evento.estado', 'finalizado')
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {
                 $query->whereHas('gestores', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 });
             })
             ->when($this->search, function ($query) {
-                $query->where('nombre', 'like', '%' . $this->search . '%');
+                $query->where('evento.nombre', 'like', '%' . $this->search . '%');
             })
             ->when($this->searchParticipante, function ($query) {
                 $query->whereHas('participantes', function ($q) {
                     $q->where('dni', 'like', '%' . $this->searchParticipante . '%');
                 });
             })
-            ->orderBy($this->sort, $this->direction)
-            ->paginate(10);
+            ->when($this->searchTipoEvento !== '', function ($query) {
+                $query->where('evento.tipo_evento_id', $this->searchTipoEvento);
+            })
+            ->orderBy($this->resolveSortColumn(), $this->direction)
+            ->paginate(20);
 
         // Chequeo de certificados (fuera del query)
         foreach ($eventosFinalizados as $evento) {
@@ -407,13 +423,23 @@ class EventosFinalizados extends Component
     }
 
 
+    private function resolveSortColumn(): string
+    {
+        return match ($this->sort) {
+            'tipo_evento' => 'tipo_evento_orden.nombre',
+            'fecha_inicio' => 'evento.fecha_inicio',
+            default => 'evento.nombre',
+        };
+    }
+
+
     public function order($sort)
     {
         if ($this->sort == $sort) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
             if ($this->direction == 'asc') {
-                $this->direction == 'desc';
+                $this->direction = 'desc';
             } else {
-                $this->direction == 'asc';
+                $this->direction = 'asc';
             }
         } else { //si es una columna nueva, ordeno de forma ascendente
             $this->sort = $sort;

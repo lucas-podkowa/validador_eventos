@@ -1,10 +1,20 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
     <h2 class="text-xl font-bold mb-4">Gestión de Usuarios</h2>
-    <!-- Campo de búsqueda -->
-    <div class="mb-4">
-        <input type="text" wire:model.live="search"
-            class="w-full px-4 py-2 border rounded-md focus:ring focus:ring-blue-300"
-            placeholder="Ingrese el nombre o email del Usuario">
+    <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div class="md:col-span-2">
+            <input type="text" wire:model.live="search"
+                class="w-full px-4 py-2 border rounded-md focus:ring focus:ring-blue-300"
+                placeholder="Ingrese el nombre o email del Usuario">
+        </div>
+        <div>
+            <select wire:model.live="selectedRole"
+                class="w-full px-4 py-2 border rounded-md focus:ring focus:ring-blue-300">
+                <option value="Todos">Todos</option>
+                @foreach ($roles as $rol)
+                    <option value="{{ $rol->name }}">{{ $rol->name }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 
     @if ($usuarios->count() > 0)
@@ -27,8 +37,7 @@
                             <td class="px-6 py-2 whitespace-nowrap text-sm font-medium">
 
                                 {{-- aqui esta el boton editar que dispara el metodo edit y este muestra el modal --}}
-                                <a class="btn btn-blue-green px-2" href="#"
-                                    wire:click="editar({{ $usuario->id }})">
+                                <a class="btn btn-blue-green px-2" href="#" wire:click="editar({{ $usuario->id }})">
                                     <i class="fas fa-edit"></i>
                                 </a>
                             </td>
@@ -36,16 +45,16 @@
                     @endforeach
                 </tbody>
             </table>
-        @else
+    @else
             <div>No se encontraron registros</div>
 
-    @endif
-
-    <div class="py-4">
-        @if ($usuarios->links())
-            {{ $usuarios->links() }}
         @endif
-    </div>
+
+        <div class="py-4">
+            @if ($usuarios->links())
+                {{ $usuarios->links() }}
+            @endif
+        </div>
     </x-table>
 
     <form wire:submit.prevent="actualizar">

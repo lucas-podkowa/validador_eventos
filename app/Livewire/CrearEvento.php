@@ -40,6 +40,12 @@ class CrearEvento extends Component
     public $responsable_apellido = null;
     public $responsable_encontrado = false;
     public $open_responsable = false;
+    public $modal_responsable_id = null;
+    public $modal_responsable_dni = null;
+    public $modal_responsable_nombre = null;
+    public $modal_responsable_apellido = null;
+    public bool $modal_responsable_encontrado = false;
+    public bool $modal_responsable_buscado = false;
 
     public function mount($evento_id = null)
     {
@@ -85,9 +91,9 @@ class CrearEvento extends Component
     public function save()
     {
         $reglas = [
-            'tipo_evento_id'  => 'required',
+            'tipo_evento_id' => 'required',
             'nombre_evento' => 'required|string|min:3|max:255',
-            'lugar_evento'  => 'required|string|min:2|max:255',
+            'lugar_evento' => 'required|string|min:2|max:255',
             'cupo' => 'nullable|integer|min:0',
             'responsable_id' => 'required',
         ];
@@ -111,7 +117,7 @@ class CrearEvento extends Component
                 'lugar' => $this->lugar_evento,
                 'fecha_inicio' => Carbon::parse($this->fecha_inicio),
                 'cupo' => $this->cupo,
-                'por_aprobacion' =>  (bool) $this->por_aprobacion,
+                'por_aprobacion' => (bool) $this->por_aprobacion,
                 'responsable_id' => $this->responsable_id,
             ];
 
@@ -227,48 +233,101 @@ class CrearEvento extends Component
     //-----  Responsable del Evento ----------------------------------
     //----------------------------------------------------------------
 
+    public function abrirSelectorResponsable()
+    {
+        $this->resetValidation();
+        $this->modal_responsable_id = $this->responsable_id;
+        $this->modal_responsable_dni = $this->responsable_dni;
+        $this->modal_responsable_nombre = $this->responsable_nombre;
+        $this->modal_responsable_apellido = $this->responsable_apellido;
+        $this->modal_responsable_encontrado = (bool) $this->responsable_id;
+        $this->modal_responsable_buscado = (bool) $this->responsable_id;
+        $this->open_responsable = true;
+    }
+
+    public function cancelarSelectorResponsable()
+    {
+        $this->resetValidation();
+        $this->open_responsable = false;
+    }
+
+    public function updatedModalResponsableDni($value)
+    {
+        $dniSanitizado = preg_replace('/\D+/', '', (string) $value);
+
+        if ($this->modal_responsable_dni !== $dniSanitizado) {
+            $this->modal_responsable_dni = $dniSanitizado;
+        }
+
+        $this->modal_responsable_id = null;
+        $this->modal_responsable_nombre = null;
+        $this->modal_responsable_apellido = null;
+        $this->modal_responsable_encontrado = false;
+        $this->modal_responsable_buscado = false;
+        $this->resetErrorBag([
+            'modal_responsable_dni',
+            'modal_responsable_nombre',
+            'modal_responsable_apellido',
+        ]);
+    }
+
     public function buscarResponsable()
     {
-        $this->validate([
-            'responsable_dni' => 'required|integer',
+        $datos = $this->validate([
+            'modal_responsable_dni' => ['bail', 'required', 'regex:/^\d+$/', 'digits_between:7,10'],
         ]);
 
-        $responsable = Responsable::where('dni', $this->responsable_dni)->first();
+        $responsable = Responsable::where('dni', $datos['modal_responsable_dni'])->first();
+
+        $this->modal_responsable_buscado = true;
 
         if ($responsable) {
-            $this->responsable_id = $responsable->responsable_id;
-            $this->responsable_nombre = $responsable->getAttributes()['nombre'];
-            $this->responsable_apellido = $responsable->getAttributes()['apellido'];
-            $this->responsable_encontrado = true;
+            $this->modal_responsable_id = $responsable->responsable_id;
+            $this->modal_responsable_dni = $responsable->dni;
+            $this->modal_responsable_nombre = $responsable->nombre;
+            $this->modal_responsable_apellido = $responsable->apellido;
+            $this->modal_responsable_encontrado = true;
         } else {
-            $this->responsable_id = null;
-            $this->responsable_nombre = null;
-            $this->responsable_apellido = null;
-            $this->responsable_encontrado = false;
+            $this->modal_responsable_id = null;
+            $this->modal_responsable_nombre = null;
+            $this->modal_responsable_apellido = null;
+            $this->modal_responsable_encontrado = false;
         }
     }
 
     public function seleccionarResponsable()
     {
-        $this->validate([
-            'responsable_dni' => 'required|integer',
-            'responsable_nombre' => 'required|string|min:2|max:255',
-            'responsable_apellido' => 'required|string|min:2|max:255',
+        if (!$this->modal_responsable_buscado) {
+            $this->addError('modal_responsable_dni', 'Busque un DNI válido antes de continuar.');
+            return;
+        }
+
+        $datos = $this->validate([
+            'modal_responsable_dni' => ['bail', 'required', 'regex:/^\d+$/', 'digits_between:7,10'],
+            'modal_responsable_nombre' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\pL\s]+$/u'],
+            'modal_responsable_apellido' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\pL\s]+$/u'],
         ]);
 
-        if ($this->responsable_encontrado && $this->responsable_id) {
+        if ($this->modal_responsable_encontrado && $this->modal_responsable_id) {
             // Responsable existente, ya tenemos el ID
         } else {
             // Crear nuevo responsable
             $nuevoResponsable = Responsable::create([
-                'nombre' => mb_strtoupper(trim($this->responsable_nombre)),
-                'apellido' => mb_strtoupper(trim($this->responsable_apellido)),
-                'dni' => $this->responsable_dni,
+                'nombre' => mb_strtoupper(trim($datos['modal_responsable_nombre'])),
+                'apellido' => mb_strtoupper(trim($datos['modal_responsable_apellido'])),
+                'dni' => $datos['modal_responsable_dni'],
             ]);
-            $this->responsable_id = $nuevoResponsable->responsable_id;
-            $this->responsable_encontrado = true;
+            $this->modal_responsable_id = $nuevoResponsable->responsable_id;
+            $this->modal_responsable_nombre = $nuevoResponsable->nombre;
+            $this->modal_responsable_apellido = $nuevoResponsable->apellido;
+            $this->modal_responsable_encontrado = true;
         }
 
+        $this->responsable_id = $this->modal_responsable_id;
+        $this->responsable_dni = $this->modal_responsable_dni;
+        $this->responsable_nombre = $this->modal_responsable_nombre;
+        $this->responsable_apellido = $this->modal_responsable_apellido;
+        $this->responsable_encontrado = true;
         $this->open_responsable = false;
     }
 
