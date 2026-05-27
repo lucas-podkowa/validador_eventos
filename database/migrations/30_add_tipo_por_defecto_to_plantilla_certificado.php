@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-class AddTipoPorDefectoToPlantillaCertificado extends Migration
+return new class extends Migration
 {
     public function up(): void
     {
@@ -36,4 +36,4 @@ class AddTipoPorDefectoToPlantillaCertificado extends Migration
             $table->dropColumn(['tipo', 'por_defecto']);
         });
     }
-}
+};
