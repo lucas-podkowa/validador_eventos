@@ -1,72 +1,148 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="200" alt="Laravel Logo"></a></p>
+# Validador de Eventos y Certificados
 
-# Gestion de Eventos y Validador de Certificádos para la Facultad de Ingeniería
+Sistema web para gestionar el ciclo completo de eventos institucionales de la Facultad de Ingeniería: alta y administración de eventos, inscripción pública, importación masiva de participantes, control de asistencias, revisiones, emisión de certificados y validación pública mediante QR.
 
-## Tecnología:
+## Tecnología
 
-Laravel 11 + Livewire 3 + JetStream v5.x + MySQL
+- PHP 8.2+
+- Laravel 11
+- Livewire 3
+- Laravel Jetstream 5 con Fortify y Sanctum
+- Spatie Laravel Permission para roles y permisos
+- Tailwind CSS 3 + Vite 5 + Axios
+- DomPDF para certificados e informes en PDF
+- PhpSpreadsheet y FastExcel para importación/exportación de planillas
+- Base de datos relacional compatible con Laravel; en despliegues reales se utiliza una base persistente y el proyecto viene configurado por defecto para cache y colas en base de datos
 
-## Problema:
+## Problema
 
-La facultad de Ingeniería UNaM, a travez de la Secretaría de Extensión Universitaria, organiza e imparte distintos dicta actualmente 7 (siete) carreras de grado, donde gran parte de las asignaturas de sus tres primeros años son de **dictado común**, es decir, que asignaturas de distintas carreras que comparten sus contenidos mínimos, son impartidos como si fueran una sola asignatura común. El inconveniente surge al querer organizar los exámenes parciales y recuperatorios de las distintas carreras sin interrumpir o solapar el examen de otra carrera.
+La gestión de eventos académicos y de extensión involucra varias tareas que suelen quedar dispersas entre formularios, planillas manuales, correos y archivos sueltos: publicar eventos, registrar participantes, asignar responsables, controlar asistencia, revisar aprobaciones, emitir certificados y validar su autenticidad.
 
-## Solución:
+Cuando ese circuito no está centralizado aparecen problemas de trazabilidad, duplicación de datos, errores operativos y dificultades para mantener criterios uniformes entre distintas áreas y tipos de evento.
 
-Se desarrollo el presente sistema como un gestor de carreras, asignaturas y eventos relacionados a dichas asignaturas, permitiendo a los usuarios registrados, crear los eventos (exámenes) bajo ciertas restricciones puestas por el sistema, de manera que se puedan gestionar eficientemente esos tres primeros años a los que se le llama **Ciclo Básico**. Algunas de éstas restricciones son:
+## Solución
 
-- No tener mas de 1 (un) examen de la misma carrera en un mismo turno (mañana o tarde)
-- No tener mas de 2 (dos) exámenes de la misma carrera en el mismo día
-- No tener mas de 1 (un) examen por ciclo (año) en el mismo turno (mañana o tarde) si corresponden a asignaturas de dictado común mas alla de que sean de carreras diferentes.
+Este proyecto centraliza la operación completa de los eventos en una sola plataforma. El sistema permite administrar eventos y sus responsables, habilitar planillas de inscripción, registrar participantes en forma pública o masiva, controlar asistencias por sesión, procesar aprobaciones, generar certificados con plantillas por categoría y validar participantes o certificados desde enlaces y códigos QR.
 
-Tanto los usuarios registrados como los visitantes casuales del sitio podrán ver un **calendario actualizado de eventos** para ubicar rápidamente el cronograma de exámenes de todo el Ciclo Básico.
+El resultado es un flujo de trabajo consistente, auditable y reutilizable para eventos con necesidades administrativas, académicas y de certificación.
 
----
+## Funcionalidades principales
 
-## Categorías de Eventos y Plantillas de Certificados
+- Gestión de eventos con estados, responsables, gestores y datos generales.
+- Clasificación por categoría de evento y por tipo de evento.
+- Administración de categorías con plantillas de certificados asociadas.
+- CRUD de tipos de evento.
+- Habilitación y edición de planillas de inscripción.
+- Inscripción pública de participantes desde enlaces externos.
+- Importación masiva de participantes desde archivos CSV y XLSX.
+- Inscripción de staff y colaboradores.
+- Gestión de participantes y consulta centralizada.
+- Procesamiento de aprobaciones por parte de revisores.
+- Registro de asistencias por sesiones del evento.
+- Emisión de certificados en PDF con plantilla predefinida o imagen manual.
+- Validación pública de participantes y certificados mediante QR.
+- Generación de informes y documentos PDF.
+- Envío de correos de confirmación, credenciales y certificados.
 
-### Concepto de Categoría (super-tipo)
+## Roles del sistema
 
-Cada evento pertenece a una **Categoría** (o super-tipo), que actúa como contenedor de un conjunto de **plantillas de certificados**. Ejemplos de categorías: _JIDETeV_, _RPIC_, _General_.
+- Administrador: administra eventos, usuarios, categorías, tipos de evento, indicadores, informes y certificados.
+- Gestor: opera eventos, participantes y planillas.
+- Revisor: procesa aprobaciones.
+- Colaborador: registra asistencias.
+- Invitado: puede autenticarse pero no accede a panel operativo.
 
-La relación es:
+## Flujo general de uso
 
+1. Un administrador crea el evento y define su categoría, tipo, fechas, responsable e indicadores.
+2. Se habilita la planilla de inscripción y se publica el acceso al formulario o se importan participantes en lote.
+3. Se asignan gestores y, cuando corresponde, staff o colaboradores.
+4. Durante la ejecución del evento se administran sesiones y asistencias.
+5. Los revisores procesan aprobaciones.
+6. Finalmente se emiten certificados y se validan desde QR o enlaces públicos.
+
+## Estructura del proyecto
+
+```text
+app/
+├── Console/Commands/      # Comandos Artisan propios
+├── Http/Controllers/      # Controladores HTTP públicos
+├── Livewire/              # Componentes funcionales del sistema
+│   └── Admin/             # Paneles administrativos
+├── Mail/                  # Correos del sistema
+├── Models/                # Entidades de dominio
+└── Providers/             # Configuración de servicios
+
+config/                    # Configuración de Laravel
+database/
+├── migrations/            # Esquema de base de datos
+├── factories/
+└── seeders/               # Datos iniciales de referencia
+
+public/                    # Punto de entrada web y assets públicos
+resources/
+├── css/                   # Tailwind CSS
+├── js/                    # Bootstrap JS de la app
+└── views/                 # Vistas Blade y vistas de Livewire
+
+routes/                    # Rutas web, api y consola
+storage/                   # Logs, cachés y archivos generados
+tests/                     # Pruebas automatizadas
 ```
-Categoría (JIDETeV)
-├── Plantillas: "Asistente" (imagen A4 landscape)
-│              "Aprobado"  (imagen A4 landscape)
-│              "Disertante" (imagen A4 landscape)
-└── Eventos: "Charla sobre IA", "Taller de Python", ...
+
+## Módulos destacados
+
+- Eventos: alta, edición, seguimiento por estado y asignación de gestores.
+- Planillas: apertura, cierre, edición e importación de participantes.
+- Participantes: consulta, inscripción y gestión de relaciones con eventos.
+- Asistencias: sesiones por evento y registro de presencia.
+- Certificados: emisión, almacenamiento y validación.
+- Administración: usuarios, categorías, tipos de evento e indicadores.
+- Informes: generación de documentos y reportes en PDF.
+
+## Requisitos para desarrollo local
+
+- PHP 8.2 o superior con extensiones habituales para Laravel.
+- Composer.
+- Node.js 18 o superior y npm.
+- Base de datos relacional compatible con Laravel.
+
+## Puesta en marcha local
+
+```bash
+git clone <url-del-repositorio>
+cd validador
+composer install
+npm ci
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+npm run dev
+php artisan serve
 ```
 
-Cada evento también mantiene su **Tipo de Evento** (Charla, Taller, Capacitación, etc.), que es independiente de la categoría.
+Notas:
 
-### Flujo de creación de evento
+- El seeder carga datos de referencia como tipos de evento, indicadores, roles, permisos y usuarios de ejemplo.
+- La aplicación utiliza archivos públicos en storage/app/public, por lo que el enlace simbólico de storage es obligatorio.
+- Los certificados se almacenan en discos de storage y su acceso depende de la configuración del entorno.
 
-1. El administrador selecciona primero la **Categoría** (ej: JIDETeV)
-2. Luego selecciona el **Tipo de Evento** (ej: Charla)
-3. Completa nombre, fecha, lugar y demás campos
+## Comandos útiles
 
-### Emisión de certificados
+```bash
+php artisan migrate
+php artisan db:seed
+php artisan storage:link
+php artisan optimize:clear
+php artisan config:cache
+php artisan view:cache
+npm run dev
+npm run build
+```
 
-- Si el evento pertenece a una categoría **con plantillas**: el emisor muestra un selector visual de las plantillas disponibles. El usuario elige la plantilla correspondiente (ej: "Asistente" o "Aprobado") y el PDF se genera automáticamente con esa imagen de fondo.
-- Si la categoría **no tiene plantillas**: el sistema muestra el campo de carga manual de imagen (comportamiento anterior), garantizando retrocompatibilidad.
+## Consideraciones de operación
 
-### Administración de Categorías (`/admin/categorias`)
-
-Sección exclusiva para administradores que permite:
-
-- Crear, editar y eliminar categorías
-- Gestionar las plantillas de cada categoría (subir imágenes PNG/JPEG, nombrarlas, eliminarlas)
-- Ver cuántos eventos y plantillas tiene cada categoría
-- Protección: no se puede eliminar una categoría que tenga eventos asociados
-
-Las imágenes de plantillas se almacenan en `storage/app/public/plantillas/{categoria_id}/` y son accesibles mediante el helper `asset('storage/...')`.
-
-### Administración de Tipos de Evento (`/admin/tipos-evento`)
-
-Nuevo CRUD para gestionar los tipos de evento (Charla, Taller, Capacitación, etc.):
-
-- Crear, editar y eliminar tipos
-- Protección: no se puede eliminar un tipo que tenga eventos asociados
-
----
+- No deben versionarse los archivos generados dentro de storage/framework.
+- Para producción conviene ejecutar solo migraciones incrementales y evitar comandos destructivos como migrate:fresh.
+- La aplicación tiene una guía local de despliegue pensada para el servidor de producción, mantenida fuera del repositorio.
