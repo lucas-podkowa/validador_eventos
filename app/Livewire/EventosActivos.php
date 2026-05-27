@@ -176,7 +176,7 @@ class EventosActivos extends Component
     //----------------------------------------------------------------------------
     public function verDetalles($evento_id)
     {
-        $this->evento_detalles = Evento::with(['planillaInscripcion', 'revisor', 'gestores', 'tipoEvento'])
+        $this->evento_detalles = Evento::with(['planillaInscripcion', 'revisor', 'gestores', 'tipoEvento', 'categoria'])
             ->findOrFail($evento_id);
         $this->open_modal_detalles = true;
     }

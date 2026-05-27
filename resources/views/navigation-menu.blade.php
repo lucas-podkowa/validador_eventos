@@ -1,4 +1,4 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+<nav x-data="{ open: false }" class="bg-white border-b border-gray-100 theme-b-nav">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16 ">
@@ -6,7 +6,10 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('welcome') }}">
-                        <x-application-mark class="block h-9 w-auto" />
+                        <span class="inline-flex items-center rounded-xl bg-[#2457d6] px-3 py-2 shadow-sm">
+                            <img src="{{ asset('logos/logo-fi.png') }}" alt="Facultad de Ingeniería"
+                                class="block h-7 w-auto max-w-[150px] sm:h-8 sm:max-w-[185px]">
+                        </span>
                     </a>
                 </div>
 
@@ -78,6 +81,8 @@
                             <x-dropdown-link href="{{ route('usuarios') }}">
                                 {{ __('Usuarios') }}
                             </x-dropdown-link>
+                            <x-dropdown-link href="{{ route('admin.categorias') }}">{{ __('Categorías') }}</x-dropdown-link>
+                            <x-dropdown-link href="{{ route('admin.tipos_evento') }}">{{ __('Tipos de Evento') }}</x-dropdown-link>
                             <x-dropdown-link href="{{ route('informes') }}">
                                 {{ __('Informes') }}
                             </x-dropdown-link>
@@ -249,6 +254,16 @@
             <x-responsive-nav-link href="{{ route('emisor_certificados') }}"
                 :active="request()->routeIs('emisor_certificados')">
                 {{ __('Emisión') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link href="{{ route('admin.categorias') }}"
+                :active="request()->routeIs('admin.categorias')">
+                {{ __('Categorías') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link href="{{ route('admin.tipos_evento') }}"
+                :active="request()->routeIs('admin.tipos_evento')">
+                {{ __('Tipos de Evento') }}
             </x-responsive-nav-link>
             @endrole
 

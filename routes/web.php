@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\WelcomeController;
+use App\Livewire\Admin\Categorias;
+use App\Livewire\Admin\TiposEvento;
 use App\Livewire\Admin\Usuarios;
 use App\Livewire\AsignarGestores;
 use App\Livewire\Asistencias;
@@ -36,6 +38,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/eventos/{evento_id}/gestores', AsignarGestores::class)->name('asignar_gestores');
         Route::get('/indicadores', Indicadores::class)->name('indicadores');
         Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
+        Route::get('/admin/categorias', Categorias::class)->name('admin.categorias');
+        Route::get('/admin/tipos-evento', TiposEvento::class)->name('admin.tipos_evento');
         Route::get('/informes', Informes::class)->name('informes');
         Route::get('/emision', EmisorCertificados::class)->name('emisor_certificados');
     });

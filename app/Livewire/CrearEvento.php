@@ -6,6 +6,7 @@ use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\PlanillaInscripcion;
 use App\Models\Responsable;
+use App\Models\CategoriaEvento;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use Carbon\Carbon;
@@ -19,6 +20,7 @@ class CrearEvento extends Component
 {
     //use WithFileUploads;
     public $evento_id = null; // Para saber si es edición o creación
+    public $categoria_id = null;
     public $tipo_evento_id = null;
 
     public bool $por_aprobacion = false;
@@ -29,6 +31,7 @@ class CrearEvento extends Component
     public $cupo = null;
     public $estado_evento = null;
 
+    public $categorias = [];
     public $tiposEventos = [];
     public $tiposIndicadores = [];
     public $indicadoresSeleccionados = [];
@@ -54,7 +57,8 @@ class CrearEvento extends Component
             abort(403, 'No tenés permiso para crear eventos.');
         }
 
-        $this->tiposEventos = TipoEvento::all();
+        $this->categorias = CategoriaEvento::orderBy('nombre')->get();
+        $this->tiposEventos = TipoEvento::orderBy('nombre')->get();
         $this->tiposIndicadores = TipoIndicador::all();
 
         if ($evento_id) {
@@ -62,6 +66,7 @@ class CrearEvento extends Component
             $evento = Evento::with('tipoIndicadores')->find($evento_id);
 
             if ($evento) {
+                $this->categoria_id = $evento->categoria_id;
                 $this->tipo_evento_id = $evento->tipo_evento_id;
                 $this->nombre_evento = $evento->nombre;
                 $this->fecha_inicio = $evento->fecha_inicio;
@@ -91,7 +96,8 @@ class CrearEvento extends Component
     public function save()
     {
         $reglas = [
-            'tipo_evento_id' => 'required',
+            'categoria_id' => 'required|exists:categoria_evento,categoria_id',
+            'tipo_evento_id' => 'required|exists:tipo_evento,tipo_evento_id',
             'nombre_evento' => 'required|string|min:3|max:255',
             'lugar_evento' => 'required|string|min:2|max:255',
             'cupo' => 'nullable|integer|min:0',
@@ -112,6 +118,7 @@ class CrearEvento extends Component
         DB::beginTransaction();
         try {
             $datosEvento = [
+                'categoria_id' => $this->categoria_id,
                 'tipo_evento_id' => $this->tipo_evento_id,
                 'nombre' => $this->nombre_evento,
                 'lugar' => $this->lugar_evento,
@@ -165,6 +172,7 @@ class CrearEvento extends Component
             //Resetear los campos después de guardar
             $this->reset([
                 'evento_id',
+                'categoria_id',
                 'tipo_evento_id',
                 'nombre_evento',
                 'fecha_inicio',

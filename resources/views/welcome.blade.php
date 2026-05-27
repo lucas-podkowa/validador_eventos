@@ -4,6 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="{{ asset('logos/icono.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logos/icono.png') }}">
 
     <title>Validador</title>
 
@@ -21,20 +23,14 @@
 
 </head>
 
-<body class="font-sans antialiased">
+<body class="font-sans antialiased bg-slate-50">
     <div class="relative min-h-screen flex flex-col items-center selection:bg-[#FF2D20] selection:text-white">
-        <div class="relative w-full max-w-2xl px-6 lg:max-w-7xl">
+        <div class="relative w-full px-6 lg:px-8">
 
-            <header class="nav_superior py-10">
-
-                <!-- Logo a la izquierda -->
-                <div class="flex-shrink-0">
-                    <img src="{{ asset('/logos/logo_50.png') }}" style="width: 300px; height: auto;" alt="Logo">
-                </div>
-                <div>
+            <header class="pt-6 pb-8">
+                <div class="mx-auto mb-5 flex w-full max-w-6xl justify-end">
                     @if (Route::has('login'))
-                        <!-- Enlaces a la derecha -->
-                        <nav class="-mx-3 flex flex-1 justify-normal nav_superior">
+                        <nav class="flex items-center gap-3">
                             @auth
                                 @php
                                     $user = auth()->user();
@@ -45,35 +41,26 @@
                                         $panelRouteName = $user->dashboardRouteName();
                                     @endphp
 
-                                    @if ($panelRouteName)
-                                        @php
-                                            $panelRoute = route($panelRouteName);
-                                        @endphp
-
-                                        <a href="{{ $panelRoute }}"
-                                            class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
-                                            Panel de Control
-                                        </a>
-                                    @else
+                                    @if (!$panelRouteName)
                                         <form method="POST" action="{{ route('logout') }}">
                                             @csrf
                                             <button type="submit"
-                                                class="rounded-md px-3 py-2 text-black transition hover:text-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF2D20]">
+                                                class="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#163b63] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2457d6] focus-visible:ring-offset-2">
                                                 Cerrar Sesión
                                             </button>
                                         </form>
                                     @endif
                                 @endif
                             @else
-                                <a class="enlace" href="{{ route('login') }}"
-                                    class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
+                                <a href="{{ route('login') }}"
+                                    class="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#163b63] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2457d6] focus-visible:ring-offset-2">
                                     Soy Usuario
                                 </a>
 
 
                                 @if (Route::has('register'))
-                                    <a class="enlace" href="{{ route('register') }}"
-                                        class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
+                                    <a href="{{ route('register') }}"
+                                        class="inline-flex items-center rounded-full bg-[#2457d6] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1f4dc1] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2457d6] focus-visible:ring-offset-2">
                                         Registrarme
                                     </a>
                                 @endif
@@ -82,14 +69,37 @@
                         </nav>
                     @endif
                 </div>
+
+                <div class="mx-auto w-full max-w-6xl">
+                    <div class="flex items-center justify-between gap-6 rounded-[2rem] bg-[#163b63] px-6 py-5 shadow-[0_18px_40px_rgba(15,23,42,0.14)] sm:px-8 lg:px-10 lg:py-6">
+                        <img src="{{ asset('/logos/unam-blanco.png') }}" alt="Universidad Nacional de Misiones"
+                            class="h-10 sm:h-12 lg:h-14 w-auto max-w-[220px] sm:max-w-[300px] lg:max-w-[360px] shrink-0">
+                        <img src="{{ asset('/logos/logo-fi.png') }}" alt="Facultad de Ingeniería"
+                            class="h-9 sm:h-10 lg:h-12 w-auto max-w-[130px] sm:max-w-[170px] lg:max-w-[210px] shrink-0">
+                    </div>
+                </div>
             </header>
 
             <!-- Contenido principal -->
-            <main class="flex-1 flex items-center justify-center px-6"> <!-- Espacio suficiente para el header -->
-                <div class="gap-6 lg:gap-8">
+            <main class="flex-1 px-6 pb-24 lg:px-8">
+                <div class="mx-auto w-full max-w-6xl gap-6 lg:gap-8">
                     @if (Route::has('login'))
+                        @auth
+                            @php
+                                $panelRouteName = auth()->user()?->dashboardRouteName();
+                            @endphp
 
-                        <h1 class="text-4xl font-bold text-gray-800 mb-4 align-middle text-center">
+                            @if ($panelRouteName)
+                                <div class="mb-5 flex justify-end">
+                                    <a href="{{ route($panelRouteName) }}"
+                                        class="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#163b63] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2457d6] focus-visible:ring-offset-2">
+                                        Panel de Control
+                                    </a>
+                                </div>
+                            @endif
+                        @endauth
+
+                        <h1 class="mb-4 text-center text-4xl font-bold text-gray-800">
                             Eventos Activos
                         </h1>
 

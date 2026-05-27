@@ -11,7 +11,22 @@
 
         <div class="w-full p-4 bg-white shadow-md rounded-lg">
             <form wire:submit.prevent="save" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 px-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 px-6">
+                    <!-- Categoría -->
+                    <div>
+                        <label for="categoria_id" class="block text-sm font-medium text-gray-700">Categoría</label>
+                        <select id="categoria_id" wire:model.live="categoria_id"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option value="">Seleccione</option>
+                            @foreach ($categorias as $cat)
+                                <option value="{{ $cat->categoria_id }}">{{ $cat->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('categoria_id')
+                            <span class="text-sm text-red-500">{{ $message }}</span>
+                        @enderror
+                    </div>
+
                     <!-- Tipo de Evento -->
                     <div>
                         <label for="tipo_evento_id" class="block text-sm font-medium text-gray-700">Tipo de Evento</label>
@@ -26,8 +41,9 @@
                             <span class="text-sm text-red-500">{{ $message }}</span>
                         @enderror
                     </div>
+                </div>
 
-                    <!-- Nombre del Evento -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 px-6">
                     <div>
                         <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre del Evento</label>
                         <input type="text" id="nombre" wire:model.live="nombre_evento"

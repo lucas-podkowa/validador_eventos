@@ -53,7 +53,8 @@ class EventosPendientes extends Component
     public function render()
     {
         $user = auth()->user();
-        $eventos = Evento::where('estado', 'pendiente')
+        $eventos = Evento::with(['tipoEvento', 'categoria'])
+            ->where('estado', 'pendiente')
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {
                 $query->whereHas('gestores', function ($q) use ($user) {
                     $q->where('user_id', $user->id);

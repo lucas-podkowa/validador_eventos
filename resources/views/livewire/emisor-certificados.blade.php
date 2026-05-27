@@ -88,15 +88,71 @@
                     </div>
 
                     <div class="mb-2">
-                        <label for="background_image" class="block text-sm font-medium text-gray-700">
-                            🖼️ Plantilla para el certificado
-                        </label>
-                        <input type="file" id="background_image" wire:model="background_image"
-                            accept="image/png, image/jpeg, image/jpg"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('background_image')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
+                        @php
+                            $tiposDisponibles = array_keys($plantillas_por_tipo ?? []);
+                            $labelForTipo = function ($t) {
+                                return $t === 'aprobacion' ? 'Aprobación' : ucfirst($t);
+                            };
+                        @endphp
+
+                        @if (!empty($tiposDisponibles))
+                            <label class="block font-medium text-sm text-gray-700 mb-2">🖼️ Plantilla del certificado</label>
+
+                            @if (count($tiposDisponibles) > 1)
+                                <div class="mb-3">
+                                    <label class="block text-xs text-gray-500">Tipo de certificado</label>
+                                    <select wire:model="certificado_tipo" class="form-select w-full mt-1">
+                                        @foreach ($tiposDisponibles as $t)
+                                            <option value="{{ $t }}">{{ $labelForTipo($t) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
+
+                            @if ($certificado_tipo && isset($plantillas_por_tipo[$certificado_tipo]) && count($plantillas_por_tipo[$certificado_tipo]) > 0)
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    @foreach ($plantillas_por_tipo[$certificado_tipo] as $plt)
+                                        <label class="cursor-pointer">
+                                            <input type="radio" wire:model="plantilla_id" value="{{ $plt['plantilla_id'] }}" class="sr-only peer">
+                                            <div class="border-2 rounded-lg overflow-hidden transition-all
+                                                    peer-checked:border-indigo-500 peer-checked:ring-2 peer-checked:ring-indigo-300
+                                                    hover:border-gray-400">
+                                                <img src="{{ asset('storage/' . $plt['imagen_path']) }}" alt="{{ $plt['nombre'] }}" class="w-full h-24 object-cover">
+                                                <p class="text-xs text-center py-1 font-medium text-gray-700">{{ $plt['nombre'] }}</p>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('plantilla_id')
+                                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                                @enderror
+                            @else
+                                {{-- Fallback: carga manual si no hay plantillas para el tipo seleccionado --}}
+                                <label for="background_image" class="block text-sm font-medium text-gray-700">
+                                    🖼️ Plantilla para el certificado
+                                    @if ($evento_id)
+                                        <span class="text-xs text-gray-400 ml-1">(la categoría del evento no tiene plantillas para este tipo)</span>
+                                    @endif
+                                </label>
+                                <input type="file" id="background_image" wire:model="background_image" accept="image/png, image/jpeg, image/jpg" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                @error('background_image')
+                                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                                @enderror
+                            @endif
+
+                        @else
+                            {{-- Fallback global: cargar imagen si la categoría no tiene plantillas --}}
+                            <label for="background_image" class="block text-sm font-medium text-gray-700">
+                                🖼️ Plantilla para el certificado
+                                @if ($evento_id)
+                                    <span class="text-xs text-gray-400 ml-1">(la categoría del evento no tiene plantillas)</span>
+                                @endif
+                            </label>
+                            <input type="file" id="background_image" wire:model="background_image" accept="image/png, image/jpeg, image/jpg" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            @error('background_image')
+                                <span class="text-red-500 text-sm">{{ $message }}</span>
+                            @enderror
+                        @endif
                     </div>
                 </div>
 

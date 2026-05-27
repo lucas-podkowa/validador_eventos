@@ -390,7 +390,7 @@ class EventosFinalizados extends Component
 
         $eventosFinalizados = Evento::query()
             ->select('evento.*')
-            ->with(['gestores', 'participantes', 'tipoEvento'])
+            ->with(['gestores', 'participantes', 'tipoEvento', 'categoria'])
             ->leftJoin('tipo_evento as tipo_evento_orden', 'evento.tipo_evento_id', '=', 'tipo_evento_orden.tipo_evento_id')
             ->where('evento.estado', 'finalizado')
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {

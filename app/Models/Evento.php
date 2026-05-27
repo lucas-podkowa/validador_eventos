@@ -24,6 +24,7 @@ class Evento extends Model
         'lugar',
         'fecha_inicio',
         'tipo_evento_id',
+        'categoria_id',
         'certificado_path',
         'cupo',
         'por_aprobacion',
@@ -55,6 +56,11 @@ class Evento extends Model
     public function tipoEvento()
     {
         return $this->belongsTo(TipoEvento::class, 'tipo_evento_id');
+    }
+
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaEvento::class, 'categoria_id');
     }
 
     public function tipoIndicadores()

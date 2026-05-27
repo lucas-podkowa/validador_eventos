@@ -47,6 +47,7 @@
                             <i class="fas fa-sort float-right mt-1"></i>
                         @endif
                     </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Categoría</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Acciones</th>
                 </tr>
             </thead>
@@ -56,6 +57,7 @@
                         <td class="px-6 py-3">{{ $evento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->fecha_inicio_formatted }}</td>
+                        <td class="px-6 py-3">{{ $evento->categoria->nombre ?? '—' }}</td>
                         <td class="px-6 py-2 whitespace-nowrap text-sm font-medium relative overflow-visible">
 
                             <div x-data="{ open: false }">

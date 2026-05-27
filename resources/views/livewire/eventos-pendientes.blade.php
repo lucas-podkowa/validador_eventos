@@ -16,6 +16,7 @@
                         @endif
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tipo de Evento</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Categoría</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Fecha de Inicio</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Lugar</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Cupo</th>
@@ -27,6 +28,7 @@
                     <tr>
                         <td class="px-6 py-3">{{ $evento->nombre }}</td>
                         <td class="px-6 py-3">{{ $evento->tipoEvento->nombre }}</td>
+                        <td class="px-6 py-3">{{ $evento->categoria->nombre ?? '—' }}</td>
                         <td class="px-6 py-3">{{ $evento->fecha_inicio_formatted }}</td>
                         <td class="px-6 py-3">{{ $evento->lugar }}</td>
                         <td class="px-6 py-3">{{ $evento->cupo ?: 'Sin Límites' }}</td>

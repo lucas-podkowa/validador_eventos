@@ -351,6 +351,11 @@
                         </div>
 
                         <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
+                            <p class="text-gray-500 text-xs uppercase">Categoría</p>
+                            <p class="mb-0 font-semibold">{{ $evento_detalles->categoria->nombre ?? '—' }}</p>
+                        </div>
+
+                        <div class="w-full bg-gray-50 p-2 rounded-xl shadow-sm border">
                             <p class="text-gray-500 text-xs uppercase">Lugar</p>
                             <p class="mb-0 font-semibold">{{ $evento_detalles->lugar }}</p>
                         </div>
