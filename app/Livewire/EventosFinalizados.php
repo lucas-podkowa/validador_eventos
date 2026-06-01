@@ -47,6 +47,9 @@ class EventosFinalizados extends Component
     public $hasDisertantes = false;
     public $hasColaboradores = false;
 
+    public $plantillas_por_tipo = [];
+    public $usar_plantilla_categoria = [];
+
 
     protected $paginationTheme = 'tailwind';
 
@@ -59,26 +62,31 @@ class EventosFinalizados extends Component
     protected function rules()
     {
         $rules = [];
-        $maxSize = '10240'; // 10MB
+        $maxSize = '10240';
 
-        // 1. Reglas para Asistentes (Siempre obligatorio)
         if ($this->evento_selected && $this->evento_selected->por_aprobacion) {
-            // Evento con aprobación: Se necesitan Asistencia y Aprobación
-            $rules['background_image_asistencia'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
-            $rules['background_image_aprobacion'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            if (!($this->usar_plantilla_categoria['asistencia'] ?? false)) {
+                $rules['background_image_asistencia'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            }
+            if (!($this->usar_plantilla_categoria['aprobacion'] ?? false)) {
+                $rules['background_image_aprobacion'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            }
         } else {
-            // Evento simple: Se necesita la plantilla genérica para Asistente
-            $rules['background_image'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            if (!($this->usar_plantilla_categoria['asistencia'] ?? false)) {
+                $rules['background_image'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            }
         }
 
-        // 2. Reglas CONDICIONALES para Disertantes
         if ($this->evento_selected && $this->hasDisertantes) {
-            $rules['background_image_disertante'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            if (!($this->usar_plantilla_categoria['disertante'] ?? false)) {
+                $rules['background_image_disertante'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            }
         }
 
-        // 3. Reglas CONDICIONALES para Colaboradores
         if ($this->evento_selected && $this->hasColaboradores) {
-            $rules['background_image_colaborador'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            if (!($this->usar_plantilla_categoria['colaborador'] ?? false)) {
+                $rules['background_image_colaborador'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
+            }
         }
 
         return $rules;
@@ -91,7 +99,24 @@ class EventosFinalizados extends Component
     {
         abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
 
-        $this->evento_selected = Evento::find($evento['evento_id']);
+        $this->evento_selected = Evento::with('categoria.plantillas')->find($evento['evento_id']);
+
+        $this->plantillas_por_tipo = [];
+        $this->usar_plantilla_categoria = [];
+
+        if ($this->evento_selected && $this->evento_selected->categoria) {
+            $plantillas = $this->evento_selected->categoria->plantillas;
+            if ($plantillas->count() > 0) {
+                $grouped = $plantillas->groupBy(function ($p) {
+                    return $p->tipo ?: 'asistencia';
+                });
+                $this->plantillas_por_tipo = $grouped->map(fn($items) => $items->toArray())->toArray();
+
+                foreach (array_keys($this->plantillas_por_tipo) as $tipo) {
+                    $this->usar_plantilla_categoria[$tipo] = true;
+                }
+            }
+        }
 
         $roles = Rol::whereIn('nombre', ['Disertante', 'Colaborador'])
             ->pluck('rol_id', 'nombre');
@@ -99,7 +124,6 @@ class EventosFinalizados extends Component
         $rolDisertanteId = $roles['Disertante'] ?? null;
         $rolColaboradorId = $roles['Colaborador'] ?? null;
 
-        // 3. Verificar existencia de participantes con esos roles
         $this->hasDisertantes = $rolDisertanteId
             ? $this->evento_selected->participantes()->wherePivot('rol_id', $rolDisertanteId)->exists()
             : false;
@@ -108,7 +132,6 @@ class EventosFinalizados extends Component
             ? $this->evento_selected->participantes()->wherePivot('rol_id', $rolColaboradorId)->exists()
             : false;
 
-        // 4. Resetear campos de imagen (opcional, pero buena práctica)
         $this->reset([
             'background_image',
             'background_image_disertante',
@@ -121,6 +144,29 @@ class EventosFinalizados extends Component
     }
 
 
+    public function usarPlantillaManual($tipo): void
+    {
+        $this->usar_plantilla_categoria[$tipo] = false;
+    }
+
+    public function usarPlantillaCategoria($tipo): void
+    {
+        $this->usar_plantilla_categoria[$tipo] = true;
+    }
+
+    private function getPlantillaPath($tipo): ?string
+    {
+        $available = $this->plantillas_por_tipo[$tipo] ?? [];
+        if (empty($available)) {
+            return null;
+        }
+        $default = collect($available)->firstWhere('por_defecto', true);
+        if (!$default) {
+            $default = $available[0];
+        }
+        return $default['imagen_path'];
+    }
+
     /**
      * Emite los certificados, solo subiendo las plantillas que son necesarias.
      */
@@ -128,7 +174,10 @@ class EventosFinalizados extends Component
     {
         abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
 
-        $this->validate();
+        $rules = $this->rules();
+        if (!empty($rules)) {
+            $this->validate($rules);
+        }
 
         // 1. OBTENER IDS DE ROLES
         $roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])
@@ -156,31 +205,53 @@ class EventosFinalizados extends Component
 
         try {
             if ($isPorAprobacion) {
-                // Asistentes (Obligatorios en este flujo)
-                $paths['asistencia'] = $this->background_image_asistencia->store('images', 'public');
-                $paths['aprobacion'] = $this->background_image_aprobacion->store('images', 'public');
-
-                // Disertantes (Condicionales)
-                if ($this->hasDisertantes && $this->background_image_disertante) {
-                    $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
+                if ($this->usar_plantilla_categoria['asistencia'] ?? false) {
+                    $paths['asistencia'] = $this->getPlantillaPath('asistencia');
+                } else {
+                    $paths['asistencia'] = $this->background_image_asistencia->store('images', 'public');
+                }
+                if ($this->usar_plantilla_categoria['aprobacion'] ?? false) {
+                    $paths['aprobacion'] = $this->getPlantillaPath('aprobacion');
+                } else {
+                    $paths['aprobacion'] = $this->background_image_aprobacion->store('images', 'public');
                 }
 
-                // Colaboradores (Condicionales)
-                if ($this->hasColaboradores && $this->background_image_colaborador) {
-                    $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
+                if ($this->hasDisertantes) {
+                    if ($this->usar_plantilla_categoria['disertante'] ?? false) {
+                        $paths['disertante'] = $this->getPlantillaPath('disertante');
+                    } elseif ($this->background_image_disertante) {
+                        $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
+                    }
+                }
+
+                if ($this->hasColaboradores) {
+                    if ($this->usar_plantilla_categoria['colaborador'] ?? false) {
+                        $paths['colaborador'] = $this->getPlantillaPath('colaborador');
+                    } elseif ($this->background_image_colaborador) {
+                        $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
+                    }
                 }
             } else {
-                // Asistente genérico (Obligatorio en este flujo)
-                $paths['asistente_generico'] = $this->background_image->store('images', 'public');
-
-                // Disertantes (Condicionales)
-                if ($this->hasDisertantes && $this->background_image_disertante) {
-                    $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
+                if ($this->usar_plantilla_categoria['asistencia'] ?? false) {
+                    $paths['asistente_generico'] = $this->getPlantillaPath('asistencia');
+                } else {
+                    $paths['asistente_generico'] = $this->background_image->store('images', 'public');
                 }
 
-                // Colaboradores (Condicionales)
-                if ($this->hasColaboradores && $this->background_image_colaborador) {
-                    $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
+                if ($this->hasDisertantes) {
+                    if ($this->usar_plantilla_categoria['disertante'] ?? false) {
+                        $paths['disertante'] = $this->getPlantillaPath('disertante');
+                    } elseif ($this->background_image_disertante) {
+                        $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
+                    }
+                }
+
+                if ($this->hasColaboradores) {
+                    if ($this->usar_plantilla_categoria['colaborador'] ?? false) {
+                        $paths['colaborador'] = $this->getPlantillaPath('colaborador');
+                    } elseif ($this->background_image_colaborador) {
+                        $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
+                    }
                 }
             }
         } catch (\Exception $e) {
@@ -243,8 +314,10 @@ class EventosFinalizados extends Component
             'background_image_asistencia',
             'background_image_aprobacion',
             'evento_selected',
-            'hasDisertantes', // También resetear estas propiedades
+            'hasDisertantes',
             'hasColaboradores',
+            'plantillas_por_tipo',
+            'usar_plantilla_categoria',
         ]);
         session()->flash('message', 'Certificados generados correctamente.');
     }

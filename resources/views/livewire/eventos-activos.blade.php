@@ -195,7 +195,7 @@
 
     <!-- Tabla de Inscriptos (solo Asistentes) -->
     @if ($evento_selected && $mostrar_inscriptos)
-        <h3 class="mt-6 text-lg font-semibold">Inscriptos en {{ $evento_selected->nombre }}</h3>
+        <h3 class="mt-12 text-lg font-semibold">Inscriptos en {{ $evento_selected->nombre }}</h3>
 
         <!-- Botones: Importar Participantes a la izquierda, exportar PDF y CSV a la derecha -->
         <div class="flex justify-between items-center mb-4 mt-3">
@@ -226,7 +226,7 @@
         </div>
 
         @if (count($inscriptos))
-            <table class="w-full min-w-full divide-y divide-gray-200 mt-2">
+            <table class="w-full min-w-full divide-y divide-gray-200 mt-6">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
@@ -262,7 +262,7 @@
 
     <!-- Tabla de Disertantes y Colaboradores -->
     @if ($evento_selected && $mostrar_disertantes_colaboradores)
-        <h3 class="mt-6 text-lg font-semibold">Disertantes y Colaboradores en {{ $evento_selected->nombre }}</h3>
+        <h3 class="mt-12 text-lg font-semibold">Disertantes y Colaboradores en {{ $evento_selected->nombre }}</h3>
 
         <div class="flex justify-between items-center mb-4 mt-3">
             <!-- Botón para inscribir (enlace a la nueva página) -->
@@ -283,7 +283,7 @@
         </div>
 
         @if (count($disertantes_colaboradores))
-            <table class="w-full min-w-full divide-y divide-gray-200 mt-2">
+            <table class="w-full min-w-full divide-y divide-gray-200 mt-6">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Rol</th>

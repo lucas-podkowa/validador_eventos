@@ -1,11 +1,5 @@
 <div>
-    <div class="pt-4 lg:p-8 pb-0 bg-white border-b border-gray-200">
-        <p>
-            Selecciona el tipo de evento y luego ingresa el nombre del mismo. A continuación, proporciona la fecha y el
-            lugar donde se llevará a cabo. No olvides de adjuntar
-            un archivo con la lista de participantes. Una vez completados todos los campos, presiona el botón "Procesar"
-            para guardar el evento en el sistema.</p>
-    </div>
+    
 
     <div class="bg-gray-200 bg-opacity-25 grid gap-6 lg:gap-8 p-6 lg:p-8">
 
@@ -14,7 +8,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 px-6">
                     <!-- Categoría -->
                     <div>
-                        <label for="categoria_id" class="block text-sm font-medium text-gray-700">Categoría</label>
+                        <label for="categoria_id" class="block text-sm font-medium text-gray-700">Categoría <span class="text-red-500">*</span></label>
                         <select id="categoria_id" wire:model.live="categoria_id"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <option value="">Seleccione</option>
@@ -29,7 +23,7 @@
 
                     <!-- Tipo de Evento -->
                     <div>
-                        <label for="tipo_evento_id" class="block text-sm font-medium text-gray-700">Tipo de Evento</label>
+                        <label for="tipo_evento_id" class="block text-sm font-medium text-gray-700">Tipo de Evento <span class="text-red-500">*</span></label>
                         <select id="tipo_evento_id" wire:model.live="tipo_evento_id"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <option value="">Seleccione</option>
@@ -45,7 +39,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 px-6">
                     <div>
-                        <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre del Evento</label>
+                        <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre del Evento <span class="text-red-500">*</span></label>
                         <input type="text" id="nombre" wire:model.live="nombre_evento"
                             placeholder="Ingrese el nombre del evento"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -57,8 +51,7 @@
 
                     <!-- Fecha -->
                     <div>
-                        <label for="fecha_inicio" class="block text-sm font-medium text-gray-700">Fecha de
-                            Inicio</label>
+                        <label for="fecha_inicio" class="block text-sm font-medium text-gray-700">Fecha de Inicio <span class="text-red-500">*</span></label>
                         <input type="date" id="fecha_inicio" wire:model.live="fecha_inicio"
                             min="{{ now()->format('Y-m-d') }}" @if ($esEdicion && $estado_evento === 'En Curso') disabled @endif
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -70,11 +63,10 @@
                 </div>
 
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 px-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 px-6">
                     <!-- Lugar -->
                     <div>
-                        <label for="lugar_evento" class="block text-sm font-medium text-gray-700">Lugar del
-                            Evento</label>
+                        <label for="lugar_evento" class="block text-sm font-medium text-gray-700">Lugar del Evento <span class="text-red-500">*</span></label>
                         <input type="text" id="lugar_evento" wire:model.live="lugar_evento"
                             placeholder="Ingrese el lugar"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -83,32 +75,31 @@
                         @enderror
                     </div>
 
-                    <!-- Cupo -->
+                    <!-- Cupo Máximo -->
                     <div>
-                        <label for="cupo" class="block text-sm font-medium text-gray-700">Cupo</label>
-                        <input type="number" id="cupo" wire:model.live="cupo" placeholder="Ingrese el cupo máximo"
+                        <label for="cupo" class="block text-sm font-medium text-gray-700">Cupo Máximo</label>
+                        <input type="number" id="cupo" wire:model.live="cupo" placeholder="Dejar vacío si el cupo es ilimitado"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('cupo')
                             <span class="text-sm text-red-500">{{ $message }}</span>
                         @enderror
                     </div>
+                </div>
 
-                    <!-- Es por Aprobación -->
-                    <div class="flex items-center gap-2">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 px-6">
+
+                    <!-- Requiere Aprobación -->
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer" onclick="document.getElementById('por_aprobacion').click()">
                         <input type="checkbox" id="por_aprobacion" wire:model="por_aprobacion"
-                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-                        <label for="por_aprobacion" class="text-sm font-medium text-gray-700">
+                            class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer">
+                        <label for="por_aprobacion" class="text-sm font-medium text-gray-700 cursor-pointer select-none">
                             Requiere Aprobación
                         </label>
                     </div>
 
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-1 gap-4 pt-2 px-6">
-
                     <!-- Responsable del Evento -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Responsable del Evento</label>
+                    <div class="md:col-span-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Responsable del Evento <span class="text-red-500">*</span></label>
                         <div class="flex items-center gap-3">
                             <div class="flex-1 p-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-700">
                                 @if ($responsable_id)

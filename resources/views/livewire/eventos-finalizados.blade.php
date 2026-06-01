@@ -196,105 +196,69 @@
             @endif
 
             {{-- Plantillas de Certificados --}}
-            @if ($evento_selected && $evento_selected->por_aprobacion)
-                <div class="mb-4">
-                    <label for="background_image_asistencia" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-file-lines text-blue-500 mr-1"></i>
-                        Plantilla para Certificado de Asistencia (No Aprobados)
-                    </label>
-                    <input type="file" id="background_image_asistencia" wire:model="background_image_asistencia"
-                        accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image_asistencia')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
+            @php
+                $secciones = [];
+                if ($evento_selected && $evento_selected->por_aprobacion) {
+                    $secciones[] = ['tipo' => 'asistencia', 'model' => 'background_image_asistencia', 'id' => 'background_image_asistencia', 'label' => 'Plantilla para Certificado de Asistencia (No Aprobados)', 'icon' => 'fa-file-lines text-blue-500', 'desc' => 'Asistencia'];
+                    $secciones[] = ['tipo' => 'aprobacion', 'model' => 'background_image_aprobacion', 'id' => 'background_image_aprobacion', 'label' => 'Plantilla para Certificado de Aprobación (Aprobados)', 'icon' => 'fa-award text-green-600', 'desc' => 'Aprobación'];
+                } else {
+                    $secciones[] = ['tipo' => 'asistencia', 'model' => 'background_image', 'id' => 'background_image', 'label' => 'Plantilla para Certificado de Asistentes', 'icon' => 'fa-user text-indigo-500', 'desc' => 'Asistente'];
+                }
+                if ($hasDisertantes) {
+                    $secciones[] = ['tipo' => 'disertante', 'model' => 'background_image_disertante', 'id' => 'background_image_disertante', 'label' => 'Plantilla para Certificado de Disertante', 'icon' => 'fa-chalkboard-user text-purple-600', 'desc' => 'Disertante'];
+                }
+                if ($hasColaboradores) {
+                    $secciones[] = ['tipo' => 'colaborador', 'model' => 'background_image_colaborador', 'id' => 'background_image_colaborador', 'label' => 'Plantilla para Certificado de Colaborador', 'icon' => 'fa-handshake text-teal-600', 'desc' => 'Colaborador'];
+                }
+            @endphp
 
-                <div class="mb-4">
-                    <label for="background_image_aprobacion" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-award text-green-600 mr-1"></i>
-                        Plantilla para Certificado de Aprobación (Aprobados)
-                    </label>
-                    <input type="file" id="background_image_aprobacion" wire:model="background_image_aprobacion"
-                        accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image_aprobacion')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
+            @foreach ($secciones as $sec)
+                @php
+                    $tipo = $sec['tipo'];
+                    $plantillasTipo = $plantillas_por_tipo[$tipo] ?? [];
+                    $hayPlantilla = !empty($plantillasTipo);
+                    $usaCategoria = $usar_plantilla_categoria[$tipo] ?? false;
+                @endphp
 
-                @if ($hasDisertantes)
+                @if ($hayPlantilla && $usaCategoria)
+                    @php
+                        $plt = collect($plantillasTipo)->firstWhere('por_defecto', true) ?? $plantillasTipo[0];
+                    @endphp
+                    <div class="mb-4 p-3 border border-green-300 bg-green-50 rounded-md">
+                        <div class="flex items-start gap-3">
+                            <img src="{{ asset('storage/' . $plt['imagen_path']) }}" class="w-24 h-16 object-cover rounded border" alt="{{ $plt['nombre'] }}">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-800"><i class="fa-solid fa-check-circle text-green-600 mr-1"></i> Plantilla de categoría: {{ $plt['nombre'] }}</p>
+                                <p class="text-xs text-green-700">Se usará para el certificado de {{ $sec['desc'] }}</p>
+                                <button type="button" wire:click="usarPlantillaManual('{{ $tipo }}')" class="text-xs text-blue-600 hover:underline mt-1 inline-block">
+                                    <i class="fa-solid fa-upload mr-1"></i> Subir otra plantilla
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @else
                     <div class="mb-4">
-                        <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
-                            <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
-                            Plantilla para Certificado de Disertante
+                        <label for="{{ $sec['id'] }}" class="block text-sm font-medium text-gray-700">
+                            <i class="fa-solid {{ $sec['icon'] }} mr-1"></i>
+                            {{ $sec['label'] }}
+                            @if ($hayPlantilla && !$usaCategoria)
+                                <span class="text-xs text-orange-500 ml-1">(personalizada)</span>
+                            @endif
                         </label>
-                        <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
+                        <input type="file" id="{{ $sec['id'] }}" wire:model="{{ $sec['model'] }}"
                             accept="image/png, image/jpeg"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('background_image_disertante')
+                        @error($sec['model'])
                             <span class="text-red-500 text-sm">{{ $message }}</span>
                         @enderror
+                        @if ($hayPlantilla && !$usaCategoria)
+                            <button type="button" wire:click="usarPlantillaCategoria('{{ $tipo }}')" class="text-xs text-blue-600 hover:underline mt-1 inline-block">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Usar plantilla de la categoría
+                            </button>
+                        @endif
                     </div>
                 @endif
-
-                @if ($hasColaboradores)
-                    <div class="mb-4">
-                        <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
-                            <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
-                            Plantilla para Certificado de Colaborador
-                        </label>
-                        <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
-                            accept="image/png, image/jpeg"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('background_image_colaborador')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-                @endif
-            @else
-                <div class="mb-4">
-                    <label for="background_image" class="block text-sm font-medium text-gray-700">
-                        <i class="fa-solid fa-user text-indigo-500 mr-1"></i>
-                        Plantilla para Certificado de Asistentes
-                    </label>
-                    <input type="file" id="background_image" wire:model="background_image" accept="image/png, image/jpeg"
-                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    @error('background_image')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                @if ($hasDisertantes)
-                    <div class="mb-4">
-                        <label for="background_image_disertante" class="block text-sm font-medium text-gray-700">
-                            <i class="fa-solid fa-chalkboard-user text-purple-600 mr-1"></i>
-                            Plantilla para Certificado de Disertante
-                        </label>
-                        <input type="file" id="background_image_disertante" wire:model="background_image_disertante"
-                            accept="image/png, image/jpeg"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('background_image_disertante')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-                @endif
-
-                @if ($hasColaboradores)
-                    <div class="mb-4">
-                        <label for="background_image_colaborador" class="block text-sm font-medium text-gray-700">
-                            <i class="fa-solid fa-handshake text-purple-600 mr-1"></i>
-                            Plantilla para Certificado de Colaborador
-                        </label>
-                        <input type="file" id="background_image_colaborador" wire:model="background_image_colaborador"
-                            accept="image/png, image/jpeg"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        @error('background_image_colaborador')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-                @endif
-            @endif
+            @endforeach
         </x-slot>
 
         <div wire:loading wire:target="emitirCertificados" class="flex items-center justify-center py-4">
