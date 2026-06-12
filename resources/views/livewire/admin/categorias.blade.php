@@ -44,17 +44,17 @@
                             </td>
                             <td class="px-4 py-2 text-center whitespace-nowrap">
                                 <button wire:click="abrirPlantillas({{ $cat->categoria_id }})"
-                                    class="btn btn-blue-green px-2 mr-1" title="Gestionar plantillas">
+                                    class="btn-action-edit" title="Gestionar plantillas">
                                     <i class="fas fa-images"></i>
                                 </button>
                                 <button wire:click="editar({{ $cat->categoria_id }})"
-                                    class="btn btn-blue-green px-2 mr-1" title="Editar">
+                                    class="btn-action-edit" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button
                                     wire:click="eliminar({{ $cat->categoria_id }})"
                                     wire:confirm="¿Eliminar la categoría '{{ $cat->nombre }}'? Se eliminarán también todas sus plantillas."
-                                    class="btn btn-danger px-2" title="Eliminar">
+                                    class="btn-action-delete" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>

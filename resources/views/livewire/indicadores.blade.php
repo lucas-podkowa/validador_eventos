@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-6">
+<div class="px-4 sm:px-6 lg:px-8 py-4 space-y-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Gestión de Indicadores</h2>
@@ -212,16 +212,14 @@
                                                 <td class="px-6 py-4 text-right text-sm font-medium">
                                                     <div class="flex justify-end gap-2 whitespace-nowrap">
                                                         <button type="button" wire:click="editIndicador({{ $indicador->indicador_id }})"
-                                                            class="inline-flex items-center rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-teal-700 transition hover:bg-teal-100">
-                                                            <i class="fa-regular fa-pen-to-square mr-2"></i>
-                                                            Editar
+                                                            class="btn-action-edit" title="Editar">
+                                                            <i class="fa-regular fa-pen-to-square"></i>
                                                         </button>
 
                                                         <button type="button"
                                                             onclick="confirmDeleteIndicador({{ $indicador->indicador_id }}, @js($indicador->nombre))"
-                                                            class="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-red-700 transition hover:bg-red-100">
-                                                            <i class="fa-solid fa-trash mr-2"></i>
-                                                            Eliminar
+                                                            class="btn-action-delete" title="Eliminar">
+                                                            <i class="fa-solid fa-trash"></i>
                                                         </button>
                                                     </div>
                                                 </td>

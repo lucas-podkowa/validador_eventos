@@ -6,83 +6,6 @@
     display: none;
 }
 @layer components {
-    .btn-blue-green {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-        background-color: #003366;
-        color: #ffffff;
-        border-radius: 0.375rem;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        transition: background-color 0.15s ease;
-        cursor: pointer;
-        border: none;
-    }
-    .btn-blue-green:hover {
-        background-color: rgba(0, 51, 102, 0.85);
-    }
-
-    .btn-danger {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-        background-color: #dc2626;
-        color: #ffffff;
-        border-radius: 0.375rem;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        transition: background-color 0.15s ease;
-        cursor: pointer;
-        border: none;
-    }
-    .btn-danger:hover {
-        background-color: rgba(220, 38, 38, 0.85);
-    }
-
-    /* Minimal action buttons for table columns */
-    .btn-action-edit {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        background-color: transparent;
-        color: #003366;
-        border-radius: 0.375rem;
-        padding: 0;
-        font-size: 0.875rem;
-        transition: background-color 0.15s ease;
-        cursor: pointer;
-        border: none;
-    }
-    .btn-action-edit:hover {
-        background-color: rgba(0, 51, 102, 0.08);
-    }
-
-    .btn-action-delete {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        background-color: transparent;
-        color: #dc2626;
-        border-radius: 0.375rem;
-        padding: 0;
-        font-size: 0.875rem;
-        transition: background-color 0.15s ease;
-        cursor: pointer;
-        border: none;
-    }
-    .btn-action-delete:hover {
-        background-color: rgba(220, 38, 38, 0.08);
-    }
-
     .nav_superior {
         display: flex;
         justify-content: space-between;
@@ -123,32 +46,16 @@
     }
 }
 
-/* Fix checkbox appearance conflicts */
-.theme-b input[type="checkbox"] {
-    appearance: auto;
-    -webkit-appearance: checkbox;
-    -moz-appearance: checkbox;
-    accent-color: #003366;
-    width: 1rem;
-    height: 1rem;
-    cursor: pointer;
-}
-
-/* Theme B: Paleta institucional #000000 #ffffff #003366 #00ffff */
+/* Theme B: Azul institucional - colores suaves y jerarquía clara */
 .theme-b {
-    --tb-primary: #003366;
-    --tb-primary-light: #00ffff;
-    --tb-bg: #ffffff;
+    --tb-primary: #3071ff;
+    --tb-primary-600: #245ee0;
+    --tb-bg: #f5f8ff;
     --tb-surface: #ffffff;
-    --tb-border: rgba(0, 51, 102, 0.1);
-    --tb-text: #000000;
-    --tb-muted: rgba(0, 0, 0, 0.6);
-    --tb-shadow: 0 4px 12px rgba(0, 51, 102, 0.08);
-    --tb-sidebar: #003366;
-    --tb-sidebar-text: #ffffff;
-    --tb-sidebar-active: #ffffff;
-    --tb-sidebar-active-text: #003366;
-    --tb-sidebar-hover: rgba(255, 255, 255, 0.1);
+    --tb-border: #dbe7ff;
+    --tb-text: #1f3b7a;
+    --tb-muted: #6b7280;
+    --tb-shadow: 0 10px 30px rgba(48, 113, 255, 0.08);
 }
 
 /* Background and body text color when theme enabled */
@@ -157,99 +64,38 @@ body.theme-b {
     color: var(--tb-text);
 }
 
-/* Layout: sidebar + main */
-.theme-b .app-layout {
-    display: flex;
-    min-height: 100vh;
+.theme-b .min-h-screen.bg-gray-100 {
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(48, 113, 255, 0.12),
+            transparent 28%
+        ),
+        linear-gradient(180deg, #f9fbff 0%, #f1f6ff 100%);
 }
 
-.theme-b .app-sidebar {
-    width: 16rem;
-    background-color: var(--tb-sidebar);
-    color: var(--tb-sidebar-text);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    overflow-y: auto;
+.theme-b header.bg-white,
+.theme-b .bg-white {
+    background-color: rgba(255, 255, 255, 0.94);
 }
 
-.theme-b .app-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    background-color: var(--tb-bg);
-}
-
-/* Sidebar header */
-.theme-b .sidebar-header {
-    padding: 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Sidebar nav items */
-.theme-b .sidebar-nav a {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    margin: 0.25rem 0.5rem;
-    border-radius: 0.5rem;
-    color: var(--tb-sidebar-text);
-    font-size: 0.95rem;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.theme-b .sidebar-nav a:hover {
-    background-color: var(--tb-sidebar-hover);
-}
-
-.theme-b .sidebar-nav a.active {
-    background-color: var(--tb-sidebar-active);
-    color: var(--tb-sidebar-active-text);
-    font-weight: 600;
-}
-
-.theme-b .sidebar-nav .sidebar-section-label {
-    padding: 0.75rem 1rem 0.25rem;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-/* Sidebar footer */
-.theme-b .sidebar-footer {
-    margin-top: auto;
-    padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-/* Top bar inside main area */
-.theme-b .content-header {
-    background-color: var(--tb-surface);
-    border-bottom: 1px solid var(--tb-border);
-    padding: 1rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-/* Content area */
-.theme-b .content-area {
-    padding: 1.5rem;
-    flex: 1;
+/* Navigation bar subtle gradient */
+.theme-b .theme-b-nav {
+    background: linear-gradient(
+        90deg,
+        rgba(48, 113, 255, 0.05) 0%,
+        rgba(245, 248, 255, 0.92) 100%
+    );
+    border-bottom-color: var(--tb-border) !important;
 }
 
 /* Buttons marked with .btn adapt to theme colors */
 .theme-b .btn {
     background-color: var(--tb-primary);
     color: #ffffff !important;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     box-shadow: var(--tb-shadow);
-    border: 1px solid rgba(0, 51, 102, 0.14);
+    border: 1px solid rgba(48, 113, 255, 0.14);
     padding-left: 0.9rem;
     padding-right: 0.9rem;
     display: inline-flex;
@@ -260,19 +106,16 @@ body.theme-b {
 
 /* Primary buttons get a slightly darker tone */
 .theme-b .btn.btn-primary {
-    background-color: var(--tb-primary);
+    background-color: var(--tb-primary-600);
 }
 
 /* Inputs and selects: consistent neutral surface */
 .theme-b input[type="text"],
 .theme-b input[type="email"],
 .theme-b input[type="number"],
-.theme-b input[type="password"],
-.theme-b input[type="datetime-local"],
-.theme-b input[type="date"],
 .theme-b select,
 .theme-b textarea {
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     border: 1px solid var(--tb-border) !important;
     background: var(--tb-surface) !important;
     padding: 0.6rem 0.75rem !important;
@@ -281,25 +124,21 @@ body.theme-b {
 
 /* Tables: headings and subtle dividers */
 .theme-b table thead th {
-    color: var(--tb-primary);
-    background: rgba(0, 51, 102, 0.05);
+    color: var(--tb-text);
+    background: transparent;
     border-bottom: 1px solid var(--tb-border);
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
 }
 .theme-b table tbody td {
-    border-bottom: 1px solid rgba(0, 51, 102, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-/* Cards and panels */
+/* Cards and panels: gentle rounded corners and soft shadow */
 .theme-b .rounded-2xl,
 .theme-b .rounded-3xl {
     box-shadow: var(--tb-shadow);
 }
 
-/* Ensure text sizes stay consistent */
+/* Ensure text sizes stay consistent and avoid large unexpected titles */
 .theme-b h1,
 .theme-b h2,
 .theme-b h3 {
@@ -314,7 +153,9 @@ body.theme-b {
     margin: 0 auto;
 }
 
-/* Map common Tailwind utilities to the Theme B palette */
+/* Map common Tailwind blue/indigo utilities to the Theme B palette
+   so we don't have to change every view. These are intentionally
+   narrow overrides to keep layout and semantics intact. */
 .theme-b .bg-blue-600,
 .theme-b .bg-indigo-600,
 .theme-b .bg-indigo-500,
@@ -322,99 +163,39 @@ body.theme-b {
     background-color: var(--tb-primary) !important;
     color: #ffffff !important;
 }
-
 .theme-b .hover\:bg-blue-700:hover,
 .theme-b .hover\:bg-indigo-700:hover {
-    background-color: rgba(0, 51, 102, 0.85) !important;
+    background-color: var(--tb-primary-600) !important;
 }
-
 .theme-b .text-blue-600,
 .theme-b .text-indigo-600 {
     color: var(--tb-primary) !important;
 }
-
 .theme-b .border-blue-600,
 .theme-b .border-indigo-600 {
     border-color: var(--tb-primary) !important;
 }
-
 .theme-b .bg-blue-50,
 .theme-b .bg-indigo-50 {
-    background-color: rgba(0, 51, 102, 0.05) !important;
+    background-color: rgba(48, 113, 255, 0.05) !important;
 }
-
 .theme-b .bg-blue-100,
 .theme-b .bg-indigo-100 {
-    background-color: rgba(0, 51, 102, 0.08) !important;
+    background-color: rgba(48, 113, 255, 0.1) !important;
 }
 
 .theme-b .border-indigo-200,
 .theme-b .border-blue-200,
-.theme-b .border-gray-200,
-.theme-b .border-gray-300 {
-    border-color: var(--tb-border) !important;
+.theme-b .border-gray-200 {
+    border-color: rgba(48, 113, 255, 0.16) !important;
 }
 
 .theme-b .bg-indigo-50,
 .theme-b .bg-gray-50 {
-    background-color: rgba(0, 51, 102, 0.05) !important;
+    background-color: rgba(245, 248, 255, 0.9) !important;
 }
 
-.theme-b .bg-gray-100 {
-    background-color: var(--tb-bg) !important;
-}
-
-.theme-b .text-gray-500 {
-    color: rgba(0, 0, 0, 0.6) !important;
-}
-
-.theme-b .text-gray-700 {
-    color: rgba(0, 0, 0, 0.8) !important;
-}
-
-.theme-b .text-gray-900,
-.theme-b .text-gray-800 {
-    color: var(--tb-text) !important;
-}
-
-.theme-b .hover\:text-gray-700:hover,
-.theme-b .hover\:text-gray-800:hover {
-    color: var(--tb-text) !important;
-}
-
-.theme-b .hover\:bg-gray-100:hover {
-    background-color: rgba(0, 51, 102, 0.05) !important;
-}
-
-.theme-b .focus\:border-indigo-500:focus,
-.theme-b .focus\:border-blue-500:focus {
-    border-color: var(--tb-primary) !important;
-}
-
-.theme-b .focus\:ring-indigo-500:focus,
-.theme-b .focus\:ring-blue-500:focus,
-.theme-b .focus\:ring-blue-200:focus {
-    --tw-ring-color: var(--tb-primary-light) !important;
-}
-
-.theme-b .accent-blue-600,
-.theme-b .accent-indigo-600 {
-    accent-color: var(--tb-primary) !important;
-}
-
-.theme-b .text-white {
-    color: #ffffff !important;
-}
-
-.theme-b .bg-white {
-    background-color: var(--tb-surface) !important;
-}
-
-.theme-b header.bg-white {
-    background-color: var(--tb-surface) !important;
-}
-
-/* Clamp heading sizes */
+/* Clamp heading sizes to avoid unexpectedly large titles that break layouts */
 .theme-b h1 {
     font-size: clamp(1.25rem, 2.8vw, 1.75rem);
 }
@@ -425,7 +206,7 @@ body.theme-b {
     font-size: clamp(0.95rem, 1.8vw, 1.1rem);
 }
 
-/* Ensure buttons don't overflow */
+/* Ensure buttons don't overflow their containers */
 .theme-b .btn,
 .theme-b button,
 .theme-b .inline-flex.items-center.px-4.py-2 {
@@ -438,39 +219,12 @@ body.theme-b {
     white-space: nowrap;
 }
 
-/* Bootstrap tabs override */
-.theme-b .nav-tabs {
-    border-bottom: 1px solid var(--tb-border) !important;
-}
-
-.theme-b .nav-tabs .nav-link {
-    color: var(--tb-primary) !important;
-    border: 1px solid transparent !important;
-    border-radius: 0.375rem 0.375rem 0 0 !important;
-}
-
-.theme-b .nav-tabs .nav-link:hover {
-    border-color: var(--tb-border) !important;
-    background-color: rgba(0, 51, 102, 0.05) !important;
-}
-
-.theme-b .nav-tabs .nav-link.active {
-    background-color: var(--tb-primary) !important;
-    color: #ffffff !important;
-    border-color: var(--tb-primary) !important;
-}
-
-.theme-b .nav-tabs .nav-link.active:hover {
-    background-color: var(--tb-primary) !important;
-}
-
-/* Categoria components */
 .theme-b .categoria-plantilla-card {
-    border: 1px solid var(--tb-border);
+    border: 1px solid rgba(48, 113, 255, 0.14);
     border-radius: 1rem;
     overflow: hidden;
-    background: var(--tb-surface);
-    box-shadow: var(--tb-shadow);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 18px 40px rgba(48, 113, 255, 0.08);
 }
 
 .theme-b .categoria-plantilla-toolbar {
@@ -483,20 +237,20 @@ body.theme-b {
 }
 
 .theme-b .categoria-upload-panel {
-    border: 1px solid var(--tb-border);
+    border: 1px solid rgba(48, 113, 255, 0.16);
     border-radius: 1.25rem;
     background: linear-gradient(
         180deg,
-        rgba(0, 51, 102, 0.03),
+        rgba(245, 248, 255, 0.96),
         rgba(255, 255, 255, 0.98)
     );
-    box-shadow: var(--tb-shadow);
+    box-shadow: 0 18px 40px rgba(48, 113, 255, 0.07);
 }
 
 .theme-b .categoria-upload-dropzone {
-    border: 1px dashed rgba(0, 51, 102, 0.25);
+    border: 1px dashed rgba(48, 113, 255, 0.35);
     border-radius: 1rem;
-    background: rgba(0, 51, 102, 0.02);
+    background: rgba(247, 250, 255, 0.95);
 }
 
 /* 

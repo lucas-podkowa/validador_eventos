@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="px-4 sm:px-6 lg:px-8 py-8">
 
     <div class="max-w-3xl mx-auto mt-8 p-6 bg-white shadow rounded-2xl">
         <h2 class="text-2xl font-bold mb-4 text-gray-700">Importar Participantes al Evento</h2>
@@ -68,8 +68,8 @@
                     <span>Puedes descargar una plantilla y completarla para evitar errores de formato.</span>
                 </div> --}}
 
-                <button type="button" wire:click="descargarPlantilla" style="background-color: #16a34a;"
-                    class="w-full px-6 py-3 text-white font-semibold rounded-lg inline-flex items-center justify-center gap-3 hover:bg-green-700 transition shadow-md hover:shadow-lg">
+                <button type="button" wire:click="descargarPlantilla"
+                    class="w-full px-6 py-3 bg-brand-primary text-white font-semibold rounded-lg inline-flex items-center justify-center gap-3 hover:bg-brand-primary/90 transition shadow-md hover:shadow-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 384 512">
                         <path
                             d="M64 0C28.7 0 0 28.7 0 64V448c0 35.3 28.7 64 64 64H320c35.3 0 64-28.7 64-64V160H256c-17.7 0-32-14.3-32-32V0H64zM256 0V128H384L256 0zM155.7 250.2L192 286.5l36.3-36.3c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6l-48 48c-6.2 6.2-16.4 6.2-22.6 0l-48-48c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0zM192 368c8.8 0 16-7.2 16-16V272c0-8.8-7.2-16-16-16s-16 7.2-16 16v80c0 8.8 7.2 16 16 16z" />

@@ -33,6 +33,7 @@ class EventosPendientes extends Component
             // Crear el nuevo evento con la palabra "(copia)" en el nombre
             $nuevoEvento = Evento::create([
                 'tipo_evento_id' => $eventoOriginal->tipo_evento_id,
+                'categoria_id' => $eventoOriginal->categoria_id,
                 'nombre' => $eventoOriginal->nombre . ' (copia)',
                 'lugar' => $eventoOriginal->lugar,
                 'fecha_inicio' => $eventoOriginal->fecha_inicio,

@@ -35,13 +35,13 @@
                             </td>
                             <td class="px-4 py-2 text-center whitespace-nowrap">
                                 <button wire:click="editar({{ $tipo->tipo_evento_id }})"
-                                    class="btn btn-blue-green px-2 mr-1" title="Editar">
+                                    class="btn-action-edit" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button
                                     wire:click="eliminar({{ $tipo->tipo_evento_id }})"
                                     wire:confirm="¿Eliminar el tipo '{{ $tipo->nombre }}'? Esta acción no se puede deshacer."
-                                    class="btn btn-danger px-2" title="Eliminar">
+                                    class="btn-action-delete" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>

@@ -361,7 +361,7 @@
                     </button>
 
                     <button wire:click="enviarMailsSeleccionados"
-                        class="inline-flex items-center px-2 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 active:bg-green-900 focus:outline-none focus:border-green-900 focus:ring focus:ring-green-300 disabled:opacity-25 transition">
+                        class="inline-flex items-center px-2 py-2 bg-brand-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-brand-primary/90 active:bg-brand-primary focus:outline-none focus:border-brand-primary focus:ring focus:ring-brand-accent/50 disabled:opacity-25 transition">
                         <i class="fa-solid fa-user-check mr-2"></i>
                         Solo Seleccionados
                     </button>

@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+<div class="px-4 sm:px-6 lg:px-8 py-4">
     <h2 class="text-xl font-bold mb-4">Gestión de Participantes</h2>
 
     @if (session()->has('message'))
@@ -35,10 +35,9 @@
                         <td class="px-4 py-2">{{ $participante->mail }}</td>
                         <td class="px-4 py-2">{{ $participante->telefono }}</td>
                         <td class="px-4 py-2">
-                            <a wire:click="edit('{{ $participante->participante_id }}')" class="cursor-pointer mx-2"
-                                title="Editar">
-                                <i class="fa-solid fa-edit text-black"></i>
-                            </a>
+                            <button wire:click="edit('{{ $participante->participante_id }}')" class="btn-action-edit" title="Editar">
+                                <i class="fa-solid fa-edit"></i>
+                            </button>
                         </td>
                     </tr>
                 @endforeach

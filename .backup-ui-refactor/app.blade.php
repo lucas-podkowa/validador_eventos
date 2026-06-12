@@ -41,45 +41,21 @@
 <body class="font-sans antialiased theme-b">
     <x-banner />
 
-    <div class="app-layout" style="font-family: 'Roboto', sans-serif;">
-        <!-- Mobile sidebar overlay -->
-        <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="toggleMobileSidebar()"></div>
+    <div class="min-h-screen bg-gray-100" style="font-family: 'Roboto', sans-serif;">
+        @livewire('navigation-menu')
 
-        <!-- Sidebar (desktop) -->
-        <aside class="app-sidebar hidden md:flex">
-            @livewire('navigation-menu')
-        </aside>
+        <!-- Page Heading -->
+        @if (isset($header))
+            <header class="bg-white shadow">
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    {{ $header }}
+                </div>
+            </header>
+        @endif
 
-        <!-- Sidebar (mobile) -->
-        <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-brand-primary text-white transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col">
-            @livewire('navigation-menu')
-        </aside>
-
-        <!-- Main content -->
-        <main class="app-main">
-            <!-- Mobile top bar -->
-            <div class="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-brand-primary/10">
-                <button onclick="toggleMobileSidebar()" class="text-brand-primary">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-                <span class="font-semibold text-brand-primary">{{ config('app.name', 'Laravel') }}</span>
-            </div>
-
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="content-header">
-                    <div class="flex items-center gap-4">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
-
-            <!-- Page Content -->
-            <div class="content-area">
-                {{ $slot }}
-            </div>
+        <!-- Page Content -->
+        <main>
+            {{ $slot }}
         </main>
     </div>
 
@@ -88,20 +64,6 @@
     @livewireScripts
 
     <script>
-        function toggleMobileSidebar() {
-            const sidebar = document.getElementById('mobile-sidebar');
-            const overlay = document.getElementById('mobile-sidebar-overlay');
-            const isHidden = sidebar.classList.contains('-translate-x-full');
-            
-            if (isHidden) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('hidden');
-            }
-        }
-
         document.addEventListener('livewire:init', () => {
             Livewire.on('alert', (event) => {
                 Swal.fire({

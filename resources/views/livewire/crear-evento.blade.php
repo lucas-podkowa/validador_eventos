@@ -89,13 +89,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 px-6">
 
                     <!-- Requiere Aprobación -->
-                    <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer" onclick="document.getElementById('por_aprobacion').click()">
+                    <label class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer">
                         <input type="checkbox" id="por_aprobacion" wire:model="por_aprobacion"
                             class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer">
-                        <label for="por_aprobacion" class="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                        <span class="text-sm font-medium text-gray-700 select-none">
                             Requiere Aprobación
-                        </label>
-                    </div>
+                        </span>
+                    </label>
 
                     <!-- Responsable del Evento -->
                     <div class="md:col-span-3">

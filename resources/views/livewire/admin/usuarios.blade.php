@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+<div class="px-4 sm:px-6 lg:px-8 py-4">
     <h2 class="text-xl font-bold mb-4">Gestión de Usuarios</h2>
     <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div class="md:col-span-2">
@@ -37,9 +37,9 @@
                             <td class="px-6 py-2 whitespace-nowrap text-sm font-medium">
 
                                 {{-- aqui esta el boton editar que dispara el metodo edit y este muestra el modal --}}
-                                <a class="btn btn-blue-green px-2" href="#" wire:click="editar({{ $usuario->id }})">
+                                <button class="btn-action-edit" title="Editar" wire:click="editar({{ $usuario->id }})">
                                     <i class="fas fa-edit"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                     @endforeach
