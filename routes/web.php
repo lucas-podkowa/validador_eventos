@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\ComprobantePagoController;
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\WelcomeController;
 use App\Livewire\Admin\Categorias;
+use App\Livewire\Admin\Destinatarios;
 use App\Livewire\Admin\TiposEvento;
 use App\Livewire\Admin\Usuarios;
 use App\Livewire\AsignarGestores;
@@ -11,9 +13,9 @@ use App\Livewire\CrearEvento;
 use App\Livewire\EmisorCertificados;
 use App\Livewire\Eventos;
 use App\Livewire\HabilitarPlanilla;
-use App\Livewire\Informes;
 use App\Livewire\ImportarParticipantes;
 use App\Livewire\Indicadores;
+use App\Livewire\Informes;
 use App\Livewire\InscribirStaff;
 use App\Livewire\Participantes;
 use App\Livewire\ProcesarAprobaciones;
@@ -27,8 +29,6 @@ Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 Route::get('/inscripcion/{tipoEvento}/{eventoId}', RegistroEventoPublico::class)->name('inscripcion.evento');
 Route::get('/validar-participante/{evento_id}/{participante_id}', [QRController::class, 'show'])->name('validar.participante');
 
-
-
 // Protegidas
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
 
@@ -40,6 +40,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
         Route::get('/admin/categorias', Categorias::class)->name('admin.categorias');
         Route::get('/admin/tipos-evento', TiposEvento::class)->name('admin.tipos_evento');
+        Route::get('/admin/destinatarios', Destinatarios::class)->name('admin.destinatarios');
         Route::get('/informes', Informes::class)->name('informes');
         Route::get('/emision', EmisorCertificados::class)->name('emisor_certificados');
     });
@@ -52,6 +53,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/eventos/{evento_id}/staff', InscribirStaff::class)->name('inscribir.staff');
         Route::get('/planilla/{evento_id}/editar', HabilitarPlanilla::class)->name('editar_planilla');
         Route::get('/planilla/{evento_id}/importar', ImportarParticipantes::class)->name('importar_participantes');
+        Route::get('/comprobante/{inscripcion}', [ComprobantePagoController::class, 'show'])->name('comprobante.show');
     });
 
     // Participantes visibles para administrador y gestor
@@ -70,11 +72,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     });
 });
 
-
 Route::get('/ver-certificado/{eventoParticipante}', function (EventoParticipante $eventoParticipante) {
     $path = $eventoParticipante->certificado_path;
 
-    if (!$path || !Storage::disk('private')->exists($path)) {
+    if (! $path || ! Storage::disk('private')->exists($path)) {
         abort(404, 'Certificado no encontrado.');
     }
 

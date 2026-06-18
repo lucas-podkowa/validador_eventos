@@ -71,6 +71,70 @@
                         </div>
                     </div>
 
+                    <!-- Destinatario y pago -->
+                    @if ($evento->arancel)
+                        <div class="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div class="flex flex-col">
+                                <label for="destinatario_id" class="mb-1 lg:mb-0 font-medium">
+                                    ¿Cuál es tu situación respecto a la institución? <span class="text-red-600">*</span>
+                                </label>
+                                <select id="destinatario_id" wire:model.live="destinatario_id"
+                                    class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                    <option value="">Seleccione</option>
+                                    @foreach ($evento->destinatarios as $dest)
+                                        <option value="{{ $dest->destinatario_id }}">
+                                            {{ $dest->nombre }}
+                                            @if ($dest->pivot->precio > 0)
+                                                — ${{ number_format($dest->pivot->precio, 2, ',', '.') }}
+                                            @else
+                                                — Gratuito
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('destinatario_id')
+                                    <span class="text-sm text-red-600">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            @if ($montoDestinatario !== null)
+                                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                                    <p class="text-blue-900 font-semibold">
+                                        Monto a abonar:
+                                        @if ($montoDestinatario > 0)
+                                            ${{ number_format($montoDestinatario, 2, ',', '.') }}
+                                        @else
+                                            <span class="text-green-700">No corresponde abono</span>
+                                        @endif
+                                    </p>
+                                </div>
+
+                                @if ($montoDestinatario > 0)
+                                    <div class="flex flex-col">
+                                        <label class="mb-1 lg:mb-0 font-medium">Link de pago</label>
+                                        <a href="{{ $evento->link_pago }}" target="_blank" rel="noopener noreferrer"
+                                            class="text-blue-600 hover:text-blue-800 underline break-all">
+                                            {{ $evento->link_pago }}
+                                        </a>
+                                    </div>
+
+                                    <div class="flex flex-col">
+                                        <label for="comprobante" class="mb-1 lg:mb-0 font-medium">
+                                            Adjuntar comprobante de pago <span class="text-red-600">*</span>
+                                        </label>
+                                        <input type="file" id="comprobante" wire:model="comprobante"
+                                            accept=".pdf,image/jpeg,image/png"
+                                            class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                        <p class="text-xs text-gray-500 mt-1">PDF, JPG o PNG, máximo 2 MB.</p>
+                                        @error('comprobante')
+                                            <span class="text-sm text-red-600">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+                    @endif
+
                     <!-- Indicadores -->
                     <div class="space-y-6">
                         @foreach ($evento->tipoIndicadores as $tipo)

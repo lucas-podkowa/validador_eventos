@@ -8,14 +8,14 @@ use App\Models\InscripcionParticipante;
 use App\Models\PlanillaInscripcion;
 use App\Models\TipoEvento;
 use App\Models\User;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -24,19 +24,33 @@ class EventosActivos extends Component
     use WithPagination;
 
     public $tipos_eventos = [];
+
     public $inscriptos = [];
+
     public $disertantes_colaboradores = [];
+
     public $mostrar_inscriptos = false;
+
     public $mostrar_disertantes_colaboradores = false;
+
     public $evento_selected = null;
+
     public $planilla_selected = null;
+
     public $search = '';
+
     public $header = null;
+
     public $footer = null;
+
     public $search_tipo_evento = null;
+
     public $sort = 'nombre';
+
     public $direction = 'asc';
+
     public $searchParticipante = '';
+
     public $searchDisertante = '';
 
     protected $listeners = [
@@ -48,13 +62,19 @@ class EventosActivos extends Component
 
     // para revisor
     public $open_modal_revisor = false;
+
     public $busqueda_usuario = '';
+
     public $usuarios_filtrados = [];
+
     public $usuario_seleccionado_id = null;
+
     public $apertura;
+
     public $cierre;
 
     public $open_modal_detalles = false;
+
     public $evento_detalles = null;
 
     protected $rules = [
@@ -111,8 +131,9 @@ class EventosActivos extends Component
     // ----------------------------------------
     public function exportarPDF()
     {
-        if (!$this->evento_selected) {
+        if (! $this->evento_selected) {
             session()->flash('error', 'Debe seleccionar un evento primero.');
+
             return;
         }
 
@@ -121,13 +142,13 @@ class EventosActivos extends Component
         $pdf = Pdf::setOption(['isPhpEnabled' => true])
             ->loadView('pdf.listado-inscriptos', [
                 'evento' => $this->evento_selected,
-                'inscriptos' => $inscriptos
+                'inscriptos' => $inscriptos,
             ])
             ->setPaper('A4', 'portrait');
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
-        }, 'inscriptos_' . Str::slug($this->evento_selected->nombre) . '.pdf');
+        }, 'inscriptos_'.Str::slug($this->evento_selected->nombre).'.pdf');
     }
 
     // ----------------------------------------
@@ -135,8 +156,9 @@ class EventosActivos extends Component
     // ----------------------------------------
     public function descargarCSV()
     {
-        if (!$this->evento_selected) {
+        if (! $this->evento_selected) {
             session()->flash('error', 'Debe seleccionar un evento primero.');
+
             return;
         }
 
@@ -146,11 +168,11 @@ class EventosActivos extends Component
             abort(404, 'No hay inscriptos para exportar.');
         }
 
-        $filename = 'inscriptos_' . Str::slug($this->evento_selected->nombre) . '.csv';
+        $filename = 'inscriptos_'.Str::slug($this->evento_selected->nombre).'.csv';
 
         return response()->streamDownload(function () use ($inscriptos) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nombre', 'Apellido', 'DNI', 'Email', 'Teléfono'], ';');
+            fputcsv($handle, ['Nombre', 'Apellido', 'DNI', 'Email', 'Teléfono', 'Destinatario', 'Monto'], ';');
 
             foreach ($inscriptos as $inscripto) {
                 fputcsv($handle, [
@@ -159,21 +181,23 @@ class EventosActivos extends Component
                     $inscripto->participante->dni ?? '',
                     $inscripto->participante->mail ?? '',
                     $inscripto->participante->telefono ?? '',
+                    $inscripto->destinatario?->nombre ?? '',
+                    $inscripto->monto !== null ? number_format($inscripto->monto, 2, ',', '.') : '',
                 ], ';');
             }
 
             fclose($handle);
         }, $filename, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
-            'Pragma'              => 'no-cache',
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
         ]);
     }
 
-    //----------------------------------------------------------------------------
-    //------ Metodo disparado por el boton "Ver detalle de la columna Detalle" ---
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Metodo disparado por el boton "Ver detalle de la columna Detalle" ---
+    // ----------------------------------------------------------------------------
     public function verDetalles($evento_id)
     {
         $this->evento_detalles = Evento::with(['planillaInscripcion', 'revisor', 'gestores', 'tipoEvento', 'categoria'])
@@ -186,9 +210,9 @@ class EventosActivos extends Component
         // Implementación pendiente
     }
 
-    //----------------------------------------------------------------------------
-    //------ Metodo disparado por el boton "Asignar Revisor" --------
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Metodo disparado por el boton "Asignar Revisor" --------
+    // ----------------------------------------------------------------------------
     public function modalRevisor($evento_id)
     {
         $this->evento_selected = Evento::find($evento_id);
@@ -202,8 +226,8 @@ class EventosActivos extends Component
     {
         $this->usuarios_filtrados = User::role('Revisor')
             ->where(function ($query) {
-                $query->where('name', 'like', '%' . $this->busqueda_usuario . '%')
-                    ->orWhere('email', 'like', '%' . $this->busqueda_usuario . '%');
+                $query->where('name', 'like', '%'.$this->busqueda_usuario.'%')
+                    ->orWhere('email', 'like', '%'.$this->busqueda_usuario.'%');
             })
             ->limit(10)
             ->get();
@@ -221,9 +245,9 @@ class EventosActivos extends Component
         $this->reset(['open_modal_revisor', 'evento_selected', 'busqueda_usuario', 'usuarios_filtrados', 'usuario_seleccionado_id']);
     }
 
-    //----------------------------------------------------------------------------
-    //------ Metodo disparado por el boton "Finalizar Evento" --------
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Metodo disparado por el boton "Finalizar Evento" --------
+    // ----------------------------------------------------------------------------
     public function finalizarEvento($evento_id)
     {
         DB::beginTransaction();
@@ -231,7 +255,7 @@ class EventosActivos extends Component
             $evento = Evento::findOrFail($evento_id);
             $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
 
-            if (!$planilla) {
+            if (! $planilla) {
                 throw new \Exception('No se encontró la planilla de inscripción para este evento.');
             }
 
@@ -249,7 +273,7 @@ class EventosActivos extends Component
 
             $renderer = new ImageRenderer(
                 new RendererStyle(200),
-                new SvgImageBackEnd()
+                new SvgImageBackEnd
             );
             $writer = new Writer($renderer);
 
@@ -262,7 +286,7 @@ class EventosActivos extends Component
 
                 // Usamos el ID de participante obtenido
                 EventoParticipante::create([
-                    'evento_id' =>  $evento_id,
+                    'evento_id' => $evento_id,
                     'participante_id' => $participanteId,
                     'rol_id' => $rolId,
                     'url' => $url,
@@ -278,14 +302,14 @@ class EventosActivos extends Component
             $this->redirectToEventos('finalizados');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo finalizar el Evento: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'No se pudo finalizar el Evento: '.$e->getMessage());
         }
         $this->dispatch('refreshMainComponent');
     }
 
-    //----------------------------------------------------------------------------
-    //------ Metodo disparado por el boton Cancelar Evento" ---
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Metodo disparado por el boton Cancelar Evento" ---
+    // ----------------------------------------------------------------------------
     public function cancelarEvento($evento_id, $mantener_inscripciones = false)
     {
         $this->mostrar_inscriptos = false;
@@ -314,7 +338,7 @@ class EventosActivos extends Component
             $this->mount();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo cancelar el evento: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'No se pudo cancelar el evento: '.$e->getMessage());
         }
     }
 
@@ -326,7 +350,7 @@ class EventosActivos extends Component
         DB::beginTransaction();
         try {
             $inscripcion = InscripcionParticipante::findOrFail($inscripcion_id);
-            $participante_nombre = $inscripcion->participante->nombre . ' ' . $inscripcion->participante->apellido;
+            $participante_nombre = $inscripcion->participante->nombre.' '.$inscripcion->participante->apellido;
 
             $inscripcion->delete();
 
@@ -337,7 +361,7 @@ class EventosActivos extends Component
             $this->dispatch('alert', message: "El participante {$participante_nombre} ha sido desmatriculado con éxito.");
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo desmatricular al participante: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'No se pudo desmatricular al participante: '.$e->getMessage());
         }
     }
 
@@ -362,9 +386,10 @@ class EventosActivos extends Component
         if ($this->evento_selected && $this->evento_selected->planillaInscripcion) {
             $query = $this->evento_selected
                 ->planillaInscripcion
-                ->inscripcionesParticipantes(); // Obtiene el Query Builder de la relación
+                ->inscripcionesParticipantes()
+                ->with(['participante', 'destinatario']); // Obtiene el Query Builder de la relación
 
-            if (!empty($this->searchParticipante)) {
+            if (! empty($this->searchParticipante)) {
                 $searchTerm = $this->searchParticipante;
                 $query->whereHas('participante', function ($q) use ($searchTerm) {
                     $q->where('nombre', 'like', "%{$searchTerm}%")
@@ -381,7 +406,6 @@ class EventosActivos extends Component
         }
     }
 
-
     // ----------------------------------------
     // Obtener Disertantes y Colaboradores
     // ----------------------------------------
@@ -396,7 +420,7 @@ class EventosActivos extends Component
                 ->planillaInscripcion
                 ->inscripcionesDisertantesYColaboradores();
 
-            if (!empty($this->searchDisertante)) {
+            if (! empty($this->searchDisertante)) {
                 $searchTerm = $this->searchDisertante;
                 $query->whereHas('participante', function ($q) use ($searchTerm) {
                     $q->where('nombre', 'like', "%{$searchTerm}%")
@@ -412,6 +436,7 @@ class EventosActivos extends Component
             $this->disertantes_colaboradores = collect();
         }
     }
+
     public function render()
     {
         $user = auth()->user();
@@ -424,7 +449,7 @@ class EventosActivos extends Component
                 });
             })
             ->when($this->search, function ($query) {
-                $query->where('nombre', 'like', '%' . $this->search . '%');
+                $query->where('nombre', 'like', '%'.$this->search.'%');
             })
             ->when($this->search_tipo_evento, function ($query) {
                 $query->where('tipo_evento_id', $this->search_tipo_evento);

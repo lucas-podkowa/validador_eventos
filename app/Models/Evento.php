@@ -13,9 +13,13 @@ class Evento extends Model
     use HasFactory;
 
     public $timestamps = false;
+
     protected $table = 'evento';
+
     protected $primaryKey = 'evento_id';
+
     public $incrementing = false; // Clave primaria no incrementa automáticamente
+
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
     protected $fillable = [
@@ -28,9 +32,15 @@ class Evento extends Model
         'certificado_path',
         'cupo',
         'por_aprobacion',
+        'arancel',
+        'link_pago',
         'revisor_id',
         'revisado',
-        'responsable_id'
+        'responsable_id',
+    ];
+
+    protected $casts = [
+        'arancel' => 'boolean',
     ];
 
     protected static function boot()
@@ -68,6 +78,12 @@ class Evento extends Model
         return $this->belongsToMany(TipoIndicador::class, 'evento_tipo_indicador', 'evento_id', 'tipo_indicador_id');
     }
 
+    public function destinatarios()
+    {
+        return $this->belongsToMany(Destinatario::class, 'evento_destinatario', 'evento_id', 'destinatario_id')
+            ->withPivot('precio');
+    }
+
     public function planillaInscripcion()
     {
         return $this->hasOne(PlanillaInscripcion::class, 'evento_id');
@@ -89,7 +105,6 @@ class Evento extends Model
             ->withPivot('url', 'qrcode', 'aprobado', 'rol_id');
     }
 
-
     public function sesiones()
     {
         return $this->hasMany(SesionEvento::class, 'evento_id', 'evento_id');
@@ -100,7 +115,7 @@ class Evento extends Model
     {
         $planilla = $this->planillaInscripcion;
 
-        if (!$planilla) {
+        if (! $planilla) {
             return collect(); // si no hay planilla, entonces no hay inscriptos
         }
 
@@ -111,7 +126,6 @@ class Evento extends Model
         })->get();
     }
 
-
     public function tieneAsistencias(): bool
     {
         return AsistenciaParticipante::whereHas('sesionEvento', function ($query) {
@@ -119,13 +133,11 @@ class Evento extends Model
         })->where('asistio', true)->exists();
     }
 
-
-
     public function inscripcionesConAsistencia() // Renombramos para claridad
     {
         $planillaId = $this->planillaInscripcion?->planilla_inscripcion_id;
 
-        if (!$planillaId) {
+        if (! $planillaId) {
             return collect();
         }
 
@@ -139,16 +151,15 @@ class Evento extends Model
                     });
             })
             // Opcional: Cargar el Participante si aún lo necesitas para acceder a sus datos
-            //->with('participante')
+            // ->with('participante')
             ->get();
     }
-
 
     public function inscripcionesFinales()
     {
         $planillaId = $this->planillaInscripcion?->planilla_inscripcion_id;
 
-        if (!$planillaId) {
+        if (! $planillaId) {
             return collect();
         }
 
@@ -180,7 +191,7 @@ class Evento extends Model
     {
         $planilla = $this->planillaInscripcion;
 
-        if (!$planilla) {
+        if (! $planilla) {
             return collect();
         }
 
@@ -201,7 +212,7 @@ class Evento extends Model
     {
         $planilla = $this->planillaInscripcion;
 
-        if (!$planilla) {
+        if (! $planilla) {
             return collect();
         }
 
@@ -215,9 +226,9 @@ class Evento extends Model
         })->get();
     }
 
-    //uso en Livewire
-    //$participantes = $evento->participantesInscritos();
-    //$disertantesYColaboradores = $evento->disentantesYColaboradores();
+    // uso en Livewire
+    // $participantes = $evento->participantesInscritos();
+    // $disertantesYColaboradores = $evento->disentantesYColaboradores();
 
     public function getFechaInicioFormattedAttribute()
     {

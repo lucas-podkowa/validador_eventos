@@ -53,7 +53,7 @@
                     <div>
                         <label for="fecha_inicio" class="block text-sm font-medium text-gray-700">Fecha de Inicio <span class="text-red-500">*</span></label>
                         <input type="date" id="fecha_inicio" wire:model.live="fecha_inicio"
-                            min="{{ now()->format('Y-m-d') }}" @if ($esEdicion && $estado_evento === 'En Curso') disabled @endif
+                            @if ($esEdicion && $estado_evento === 'En Curso' && ! auth()->user()->hasRole('Administrador')) disabled @endif
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         @error('fecha_inicio')
                             <span class="text-sm text-red-500">{{ $message }}</span>
@@ -122,6 +122,72 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-1 gap-4 pt-2 px-6">
+
+                    <!-- Arancel -->
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <label class="flex items-center gap-3 cursor-pointer mb-3">
+                            <input type="checkbox" wire:model.live="arancel"
+                                class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                            <span class="text-sm font-medium text-gray-700 select-none">Evento arancelado</span>
+                        </label>
+                        @error('arancel')
+                            <span class="text-sm text-red-500">{{ $message }}</span>
+                        @enderror
+
+                        @if ($arancel)
+                            <div class="mb-4">
+                                <label for="link_pago" class="block text-sm font-medium text-gray-700">
+                                    Link de pago <span class="text-red-500">*</span>
+                                </label>
+                                <input type="url" id="link_pago" wire:model="link_pago"
+                                    placeholder="https://..."
+                                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                @error('link_pago')
+                                    <span class="text-sm text-red-500">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Destinatarios y precios <span class="text-red-500">*</span>
+                                </label>
+                                @error('destinatarioSeleccionado')
+                                    <span class="text-sm text-red-500 block mb-2">{{ $message }}</span>
+                                @enderror
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    @foreach ($destinatarios as $d)
+                                        @php
+                                            $seleccionado = in_array((string) $d->destinatario_id, array_map('strval', $destinatarioSeleccionado));
+                                        @endphp
+                                        <div class="flex items-center gap-3 p-2 bg-white border rounded-md {{ $d->activo ? '' : 'opacity-60' }}">
+                                            <input type="checkbox" wire:model.live="destinatarioSeleccionado"
+                                                value="{{ $d->destinatario_id }}"
+                                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                                            <div class="flex-1">
+                                                <p class="text-sm font-medium text-gray-800">{{ $d->nombre }}</p>
+                                                @if (! $d->activo)
+                                                    <p class="text-xs text-gray-500">Inactivo</p>
+                                                @endif
+                                            </div>
+                                            <div class="w-28">
+                                                <input type="number" step="0.01" min="0"
+                                                    wire:model="destinatarioPrecio.{{ $d->destinatario_id }}"
+                                                    placeholder="0,00"
+                                                    @disabled(! $seleccionado)
+                                                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                                @if ($seleccionado)
+                                                    @error("destinatarioPrecio.{$d->destinatario_id}")
+                                                        <span class="text-xs text-red-500">{{ $message }}</span>
+                                                    @enderror
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
 
                     <!-- Indicadores -->
                     <div>

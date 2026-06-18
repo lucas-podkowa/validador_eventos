@@ -12,32 +12,55 @@ use App\Models\Rol;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class RegistroEventoPublico extends Component
 {
+    use WithFileUploads;
+
     public $asunto = 'participante';
+
     public $evento = null;
+
     public $evento_id = null;
+
     public $nombre = null;
+
     public $apellido = null;
+
     public $dni = null;
+
     public $mail = null;
+
     public $telefono = null;
+
     public $planilla_id = null;
+
     public $planilla_inscripcion = null;
+
     public $inscripcion_activa = false;
+
     public ?array $participante = null;
+
     public $indicadoresMultiples = []; // para checkboxes
+
     public $indicadoresUnicos = []; // para radios
+
     public $rol_participante_id = null; // para cachear el ID del rol
 
+    public $destinatario_id = null;
+
+    public $comprobante = null;
+
+    public ?float $montoDestinatario = null;
 
     protected $rules = [
         'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
-        'nombre'   => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
-        'dni'      => ['required', 'digits_between:6,10', 'numeric'],
-        'mail'     => ['required', 'email'],
+        'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+        'dni' => ['required', 'digits_between:6,10', 'numeric'],
+        'mail' => ['required', 'email'],
         'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
     ];
 
@@ -47,16 +70,16 @@ class RegistroEventoPublico extends Component
         $this->evento_id = $eventoId;
         $this->planilla_inscripcion = PlanillaInscripcion::where('evento_id', $eventoId)->first();
 
-        if (!$this->planilla_inscripcion) {
-            dd("No se encontró planilla para evento_id: " . $eventoId);
+        if (! $this->planilla_inscripcion) {
+            dd('No se encontró planilla para evento_id: '.$eventoId);
         } else {
             $this->planilla_id = $this->planilla_inscripcion->planilla_inscripcion_id;
         }
 
-        $this->evento = Evento::findOrFail($eventoId);
+        $this->evento = Evento::with('destinatarios')->findOrFail($eventoId);
 
         $rolParticipante = Rol::where('nombre', 'Participante')->first();
-        if (!$rolParticipante) {
+        if (! $rolParticipante) {
             dd("Error: No se encontró el rol 'Participante'. Ejecuta el seeder.");
         }
         $this->rol_participante_id = $rolParticipante->rol_id;
@@ -82,8 +105,6 @@ class RegistroEventoPublico extends Component
         }
     }
 
-
-
     public function buscarParticipante()
     {
         if ($this->dni) {
@@ -100,31 +121,63 @@ class RegistroEventoPublico extends Component
         }
     }
 
+    public function updatedDestinatarioId($value)
+    {
+        $destinatario = $this->evento->destinatarios->firstWhere('destinatario_id', $value);
+        $this->montoDestinatario = $destinatario ? (float) $destinatario->pivot->precio : null;
+    }
+
+    protected function reglas()
+    {
+        $reglas = [
+            'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+            'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+            'dni' => ['required', 'digits_between:6,10', 'numeric'],
+            'mail' => ['required', 'email'],
+            'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
+        ];
+
+        if ($this->evento->arancel) {
+            $reglas['destinatario_id'] = [
+                'required',
+                Rule::in($this->evento->destinatarios->pluck('destinatario_id')->toArray()),
+            ];
+
+            if ($this->montoDestinatario > 0) {
+                $reglas['comprobante'] = 'required|file|mimes:pdf,jpg,png|max:2048';
+            }
+        }
+
+        return $reglas;
+    }
+
     public function submit()
     {
-        $this->validate();
+        $this->validate($this->reglas());
 
         // Normalizar nombre y apellido para que cada palabra inicie con mayúscula
-        $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, "UTF-8");
-        $this->apellido = mb_convert_case(mb_strtolower(trim($this->apellido)), MB_CASE_TITLE, "UTF-8");
+        $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, 'UTF-8');
+        $this->apellido = mb_convert_case(mb_strtolower(trim($this->apellido)), MB_CASE_TITLE, 'UTF-8');
 
         DB::beginTransaction();
         try {
-            if (!$this->planilla_inscripcion) {
+            if (! $this->planilla_inscripcion) {
                 DB::rollBack();
                 $this->dispatch('oops', message: 'Error: No hay una planilla de inscripción asociada a este evento.');
+
                 return;
             }
 
             $participante = Participante::where('dni', $this->dni)->first();
 
-            if (!$participante) {
+            if (! $participante) {
                 // Verificar si el email ya existe en otro participante
                 $mailExistente = Participante::where('mail', $this->mail)->exists();
 
                 if ($mailExistente) {
                     DB::rollBack();
                     $this->dispatch('oops', message: 'El correo electrónico ingresado ya está registrado para otro participante.');
+
                     return;
                 }
 
@@ -155,6 +208,7 @@ class RegistroEventoPublico extends Component
                     if ($mailUsadoPorOtro) {
                         DB::rollBack();
                         $this->dispatch('oops', message: 'El correo ingresado ya está siendo utilizado por otro participante.');
+
                         return;
                     }
 
@@ -165,7 +219,7 @@ class RegistroEventoPublico extends Component
                     $datosActualizados['telefono'] = $this->telefono;
                 }
 
-                if (!empty($datosActualizados)) {
+                if (! empty($datosActualizados)) {
                     $participante->update($datosActualizados);
                 }
             }
@@ -178,19 +232,28 @@ class RegistroEventoPublico extends Component
             if ($yaInscripto) {
                 DB::rollBack();
                 $this->dispatch('oops', message: 'Este participante ya está inscrito en esta planilla.');
+
                 return;
             }
 
             // Registrar la inscripción con el UUID correcto
+            $comprobantePath = null;
+            if ($this->evento->arancel && $this->montoDestinatario > 0 && $this->comprobante) {
+                $comprobantePath = $this->comprobante->store("comprobantes/{$this->evento_id}", 'private');
+            }
+
             $inscripcion = InscripcionParticipante::create([
                 'planilla_id' => $this->planilla_id,
                 'participante_id' => $participante->participante_id,
                 'rol_id' => $this->rol_participante_id,
+                'destinatario_id' => $this->evento->arancel ? $this->destinatario_id : null,
+                'monto' => $this->evento->arancel ? $this->montoDestinatario : null,
+                'comprobante_pago' => $comprobantePath,
                 'fecha_inscripcion' => now(),
                 'asistencia' => false,
             ]);
 
-            // Guardar indicadores 
+            // Guardar indicadores
 
             $ids = collect($this->indicadoresMultiples);
             foreach ($this->indicadoresUnicos as $radioValue) {
@@ -211,17 +274,17 @@ class RegistroEventoPublico extends Component
             Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento, $this->asunto));
             $this->dispatch('alert', message: '¡Inscripción completada con éxito!');
 
-            $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos']);
+            $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos', 'destinatario_id', 'comprobante', 'montoDestinatario']);
             $this->verificarInscripcionActiva(); // <-- Refresca el estado del formulario
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: '.$e->getMessage());
+
             return;
         }
     }
-
 
     public function render()
     {

@@ -2,11 +2,13 @@
 
 namespace App\Livewire;
 
+use App\Models\CategoriaEvento;
+use App\Models\Destinatario;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
+use App\Models\InscripcionParticipante;
 use App\Models\PlanillaInscripcion;
 use App\Models\Responsable;
-use App\Models\CategoriaEvento;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use Carbon\Carbon;
@@ -14,52 +16,93 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
-//use Livewire\WithFileUploads;
+// use Livewire\WithFileUploads;
 
 class CrearEvento extends Component
 {
-    //use WithFileUploads;
+    // use WithFileUploads;
     public $evento_id = null; // Para saber si es edición o creación
+
     public $categoria_id = null;
+
     public $tipo_evento_id = null;
 
     public bool $por_aprobacion = false;
 
+    public bool $arancel = false;
+
+    public ?string $link_pago = null;
+
     public $nombre_evento = null;
+
     public $fecha_inicio = null;
+
     public $lugar_evento = null;
+
     public $cupo = null;
+
     public $estado_evento = null;
 
     public $categorias = [];
+
     public $tiposEventos = [];
+
     public $tiposIndicadores = [];
+
     public $indicadoresSeleccionados = [];
+
+    public $destinatarios = [];
+
+    public array $destinatarioSeleccionado = [];
+
+    public array $destinatarioPrecio = [];
 
     // Responsable
     public $responsable_id = null;
+
     public $responsable_dni = null;
+
     public $responsable_nombre = null;
+
     public $responsable_apellido = null;
+
     public $responsable_encontrado = false;
+
     public $open_responsable = false;
+
     public $modal_responsable_id = null;
+
     public $modal_responsable_dni = null;
+
     public $modal_responsable_nombre = null;
+
     public $modal_responsable_apellido = null;
+
     public bool $modal_responsable_encontrado = false;
+
     public bool $modal_responsable_buscado = false;
 
     public function mount($evento_id = null)
     {
         // Gestores solo pueden editar eventos existentes, no crear nuevos.
-        if (!auth()->user()->hasRole('Administrador') && !$evento_id) {
+        if (! auth()->user()->hasRole('Administrador') && ! $evento_id) {
             abort(403, 'No tenés permiso para crear eventos.');
         }
 
         $this->categorias = CategoriaEvento::orderBy('nombre')->get();
         $this->tiposEventos = TipoEvento::orderBy('nombre')->get();
         $this->tiposIndicadores = TipoIndicador::all();
+
+        if ($evento_id) {
+            $evento = Evento::with('destinatarios')->find($evento_id);
+            $seleccionadosIds = $evento ? $evento->destinatarios->pluck('destinatario_id')->toArray() : [];
+            $this->destinatarios = Destinatario::where('activo', true)
+                ->orWhereIn('destinatario_id', $seleccionadosIds)
+                ->orderBy('nombre')
+                ->get();
+        } else {
+            $this->destinatarios = Destinatario::where('activo', true)->orderBy('nombre')->get();
+        }
 
         if ($evento_id) {
             $this->evento_id = $evento_id;
@@ -74,7 +117,14 @@ class CrearEvento extends Component
                 $this->cupo = $evento->cupo;
                 $this->estado_evento = $evento->estado;
                 $this->por_aprobacion = (bool) $evento->por_aprobacion;
+                $this->arancel = (bool) $evento->arancel;
+                $this->link_pago = $evento->link_pago;
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
+
+                foreach ($evento->destinatarios as $destinatario) {
+                    $this->destinatarioSeleccionado[] = (string) $destinatario->destinatario_id;
+                    $this->destinatarioPrecio[$destinatario->destinatario_id] = $destinatario->pivot->precio;
+                }
 
                 // Cargar responsable si existe
                 if ($evento->responsable_id) {
@@ -89,9 +139,9 @@ class CrearEvento extends Component
         }
     }
 
-    //----------------------------------------------------------------
-    //-----  Crear o Actualizar Evento -------------------------------
-    //----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // -----  Crear o Actualizar Evento -------------------------------
+    // ----------------------------------------------------------------
 
     public function save()
     {
@@ -102,15 +152,62 @@ class CrearEvento extends Component
             'lugar_evento' => 'required|string|min:2|max:255',
             'cupo' => 'nullable|integer|min:0',
             'responsable_id' => 'required',
+            'arancel' => 'boolean',
+            'link_pago' => 'nullable|url|max:500',
         ];
 
-        // Solo validar la fecha si estamos creando o el estado es Pendiente
-        if (!$this->evento_id || $this->estado_evento === 'Pendiente') {
-            $reglas['fecha_inicio'] = 'required|date|after_or_equal:today';
+        // Validar la fecha siempre que esté presente
+        $reglas['fecha_inicio'] = 'required|date';
+
+        if ($this->arancel) {
+            $reglas['destinatarioSeleccionado'] = 'required|array|min:1';
+            $reglas['destinatarioSeleccionado.*'] = 'exists:destinatarios,destinatario_id';
+
+            foreach ($this->destinatarioSeleccionado as $id) {
+                $reglas["destinatarioPrecio.$id"] = 'required|numeric|min:0';
+            }
+
+            $tienePrecioPositivo = collect($this->destinatarioSeleccionado)
+                ->contains(fn ($id) => (float) ($this->destinatarioPrecio[$id] ?? 0) > 0);
+
+            if ($tienePrecioPositivo) {
+                $reglas['link_pago'] = 'required|url|max:500';
+            }
         }
 
         $this->validate($reglas);
 
+        // Validar que no se desmarquen destinatarios ya usados ni se quite el arancel si hay inscripciones pagas
+        if ($this->evento_id) {
+            $evento = Evento::find($this->evento_id);
+            $planilla = $evento?->planillaInscripcion;
+
+            if ($planilla) {
+                if ($this->arancel) {
+                    $seleccionados = collect($this->destinatarioSeleccionado)->map(fn ($id) => (int) $id)->all();
+                    $enUso = InscripcionParticipante::where('planilla_id', $planilla->planilla_inscripcion_id)
+                        ->whereNotIn('destinatario_id', $seleccionados)
+                        ->whereNotNull('destinatario_id')
+                        ->exists();
+
+                    if ($enUso) {
+                        $this->addError('destinatarioSeleccionado', 'No se pueden desmarcar destinatarios que ya tienen inscripciones asociadas.');
+
+                        return;
+                    }
+                } else {
+                    $tieneInscripcionesPagas = InscripcionParticipante::where('planilla_id', $planilla->planilla_inscripcion_id)
+                        ->whereNotNull('destinatario_id')
+                        ->exists();
+
+                    if ($tieneInscripcionesPagas) {
+                        $this->addError('arancel', 'No se puede quitar el arancel porque ya existen inscripciones con destinatarios asociadas.');
+
+                        return;
+                    }
+                }
+            }
+        }
 
         // Validar los datos del formulario
         $this->nombre_evento = mb_strtoupper(trim($this->nombre_evento));
@@ -125,51 +222,49 @@ class CrearEvento extends Component
                 'fecha_inicio' => Carbon::parse($this->fecha_inicio),
                 'cupo' => $this->cupo,
                 'por_aprobacion' => (bool) $this->por_aprobacion,
+                'arancel' => (bool) $this->arancel,
+                'link_pago' => $this->arancel ? $this->link_pago : null,
                 'responsable_id' => $this->responsable_id,
             ];
-
 
             if ($this->evento_id) {
                 // Modo edición
                 $evento = Evento::findOrFail($this->evento_id);
-                if ($evento) {
-                    $evento->update($datosEvento);
-                    $evento->tipoIndicadores()->sync($this->indicadoresSeleccionados);
-                }
+                $evento->update($datosEvento);
+                $evento->tipoIndicadores()->sync($this->indicadoresSeleccionados);
             } else {
                 // Modo creación
-
                 $evento = Evento::where('nombre', $datosEvento['nombre'])
                     ->where('lugar', $datosEvento['lugar'])
                     ->where('tipo_evento_id', $datosEvento['tipo_evento_id'])
                     ->where('fecha_inicio', $datosEvento['fecha_inicio'])
                     ->first();
 
-                // Log antes de guardar
                 Log::info('Intentando guardar evento', $datosEvento);
 
-                if (!$evento) {
+                if (! $evento) {
                     $evento = Evento::create($datosEvento);
                     $evento->estado = 'Pendiente';
                     $evento->save();
-                    // Guardar los indicadores seleccionados
                     $evento->tipoIndicadores()->attach($this->indicadoresSeleccionados);
                 }
             }
 
+            if ($this->arancel) {
+                $sync = [];
+                foreach ($this->destinatarioSeleccionado as $id) {
+                    $sync[(int) $id] = ['precio' => (float) ($this->destinatarioPrecio[$id] ?? 0)];
+                }
+                $evento->destinatarios()->sync($sync);
+            } else {
+                $evento->destinatarios()->detach();
+            }
 
-            // Log después de guardar
             Log::info('Evento guardado correctamente', ['evento_id' => $evento->evento_id]);
 
-            // // Guardar los indicadores seleccionados
-            // foreach ($this->indicadoresSeleccionados as $tipo_indicador_id) {
-            //     $evento->tipoIndicadores()->attach($tipo_indicador_id);
-            // }
-
-            //Confirmar transacción
             DB::commit();
 
-            //Resetear los campos después de guardar
+            // Resetear los campos después de guardar
             $this->reset([
                 'evento_id',
                 'categoria_id',
@@ -180,6 +275,10 @@ class CrearEvento extends Component
                 'cupo',
                 'indicadoresSeleccionados',
                 'por_aprobacion',
+                'arancel',
+                'link_pago',
+                'destinatarioSeleccionado',
+                'destinatarioPrecio',
                 'responsable_id',
                 'responsable_dni',
                 'responsable_nombre',
@@ -191,21 +290,22 @@ class CrearEvento extends Component
             return redirect()->route('eventos');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: '.$e->getMessage());
+
             return;
         }
     }
 
-    //----------------------------------------------------------------
-    //-----  Eliminar Evento------------------------------------------
-    //----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // -----  Eliminar Evento------------------------------------------
+    // ----------------------------------------------------------------
 
     public function eliminarEvento()
     {
         // Solo el Administrador puede eliminar eventos.
-        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'No tenés permiso para eliminar eventos.');
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'No tenés permiso para eliminar eventos.');
 
-        if (!$this->evento_id) {
+        if (! $this->evento_id) {
             return;
         }
 
@@ -217,6 +317,7 @@ class CrearEvento extends Component
 
             if ($tienePlanilla || $tieneParticipantes) {
                 $this->dispatch('oops', message: 'No se puede eliminar. Existen inscripciones activas o planillas asociadas.');
+
                 return;
             }
 
@@ -225,10 +326,11 @@ class CrearEvento extends Component
 
             DB::commit();
             $this->dispatch('alert', message: 'El evento fue eliminado correctamente.');
+
             return redirect()->route('eventos');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Error al eliminar el evento: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error al eliminar el evento: '.$e->getMessage());
         }
     }
 
@@ -237,9 +339,9 @@ class CrearEvento extends Component
         return redirect()->route('eventos');
     }
 
-    //----------------------------------------------------------------
-    //-----  Responsable del Evento ----------------------------------
-    //----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // -----  Responsable del Evento ----------------------------------
+    // ----------------------------------------------------------------
 
     public function abrirSelectorResponsable()
     {
@@ -305,8 +407,9 @@ class CrearEvento extends Component
 
     public function seleccionarResponsable()
     {
-        if (!$this->modal_responsable_buscado) {
+        if (! $this->modal_responsable_buscado) {
             $this->addError('modal_responsable_dni', 'Busque un DNI válido antes de continuar.');
+
             return;
         }
 
@@ -339,11 +442,9 @@ class CrearEvento extends Component
         $this->open_responsable = false;
     }
 
-
-    //----------------------------------------------------------------
-    //----------------------------------------------------------------
-    //----------------------------------------------------------------
-
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
 
     public function render()
     {

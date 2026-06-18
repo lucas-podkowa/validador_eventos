@@ -2,45 +2,55 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
 use App\Models\Evento;
 use App\Models\PlanillaInscripcion;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
-
-
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class HabilitarPlanilla extends Component
 {
     use WithFileUploads;
 
     public $evento_id;
+
     public $evento;
+
     public $disposicion;
+
     public $header = null;
+
     public $footer = null;
+
     public $apertura;
+
     public $cierre;
+
     public $imagenesDisponibles = [];
+
     public $showHeaderModal = false;
+
     public $showFooterModal = false;
+
     public $nuevaImagen;
+
     public $tipoModalActivo;
+
     public $modo = 'crear';
 
     // Planilla suspendida de una cancelación anterior con inscripciones conservadas
     public bool $tiene_planilla_suspendida = false;
-    public int $inscriptos_suspendidos_count = 0;
-    public ?string $accion_planilla_suspendida = null;
 
+    public int $inscriptos_suspendidos_count = 0;
+
+    public ?string $accion_planilla_suspendida = null;
 
     protected function rules()
     {
@@ -55,8 +65,6 @@ class HabilitarPlanilla extends Component
 
         return $rules;
     }
-
-
 
     public function mount($evento_id = null)
     {
@@ -89,9 +97,36 @@ class HabilitarPlanilla extends Component
     {
         $this->apertura = Carbon::parse($value)->format('Y-m-d H:i');
     }
+
     public function updatedCierre($value)
     {
         $this->cierre = Carbon::parse($value)->format('Y-m-d H:i');
+    }
+
+    public function getMinCierreProperty(): ?string
+    {
+        if (! $this->apertura) {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d H:i', $this->apertura)?->format('Y-m-d\TH:i');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    public function getMaxAperturaProperty(): ?string
+    {
+        if (! $this->cierre) {
+            return null;
+        }
+
+        try {
+            return Carbon::createFromFormat('Y-m-d H:i', $this->cierre)?->format('Y-m-d\TH:i');
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -110,21 +145,19 @@ class HabilitarPlanilla extends Component
         }
     }
 
-
     public function redirectToEventos($tab)
     {
         return redirect()->route('eventos', ['tab' => $tab]);
     }
 
-
     public function abrirGaleria($tipo)
     {
         $this->tipoModalActivo = $tipo;
 
-        $path = 'images/' . $tipo;
+        $path = 'images/'.$tipo;
         $files = Storage::disk('public')->files($path);
         $this->imagenesDisponibles = collect($files)->filter(function ($file) {
-            return collect(['.jpg', '.jpeg', '.png'])->contains(fn($ext) => str_ends_with($file, $ext));
+            return collect(['.jpg', '.jpeg', '.png'])->contains(fn ($ext) => str_ends_with($file, $ext));
         })->values()->all();
 
         if ($tipo === 'header') {
@@ -155,8 +188,9 @@ class HabilitarPlanilla extends Component
 
     public function guardarNuevaImagen()
     {
-        if (!$this->tipoModalActivo) {
+        if (! $this->tipoModalActivo) {
             $this->addError('nuevaImagen', 'No se pudo determinar el tipo de imagen (header o footer).');
+
             return;
         }
 
@@ -165,8 +199,8 @@ class HabilitarPlanilla extends Component
         ]);
 
         try {
-            //$path = $this->nuevaImagen->store('images', 'public');
-            $path = $this->nuevaImagen->store('images/' . $this->tipoModalActivo, 'public');
+            // $path = $this->nuevaImagen->store('images', 'public');
+            $path = $this->nuevaImagen->store('images/'.$this->tipoModalActivo, 'public');
             $this->imagenesDisponibles[] = $path;
             // Refrescar galería
             $this->abrirGaleria($this->tipoModalActivo);
@@ -182,6 +216,7 @@ class HabilitarPlanilla extends Component
         // Validar que el usuario eligió una acción si hay planilla suspendida
         if ($this->tiene_planilla_suspendida && $this->accion_planilla_suspendida === null) {
             $this->dispatch('oops', message: 'Debés seleccionar qué hacer con la planilla anterior antes de continuar.');
+
             return;
         }
 
@@ -200,11 +235,11 @@ class HabilitarPlanilla extends Component
             $tipo = Str::slug($this->evento->tipoEvento->nombre);
             $nombreEvento = Str::slug($this->evento->nombre);
             $fechaEvento = Carbon::parse($this->evento->fecha_inicio)->format('d-m');
-            $nombreArchivo = $nombreEvento . '_' . $fechaEvento . '.pdf';
+            $nombreArchivo = $nombreEvento.'_'.$fechaEvento.'.pdf';
 
             $ruta = "disposiciones/{$anio}/{$tipo}";
             $this->disposicion = $this->disposicion->storeAs($ruta, $nombreArchivo, 'private');
-        } elseif (!$this->disposicion) {
+        } elseif (! $this->disposicion) {
             // Si no hay disposición cargada y no está definida, no guardamos nada
             $this->disposicion = null;
         }
@@ -214,11 +249,10 @@ class HabilitarPlanilla extends Component
 
         if ($apertura->gte(Carbon::parse($this->evento->fecha_inicio))) {
             $fechaInicioFormateada = Carbon::parse($this->evento->fecha_inicio)->format('d/m/Y H:i');
-            $this->dispatch('oops', message: 'La fecha de apertura debe ser menor a la fecha de inicio del evento (' . $fechaInicioFormateada . ').');
+            $this->dispatch('oops', message: 'La fecha de apertura debe ser menor a la fecha de inicio del evento ('.$fechaInicioFormateada.').');
+
             return;
         }
-
-
 
         DB::beginTransaction();
         try {
@@ -229,12 +263,12 @@ class HabilitarPlanilla extends Component
 
             $renderer = new ImageRenderer(
                 new RendererStyle(400), // tamaño real
-                new SvgImageBackEnd()
+                new SvgImageBackEnd
             );
 
             $writer = new Writer($renderer);
             $qrSvg = $writer->writeString($inscripcionUrl);
-            $qrSvgBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
+            $qrSvgBase64 = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
 
             // Si hay planilla suspendida y el usuario elige empezar de cero, la eliminamos (cascade borra inscripciones)
             if ($this->tiene_planilla_suspendida && $this->accion_planilla_suspendida === 'nueva') {
@@ -261,10 +295,9 @@ class HabilitarPlanilla extends Component
             $this->redirectToEventos('en_curso');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Error al guardar la planilla: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error al guardar la planilla: '.$e->getMessage());
         }
     }
-
 
     public function render()
     {

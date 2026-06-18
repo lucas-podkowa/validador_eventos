@@ -14,6 +14,7 @@
 .phpactor.json
 .phpunit.result.cache
 deploymend.md
+DEPLOYMENT.md
 Homestead.json
 Homestead.yaml
 npm-debug.log

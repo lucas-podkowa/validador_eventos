@@ -62,7 +62,8 @@
             <div class="flex pt-4 px-6 gap-4">
                 <div class="mb-4">
                     <label for="apertura" class="block text-gray-700">Fecha y Hora de Apertura</label>
-                    <input type="datetime-local" id="apertura" wire:model="apertura"
+                    <input type="datetime-local" id="apertura" wire:model.live="apertura"
+                        max="{{ $this->maxApertura }}"
                         class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                     @error('apertura')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -71,7 +72,8 @@
 
                 <div class="mb-4">
                     <label for="cierre" class="block text-gray-700">Fecha y Hora de Cierre</label>
-                    <input type="datetime-local" id="cierre" wire:model="cierre"
+                    <input type="datetime-local" id="cierre" wire:model.live="cierre"
+                        min="{{ $this->minCierre }}"
                         class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                     @error('cierre')
                         <span class="text-red-500 text-sm">{{ $message }}</span>

@@ -1,11 +1,10 @@
-<div class="flex flex-col h-full">
+<div class="flex flex-col h-full" x-data="{ adminOpen: true }">
     <!-- Sidebar Header -->
     <div class="sidebar-header">
-        <a href="{{ route('welcome') }}" class="flex items-center gap-3">
-            <img src="{{ asset('logos/logo-fi.png') }}" alt="Facultad de Ingeniería"
-                class="h-8 w-auto max-w-[150px]" style="filter: brightness(0) invert(1);">
+        <a href="{{ route('welcome') }}" class="flex items-center gap-1">
+            <img src="{{ asset('logos/logo_acreditar.png') }}" alt="Acreditar"
+                class="h-16 w-auto max-w-[160px]" style="filter: brightness(0) invert(1);">
         </a>
-        <div class="mt-2 text-sm font-semibold text-white/90">{{ config('app.name', 'Laravel') }}</div>
     </div>
 
     <!-- Navigation Items -->
@@ -46,26 +45,30 @@
         @endrole
 
         @role('Administrador')
-        <div class="sidebar-section-label mt-2">Administración</div>
+        <button @click="adminOpen = !adminOpen" class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
+            <span>Administración</span>
+            <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': adminOpen }"></i>
+        </button>
 
-        <a href="{{ route('indicadores') }}" class="{{ request()->routeIs('indicadores') ? 'active' : '' }}">
-            <i class="fa-solid fa-chart-line w-5 text-center"></i>
-            <span>Indicadores</span>
-        </a>
-
-        <a href="{{ route('usuarios') }}" class="{{ request()->routeIs('usuarios') ? 'active' : '' }}">
-            <i class="fa-solid fa-user-shield w-5 text-center"></i>
-            <span>Usuarios</span>
-        </a>
-
+        <div x-show="adminOpen" class="collapse-content">
         <a href="{{ route('admin.categorias') }}" class="{{ request()->routeIs('admin.categorias') ? 'active' : '' }}">
             <i class="fa-solid fa-folder-open w-5 text-center"></i>
             <span>Categorías</span>
         </a>
 
-        <a href="{{ route('admin.tipos_evento') }}" class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
-            <i class="fa-solid fa-list w-5 text-center"></i>
-            <span>Tipos de Evento</span>
+        <a href="{{ route('admin.destinatarios') }}" class="{{ request()->routeIs('admin.destinatarios') ? 'active' : '' }}">
+            <i class="fa-solid fa-user-tag w-5 text-center"></i>
+            <span>Destinatarios</span>
+        </a>
+
+        <a href="{{ route('emisor_certificados') }}" class="{{ request()->routeIs('emisor_certificados') ? 'active' : '' }}">
+            <i class="fa-solid fa-certificate w-5 text-center"></i>
+            <span>Emisión</span>
+        </a>
+
+        <a href="{{ route('indicadores') }}" class="{{ request()->routeIs('indicadores') ? 'active' : '' }}">
+            <i class="fa-solid fa-chart-line w-5 text-center"></i>
+            <span>Indicadores</span>
         </a>
 
         <a href="{{ route('informes') }}" class="{{ request()->routeIs('informes') ? 'active' : '' }}">
@@ -73,10 +76,16 @@
             <span>Informes</span>
         </a>
 
-        <a href="{{ route('emisor_certificados') }}" class="{{ request()->routeIs('emisor_certificados') ? 'active' : '' }}">
-            <i class="fa-solid fa-certificate w-5 text-center"></i>
-            <span>Emisión</span>
+        <a href="{{ route('admin.tipos_evento') }}" class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
+            <i class="fa-solid fa-list w-5 text-center"></i>
+            <span>Tipos de Evento</span>
         </a>
+
+        <a href="{{ route('usuarios') }}" class="{{ request()->routeIs('usuarios') ? 'active' : '' }}">
+            <i class="fa-solid fa-user-shield w-5 text-center"></i>
+            <span>Usuarios</span>
+        </a>
+        </div>
         @endrole
     </nav>
 

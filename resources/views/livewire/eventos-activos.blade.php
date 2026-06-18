@@ -227,13 +227,15 @@
 
         @if (count($inscriptos))
             <table class="w-full min-w-full divide-y divide-gray-200 mt-6">
-                <thead class="bg-gray-50">
+                    <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Apellido</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">DNI</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Teléfono</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Destinatario</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Monto</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Acciones</th>
                     </tr>
                 </thead>
@@ -245,7 +247,22 @@
                             <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->dni }}</td>
                             <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->mail }}</td>
                             <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->telefono }}</td>
+                            <td class="px-6 whitespace-nowrap">{{ $inscripto->destinatario?->nombre ?? '—' }}</td>
+                            <td class="px-6 whitespace-nowrap text-right">
+                                @if ($inscripto->monto !== null)
+                                    ${{ number_format($inscripto->monto, 2, ',', '.') }}
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td class="px-6 text-center whitespace-nowrap">
+                                @if ($inscripto->comprobante_pago)
+                                    <a href="{{ route('comprobante.show', $inscripto) }}"
+                                        class="text-green-600 hover:text-green-800 mr-2" title="Descargar comprobante"
+                                        target="_blank">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    </a>
+                                @endif
                                 <button onclick="confirmUnregister('{{ $inscripto->inscripcion_participante_id }}')"
                                     class="text-red-600 hover:text-red-900" title="Desmatricular">
                                     <i class="fas fa-user-times"></i>

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Destinatario;
 use App\Models\Indicador;
 use App\Models\Rol;
 use App\Models\TipoEvento;
@@ -10,7 +11,6 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-
 
 class DatabaseSeeder extends Seeder
 {
@@ -54,7 +54,6 @@ class DatabaseSeeder extends Seeder
             ['nombre' => 'Licenciatura en Higiene y Seguridad en el Trabajo', 'tipo_indicador_id' => 3],
         ]);
 
-
         // Crear roles
         Role::create(['name' => 'Administrador']);
         Role::create(['name' => 'Gestor']);
@@ -81,25 +80,25 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Usuario Administrador',
             'email' => 'admin@mail.com',
-            'password' => bcrypt('password123')
+            'password' => bcrypt('password123'),
         ])->assignRole('Administrador');
 
         User::factory()->create([
             'name' => 'Usuario Revisor',
             'email' => 'revisor@mail.com',
-            'password' => bcrypt('password123')
+            'password' => bcrypt('password123'),
         ])->assignRole('Revisor');
 
         User::factory()->create([
             'name' => 'Usuario Colaborador',
             'email' => 'colaborador@mail.com',
-            'password' => bcrypt('password123')
+            'password' => bcrypt('password123'),
         ])->assignRole('Colaborador');
 
         User::factory()->create([
             'name' => 'Usuario Invitado',
             'email' => 'invitado@mail.com',
-            'password' => bcrypt('password123')
+            'password' => bcrypt('password123'),
         ])->assignRole('Invitado');
 
         // // Crear 100 usuarios aleatorios con roles distintos
@@ -108,7 +107,7 @@ class DatabaseSeeder extends Seeder
         //     $user->assignRole($roles[array_rand($roles)]);
         // });
 
-        //crear roles para participantes
+        // crear roles para participantes
 
         Rol::insert([
             ['nombre' => 'Participante'],
@@ -116,9 +115,25 @@ class DatabaseSeeder extends Seeder
             ['nombre' => 'Colaborador'],
         ]);
 
+        // Crear destinatarios iniciales
+        $destinatariosIniciales = [
+            'Docente / No Docente de la Facultad de Ingeniería',
+            'Estudiante de la Facultad de Ingeniería',
+            'Graduado de la Facultad de Ingeniería',
+            'Docente / No Docente de la UNaM',
+            'Estudiante de la UNaM',
+            'Graduado de la UNaM',
+            'Profesional Externo',
+            'Público General',
+        ];
+
+        foreach ($destinatariosIniciales as $nombre) {
+            Destinatario::firstOrCreate(['nombre' => $nombre], ['activo' => true]);
+        }
+
         $this->call([
-            //EventoSeeder::class,
-            //ParticipanteSeeder::class,
+            // EventoSeeder::class,
+            // ParticipanteSeeder::class,
         ]);
     }
 }
