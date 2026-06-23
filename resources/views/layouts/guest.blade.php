@@ -8,13 +8,13 @@
     <link rel="icon" type="image/png" href="{{ asset('logos/icono.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('logos/icono.png') }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>@hasSection('title')@yield('title') | {{ config('app.name', 'Laravel') }}@else{{ config('app.name', 'Laravel') }}@endif</title>
 
-    <meta property="og:title" content="{{ config('app.name', 'Laravel') }}">
+    <meta property="og:title" content="@hasSection('title')@yield('title')@else{{ config('app.name', 'Laravel') }}@endif">
     <meta property="og:image" content="{{ asset('logos/boton-acreditar-128.png') }}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ config('app.name', 'Laravel') }}">
+    <meta name="twitter:title" content="@hasSection('title')@yield('title')@else{{ config('app.name', 'Laravel') }}@endif">
     <meta name="twitter:image" content="{{ asset('logos/boton-acreditar-128.png') }}">
 
     <!-- Fonts -->

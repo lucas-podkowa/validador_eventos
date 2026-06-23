@@ -1,3 +1,5 @@
+@section('title', $evento->nombre ?? 'Inscripción')
+
 {{-- <div class="bg-gray-200 bg-opacity-25 gap-6 lg:gap-8 p-6 lg:p-8 justify-center"> --}}
 <div class="min-h-screen flex flex-col">
 
