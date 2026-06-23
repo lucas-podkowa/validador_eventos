@@ -649,6 +649,7 @@
                                 <th>Tipo de Evento</th>
                                 <th>Fecha de Inicio</th>
                                 <th>Inscriptos</th>
+                                <th>Inscripción</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -658,6 +659,14 @@
                                     <td>{{ $evento->tipoEvento->nombre }}</td>
                                     <td>{{ $evento->fecha_inicio_formatted }}</td>
                                     <td>{{ $evento->inscriptos()->count() }}</td>
+                                    <td class="text-center">
+                                        <a href="{{ route('inscripcion.evento', ['tipoEvento' => $evento->tipoEvento->nombre, 'eventoId' => $evento->evento_id]) }}"
+                                           class="inline-flex items-center justify-center rounded-full bg-blue-600 p-2 text-white transition hover:bg-blue-700"
+                                           title="Inscribirse al Evento"
+                                           aria-label="Inscribirse al Evento">
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        </a>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

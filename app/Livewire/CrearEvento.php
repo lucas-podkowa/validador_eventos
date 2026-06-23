@@ -15,12 +15,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
-
-// use Livewire\WithFileUploads;
+use Livewire\WithFileUploads;
 
 class CrearEvento extends Component
 {
-    // use WithFileUploads;
+    use WithFileUploads;
     public $evento_id = null; // Para saber si es edición o creación
 
     public $categoria_id = null;
@@ -56,6 +55,9 @@ class CrearEvento extends Component
     public array $destinatarioSeleccionado = [];
 
     public array $destinatarioPrecio = [];
+
+    // Métodos de pago flexibles (url, cbu, alias, qr_image path, etc.)
+    public array $metodosPago = [];
 
     // Responsable
     public $responsable_id = null;
@@ -119,6 +121,16 @@ class CrearEvento extends Component
                 $this->por_aprobacion = (bool) $evento->por_aprobacion;
                 $this->arancel = (bool) $evento->arancel;
                 $this->link_pago = $evento->link_pago;
+                // Hidratar métodos de pago si existen
+                $this->metodosPago = is_array($evento->metodos_pago) ? $evento->metodos_pago : ($evento->metodos_pago ? json_decode($evento->metodos_pago, true) : []);
+                if (empty($this->metodosPago) && ! empty($this->link_pago)) {
+                    $this->metodosPago = [[
+                        'tipo' => 'url',
+                        'valor' => $this->link_pago,
+                        'principal' => true,
+                        'activo' => true,
+                    ]];
+                }
                 $this->indicadoresSeleccionados = $evento->tipoIndicadores()->pluck('tipo_indicador.tipo_indicador_id')->toArray();
 
                 foreach ($evento->destinatarios as $destinatario) {
@@ -156,6 +168,12 @@ class CrearEvento extends Component
             'link_pago' => 'nullable|url|max:500',
         ];
 
+        $mensajes = [
+            'metodosPago.*.valor.required' => 'Complete el valor del método de pago.',
+            'metodosPago.*.valor.url' => 'La URL ingresada no es válida.',
+            'metodosPago.*.valor_file.required' => 'Adjunte una imagen para el método QR.',
+        ];
+
         // Validar la fecha siempre que esté presente
         $reglas['fecha_inicio'] = 'required|date';
 
@@ -167,15 +185,41 @@ class CrearEvento extends Component
                 $reglas["destinatarioPrecio.$id"] = 'required|numeric|min:0';
             }
 
+            foreach ($this->metodosPago as $index => $metodo) {
+                if (! ($metodo['activo'] ?? true)) {
+                    continue;
+                }
+
+                $tipo = $metodo['tipo'] ?? 'url';
+
+                if ($tipo === 'qr_image') {
+                    $reglas["metodosPago.$index.valor_file"] = 'required';
+                } else {
+                    $reglas["metodosPago.$index.valor"] = ['required', 'string', 'min:1'];
+
+                    if ($tipo === 'url') {
+                        $reglas["metodosPago.$index.valor"][] = 'url';
+                    }
+                }
+            }
+
             $tienePrecioPositivo = collect($this->destinatarioSeleccionado)
                 ->contains(fn ($id) => (float) ($this->destinatarioPrecio[$id] ?? 0) > 0);
 
             if ($tienePrecioPositivo) {
-                $reglas['link_pago'] = 'required|url|max:500';
+                $metodosValidos = collect($this->metodosPago)
+                    ->filter(fn ($metodo) => ($metodo['activo'] ?? true) && ! empty(trim((string) ($metodo['valor'] ?? ''))))
+                    ->count();
+
+                if ($metodosValidos === 0 && empty(trim((string) $this->link_pago))) {
+                    $this->addError('metodosPago', 'Agrega al menos un método de pago válido (URL, CBU/CVU, Alias o QR).');
+
+                    return;
+                }
             }
         }
 
-        $this->validate($reglas);
+        $this->validate($reglas, $mensajes);
 
         // Validar que no se desmarquen destinatarios ya usados ni se quite el arancel si hay inscripciones pagas
         if ($this->evento_id) {
@@ -212,6 +256,12 @@ class CrearEvento extends Component
         // Validar los datos del formulario
         $this->nombre_evento = mb_strtoupper(trim($this->nombre_evento));
 
+        $metodosPagoPersistidos = $this->normalizarMetodosPago();
+
+        if (! empty($metodosPagoPersistidos)) {
+            $this->link_pago = collect($metodosPagoPersistidos)->first(fn ($m) => ($m['tipo'] ?? 'url') === 'url' && ! empty($m['valor']))['valor'] ?? $this->link_pago;
+        }
+
         DB::beginTransaction();
         try {
             $datosEvento = [
@@ -224,6 +274,7 @@ class CrearEvento extends Component
                 'por_aprobacion' => (bool) $this->por_aprobacion,
                 'arancel' => (bool) $this->arancel,
                 'link_pago' => $this->arancel ? $this->link_pago : null,
+                'metodos_pago' => $this->arancel ? $metodosPagoPersistidos : null,
                 'responsable_id' => $this->responsable_id,
             ];
 
@@ -284,6 +335,7 @@ class CrearEvento extends Component
                 'responsable_nombre',
                 'responsable_apellido',
                 'responsable_encontrado',
+                'metodosPago',
             ]);
 
             // Redirigir a la ruta de eventos después de la creación exitosa
@@ -440,6 +492,95 @@ class CrearEvento extends Component
         $this->responsable_apellido = $this->modal_responsable_apellido;
         $this->responsable_encontrado = true;
         $this->open_responsable = false;
+    }
+
+    // ----------------------------------------------------------------
+    // ----- Métodos de pago (skeleton helpers) ------------------------
+    // ----------------------------------------------------------------
+
+    public function addMetodo()
+    {
+        $this->metodosPago[] = [
+            'tipo' => 'url',
+            'valor' => '',
+            'principal' => empty($this->metodosPago),
+            'activo' => true,
+        ];
+    }
+
+    public function removeMetodo($index)
+    {
+        if (isset($this->metodosPago[$index])) {
+            array_splice($this->metodosPago, $index, 1);
+        }
+    }
+
+    public function setPrincipalMetodo($index)
+    {
+        foreach ($this->metodosPago as $k => $m) {
+            $this->metodosPago[$k]['principal'] = ($k == $index);
+        }
+    }
+
+    protected function normalizarMetodosPago(): array
+    {
+        $normalizados = [];
+
+        foreach ($this->metodosPago as $metodo) {
+            $normalizado = [
+                'tipo' => $metodo['tipo'] ?? 'url',
+                'valor' => trim((string) ($metodo['valor'] ?? '')),
+                'principal' => (bool) ($metodo['principal'] ?? false),
+                'activo' => (bool) ($metodo['activo'] ?? true),
+            ];
+
+            if (($normalizado['tipo'] ?? 'url') === 'qr_image' && ! empty($metodo['valor_file'] ?? null)) {
+                $file = $metodo['valor_file'];
+                if (is_object($file) && method_exists($file, 'store')) {
+                    $normalizado['valor'] = $file->store('pagos/qr', 'public');
+                }
+            }
+
+            if (! empty($normalizado['valor']) || ($normalizado['tipo'] ?? 'url') === 'qr_image') {
+                $normalizados[] = $normalizado;
+            }
+        }
+
+        $hayPrincipal = false;
+        foreach ($normalizados as $i => $metodo) {
+            if (! empty($metodo['principal'])) {
+                if (! $hayPrincipal) {
+                    $hayPrincipal = true;
+                } else {
+                    $normalizados[$i]['principal'] = false;
+                }
+            }
+        }
+
+        if (! $hayPrincipal && ! empty($normalizados)) {
+            $normalizados[0]['principal'] = true;
+        }
+
+        return $normalizados;
+    }
+
+    public function moveMetodoUp($index)
+    {
+        if ($index > 0 && isset($this->metodosPago[$index - 1])) {
+            $tmp = $this->metodosPago[$index - 1];
+            $this->metodosPago[$index - 1] = $this->metodosPago[$index];
+            $this->metodosPago[$index] = $tmp;
+        }
+    }
+
+    public function moveMetodoDown($index)
+    {
+        $count = count($this->metodosPago);
+        if ($index < $count - 1 && isset($this->metodosPago[$index + 1])) {
+            $tmp = $this->metodosPago[$index + 1];
+            $this->metodosPago[$index + 1] = $this->metodosPago[$index];
+            $this->metodosPago[$index] = $tmp;
+        }
     }
 
     // ----------------------------------------------------------------

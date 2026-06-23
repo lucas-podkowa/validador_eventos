@@ -60,7 +60,7 @@ class HabilitarPlanilla extends Component
         ];
 
         if ($this->modo === 'crear' || $this->disposicion instanceof \Illuminate\Http\UploadedFile) {
-            $rules['disposicion'] = 'required|file|mimes:pdf|max:10240';
+            $rules['disposicion'] = 'required|file|mimes:pdf|max:30720';
         }
 
         return $rules;
@@ -195,7 +195,7 @@ class HabilitarPlanilla extends Component
         }
 
         $this->validate([
-            'nuevaImagen' => 'required|image|max:10240',
+            'nuevaImagen' => 'required|image|max:30720',
         ]);
 
         try {

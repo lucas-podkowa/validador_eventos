@@ -28,7 +28,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach ($destinatarios as $dest)
                         <tr>
-                            <td class="px-4 py-2 font-medium">{{ $dest->nombre }}</td>
+                            <td class="px-4 py-2 font-medium">{{ $dest->nombre_display }}</td>
                             <td class="px-4 py-2 text-center">
                                 <button wire:click="toggleActivo({{ $dest->destinatario_id }})"
                                     class="inline-block px-2 py-1 text-xs rounded-full {{ $dest->activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
@@ -46,7 +46,7 @@
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button wire:click="eliminar({{ $dest->destinatario_id }})"
-                                    wire:confirm="¿Eliminar el destinatario '{{ $dest->nombre }}'?"
+                                    wire:confirm="¿Eliminar el destinatario '{{ $dest->nombre_display }}'?"
                                     class="btn-action-delete" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>

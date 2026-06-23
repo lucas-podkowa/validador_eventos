@@ -237,6 +237,47 @@ class ArancelesDestinatariosTest extends TestCase
         ]);
     }
 
+    public function test_formulario_publico_destaca_el_metodo_de_pago_principal(): void
+    {
+        Mail::fake();
+
+        $evento = $this->crearEventoArancelado([$this->destinatarioPago->destinatario_id => 1000], conPlanilla: true);
+        $evento->metodos_pago = [
+            ['tipo' => 'url', 'valor' => 'https://pagos.example.com', 'principal' => false, 'activo' => true],
+            ['tipo' => 'cbu', 'valor' => '1234567890123456789012', 'principal' => true, 'activo' => true],
+        ];
+        $evento->save();
+
+        Livewire::test(RegistroEventoPublico::class, [
+            'tipoEvento' => $evento->tipoEvento->nombre,
+            'eventoId' => $evento->evento_id,
+        ])
+            ->set('dni', '12345678')
+            ->set('nombre', 'Juan')
+            ->set('apellido', 'Pérez')
+            ->set('mail', 'juan@example.com')
+            ->set('telefono', '123456789')
+            ->set('destinatario_id', (string) $this->destinatarioPago->destinatario_id)
+            ->assertSee('Método principal')
+            ->assertSee('Otros métodos');
+    }
+
+    public function test_landing_page_muestra_enlace_a_inscripcion_en_modal_de_eventos_activos(): void
+    {
+        $evento = $this->crearEventoConPlanilla();
+        $evento->estado = 'en curso';
+        $evento->save();
+
+        $this->get(route('welcome'))
+            ->assertOk()
+            ->assertSee('Eventos Activos')
+            ->assertSeeHtml('title="Inscribirse al Evento"')
+            ->assertSee(route('inscripcion.evento', [
+                'tipoEvento' => $evento->tipoEvento->nombre,
+                'eventoId' => $evento->evento_id,
+            ]));
+    }
+
     public function test_admin_puede_descargar_comprobante(): void
     {
         Storage::fake('private');
@@ -316,6 +357,16 @@ class ArancelesDestinatariosTest extends TestCase
         );
     }
 
+    public function test_destinatario_se_muestra_con_formato_visual_title_case(): void
+    {
+        $destinatario = Destinatario::create([
+            'nombre' => 'estudiante de la unam',
+            'activo' => true,
+        ]);
+
+        $this->assertSame('Estudiante de la Unam', $destinatario->nombre_display);
+    }
+
     public function test_evento_puede_tener_fecha_de_inicio_pasada(): void
     {
         $this->actingAs($this->admin);
@@ -333,6 +384,16 @@ class ArancelesDestinatariosTest extends TestCase
         $this->assertDatabaseHas('evento', [
             'nombre' => 'EVENTO PASADO',
         ]);
+    }
+
+    public function test_planilla_muestra_informacion_de_tamanio_para_archivo_pdf(): void
+    {
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanilla();
+
+        Livewire::test(HabilitarPlanilla::class, ['evento_id' => $evento->evento_id])
+            ->assertSee('hasta 30 MB');
     }
 
     public function test_planilla_restringe_fecha_cierre_posterior_a_apertura(): void

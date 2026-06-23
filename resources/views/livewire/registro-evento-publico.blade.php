@@ -83,7 +83,7 @@
                                     <option value="">Seleccione</option>
                                     @foreach ($evento->destinatarios as $dest)
                                         <option value="{{ $dest->destinatario_id }}">
-                                            {{ $dest->nombre }}
+                                            {{ $dest->nombre_display }}
                                             @if ($dest->pivot->precio > 0)
                                                 — ${{ number_format($dest->pivot->precio, 2, ',', '.') }}
                                             @else
@@ -110,12 +110,52 @@
                                 </div>
 
                                 @if ($montoDestinatario > 0)
-                                    <div class="flex flex-col">
-                                        <label class="mb-1 lg:mb-0 font-medium">Link de pago</label>
-                                        <a href="{{ $evento->link_pago }}" target="_blank" rel="noopener noreferrer"
-                                            class="text-blue-600 hover:text-blue-800 underline break-all">
-                                            {{ $evento->link_pago }}
-                                        </a>
+                                    <div class="flex flex-col space-y-2">
+                                        <label class="mb-1 lg:mb-0 font-medium">Opciones de pago</label>
+                                        @php $metodosDisponibles = collect($evento->metodos_pago ?? [])->filter(fn ($m) => ($m['activo'] ?? true)); @endphp
+                                        @if ($metodosDisponibles->isNotEmpty())
+                                            @php $tienePrincipal = $metodosDisponibles->contains(fn ($m) => !empty($m['principal'])); @endphp
+                                            @if ($tienePrincipal)
+                                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Métodos de pago disponibles</p>
+                                            @endif
+                                            @foreach ($metodosDisponibles as $metodo)
+                                                @php $esPrincipal = !empty($metodo['principal']); @endphp
+                                                <div class="border rounded-lg p-3 {{ $esPrincipal ? 'border-green-200 bg-green-50/80 shadow-sm' : 'border-sky-200 bg-sky-50/70' }}">
+                                                    @if ($esPrincipal)
+                                                        <div class="mb-2 inline-flex items-center rounded-full border border-green-200 bg-white px-2.5 py-1 text-xs font-semibold text-green-700">
+                                                            Método principal
+                                                        </div>
+                                                    @else
+                                                        <div class="mb-2 inline-flex items-center rounded-full border border-sky-200 bg-white px-2.5 py-1 text-xs font-semibold text-sky-700">
+                                                            Otros métodos
+                                                        </div>
+                                                    @endif
+
+                                                    @if (($metodo['tipo'] ?? 'url') === 'url')
+                                                        <p class="text-sm font-medium {{ $esPrincipal ? 'text-green-800' : 'text-sky-800' }}">Link de pago</p>
+                                                        <a href="{{ $metodo['valor'] ?? '' }}" target="_blank" rel="noopener noreferrer"
+                                                            class="text-blue-600 hover:text-blue-800 underline break-all">
+                                                            {{ $metodo['valor'] ?? '' }}
+                                                        </a>
+                                                    @elseif (($metodo['tipo'] ?? 'url') === 'cbu')
+                                                        <p class="text-sm font-medium {{ $esPrincipal ? 'text-green-800' : 'text-sky-800' }}">CBU/CVU</p>
+                                                        <p class="text-sm text-gray-700 break-all">{{ $metodo['valor'] ?? '' }}</p>
+                                                    @elseif (($metodo['tipo'] ?? 'url') === 'alias')
+                                                        <p class="text-sm font-medium {{ $esPrincipal ? 'text-green-800' : 'text-sky-800' }}">Alias</p>
+                                                        <p class="text-sm text-gray-700 break-all">{{ $metodo['valor'] ?? '' }}</p>
+                                                    @elseif (($metodo['tipo'] ?? 'url') === 'qr_image')
+                                                        <p class="text-sm font-medium {{ $esPrincipal ? 'text-green-800' : 'text-sky-800' }}">Código QR</p>
+                                                        @if (!empty($metodo['valor']))
+                                                            <img src="{{ asset('storage/' . $metodo['valor']) }}" alt="QR de pago" class="mt-2 max-w-xs rounded border">
+                                                        @else
+                                                            <p class="text-sm text-gray-500">Sin imagen cargada.</p>
+                                                        @endif
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <div class="text-sm text-gray-600">No hay métodos de pago configurados para este evento.</div>
+                                        @endif
                                     </div>
 
                                     <div class="flex flex-col">

@@ -34,6 +34,7 @@ class Evento extends Model
         'por_aprobacion',
         'arancel',
         'link_pago',
+        'metodos_pago',
         'revisor_id',
         'revisado',
         'responsable_id',
@@ -41,6 +42,7 @@ class Evento extends Model
 
     protected $casts = [
         'arancel' => 'boolean',
+        'metodos_pago' => 'array',
     ];
 
     protected static function boot()
@@ -234,5 +236,26 @@ class Evento extends Model
     {
         return Carbon::parse($this->fecha_inicio)->format('d/m/Y');
         //     return Carbon::parse($this->fecha_inicio)->format('d/m/Y H:i');
+    }
+
+    /**
+     * Devuelve el método de pago principal (marcado con 'principal' => true)
+     * o el primer método disponible.
+     */
+    public function getPrimaryMetodoPago()
+    {
+        $metodos = $this->metodos_pago ?? [];
+
+        if (! is_array($metodos) || empty($metodos)) {
+            return null;
+        }
+
+        foreach ($metodos as $m) {
+            if (! empty($m['principal'])) {
+                return $m;
+            }
+        }
+
+        return $metodos[0] ?? null;
     }
 }

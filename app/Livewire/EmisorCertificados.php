@@ -181,7 +181,7 @@ class EmisorCertificados extends Component
 
         $plantillasForTipo = $this->plantillas_por_tipo[$this->certificado_tipo] ?? [];
         if (empty($plantillasForTipo)) {
-            $extraRules['background_image'] = 'required|image|mimes:jpeg,png|max:2048';
+            $extraRules['background_image'] = 'required|image|mimes:jpeg,png|max:30720';
         } else {
             $extraRules['plantilla_id'] = 'required|exists:plantilla_certificado,plantilla_id';
         }

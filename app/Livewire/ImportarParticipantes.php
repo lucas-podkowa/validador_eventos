@@ -29,7 +29,7 @@ class ImportarParticipantes extends Component
     public $errores = 0;
 
     protected $rules = [
-        'archivo' => 'required|mimes:xlsx,xls,csv|max:10240', // hasta 10MB
+        'archivo' => 'required|mimes:xlsx,xls,csv|max:30720', // hasta 30MB
     ];
 
     public function mount($evento_id)

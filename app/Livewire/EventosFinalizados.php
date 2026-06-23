@@ -62,7 +62,7 @@ class EventosFinalizados extends Component
     protected function rules()
     {
         $rules = [];
-        $maxSize = '10240';
+        $maxSize = '30720';
 
         if ($this->evento_selected && $this->evento_selected->por_aprobacion) {
             if (!($this->usar_plantilla_categoria['asistencia'] ?? false)) {

@@ -44,6 +44,9 @@ class RegistroEventoPublico extends Component
 
     public ?array $participante = null;
 
+    // Métodos de pago disponibles para el evento (hidratados desde Evento)
+    public array $metodosPago = [];
+
     public $indicadoresMultiples = []; // para checkboxes
 
     public $indicadoresUnicos = []; // para radios
@@ -77,6 +80,9 @@ class RegistroEventoPublico extends Component
         }
 
         $this->evento = Evento::with('destinatarios')->findOrFail($eventoId);
+
+        // Hidratar métodos de pago si existen
+        $this->metodosPago = is_array($this->evento->metodos_pago) ? $this->evento->metodos_pago : ($this->evento->metodos_pago ? json_decode($this->evento->metodos_pago, true) : []);
 
         $rolParticipante = Rol::where('nombre', 'Participante')->first();
         if (! $rolParticipante) {
@@ -144,7 +150,7 @@ class RegistroEventoPublico extends Component
             ];
 
             if ($this->montoDestinatario > 0) {
-                $reglas['comprobante'] = 'required|file|mimes:pdf,jpg,png|max:2048';
+                $reglas['comprobante'] = 'required|file|mimes:pdf,jpg,png|max:30720';
             }
         }
 
@@ -249,6 +255,7 @@ class RegistroEventoPublico extends Component
                 'destinatario_id' => $this->evento->arancel ? $this->destinatario_id : null,
                 'monto' => $this->evento->arancel ? $this->montoDestinatario : null,
                 'comprobante_pago' => $comprobantePath,
+                'metodo_pago' => $this->evento->getPrimaryMetodoPago(),
                 'fecha_inscripcion' => now(),
                 'asistencia' => false,
             ]);

@@ -20,6 +20,7 @@ class InscripcionParticipante extends Model
         'participante_id',
         'rol_id',
         'destinatario_id',
+        'metodo_pago',
         'monto',
         'comprobante_pago',
         'fecha_inscripcion',
@@ -28,6 +29,7 @@ class InscripcionParticipante extends Model
 
     protected $casts = [
         'monto' => 'decimal:2',
+        'metodo_pago' => 'array',
     ];
 
     public function indicadores()

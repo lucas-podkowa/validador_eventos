@@ -135,16 +135,77 @@
                         @enderror
 
                         @if ($arancel)
-                            <div class="mb-4">
-                                <label for="link_pago" class="block text-sm font-medium text-gray-700">
-                                    Link de pago <span class="text-red-500">*</span>
-                                </label>
-                                <input type="url" id="link_pago" wire:model="link_pago"
-                                    placeholder="https://..."
-                                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                @error('link_pago')
-                                    <span class="text-sm text-red-500">{{ $message }}</span>
+                            <div class="mb-4 border border-dashed border-gray-300 rounded-lg p-4 bg-white">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-800">Métodos de pago</p>
+                                        <p class="text-xs text-gray-500">Agrega URL, CBU/CVU, Alias o una imagen QR.</p>
+                                    </div>
+                                    <button type="button" wire:click="addMetodo"
+                                        class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700">
+                                        + Agregar método
+                                    </button>
+                                </div>
+
+                                @error('metodosPago')
+                                    <p class="text-sm text-red-500 mb-2">{{ $message }}</p>
                                 @enderror
+
+                                @foreach ($metodosPago as $index => $metodo)
+                                    <div class="mb-3 rounded-lg border border-gray-200 p-3 bg-gray-50" wire:key="metodo-block-{{ $index }}-{{ $metodo['tipo'] ?? 'url' }}">
+                                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                                            <select wire:model.live="metodosPago.{{ $index }}.tipo"
+                                                class="border-gray-300 rounded-md text-sm">
+                                                <option value="url">URL</option>
+                                                <option value="cbu">CBU/CVU</option>
+                                                <option value="alias">Alias</option>
+                                                <option value="qr_image">QR (imagen)</option>
+                                            </select>
+
+                                            <button type="button" wire:click="setPrincipalMetodo({{ $index }})"
+                                                class="inline-flex items-center gap-2 text-sm {{ ($metodo['principal'] ?? false) ? 'text-green-700 font-semibold' : 'text-gray-600' }}">
+                                                <span class="{{ ($metodo['principal'] ?? false) ? 'text-green-600' : 'text-gray-400' }}">●</span>
+                                                {{ ($metodo['principal'] ?? false) ? 'Principal' : 'Marcar como principal' }}
+                                            </button>
+
+                                            <label class="inline-flex items-center gap-2 text-sm">
+                                                <input type="checkbox" wire:model="metodosPago.{{ $index }}.activo" class="rounded border-gray-300">
+                                                Activo
+                                            </label>
+
+                                            <button type="button" wire:click="moveMetodoUp({{ $index }})" class="text-xs text-gray-600">↑</button>
+                                            <button type="button" wire:click="moveMetodoDown({{ $index }})" class="text-xs text-gray-600">↓</button>
+                                            <button type="button" wire:click="removeMetodo({{ $index }})" class="text-xs text-red-600">Eliminar</button>
+                                        </div>
+
+                                        @if (($metodo['tipo'] ?? 'url') === 'qr_image')
+                                            <div class="mt-2">
+                                                <label class="block text-xs font-medium text-gray-700 mb-1">Archivo QR</label>
+                                                <input type="file" wire:model.live="metodosPago.{{ $index }}.valor_file"
+                                                    class="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700">
+                                                @error("metodosPago.$index.valor_file")
+                                                    <span class="text-xs text-red-500">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        @else
+                                            <div class="mt-2">
+                                                <label class="block text-xs font-medium text-gray-700 mb-1">
+                                                    {{ ($metodo['tipo'] ?? 'url') === 'url' ? 'URL' : (($metodo['tipo'] ?? 'url') === 'cbu' ? 'CBU/CVU' : 'Alias') }}
+                                                </label>
+                                                <input type="text" wire:model.live="metodosPago.{{ $index }}.valor"
+                                                    placeholder="{{ ($metodo['tipo'] ?? 'url') === 'url' ? 'https://...' : (($metodo['tipo'] ?? 'url') === 'cbu' ? '0000000000000000000000' : 'mi.alias') }}"
+                                                    class="block w-full border-gray-300 rounded-md shadow-sm text-sm">
+                                                @error("metodosPago.$index.valor")
+                                                    <span class="text-xs text-red-500">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+
+                                @if (empty($metodosPago))
+                                    <p class="text-sm text-gray-500">No hay métodos de pago cargados todavía. Agregá uno para que el usuario vea opciones al inscribirse.</p>
+                                @endif
                             </div>
 
                             <div>
@@ -165,7 +226,7 @@
                                                 value="{{ $d->destinatario_id }}"
                                                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
                                             <div class="flex-1">
-                                                <p class="text-sm font-medium text-gray-800">{{ $d->nombre }}</p>
+                                                <p class="text-sm font-medium text-gray-800">{{ $d->nombre_display }}</p>
                                                 @if (! $d->activo)
                                                     <p class="text-xs text-gray-500">Inactivo</p>
                                                 @endif

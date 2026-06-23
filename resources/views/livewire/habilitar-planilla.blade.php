@@ -129,6 +129,7 @@
                             </span>
                         </div>
                     </div>
+                    <p class="mt-2 text-xs text-gray-500">Permitido: solo archivos PDF. Tamaño máximo: 30 MB.</p>
                     @error('disposicion')
                         <span class="text-red-500 text-sm">{{ $message }}</span>
                     @enderror

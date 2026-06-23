@@ -136,7 +136,7 @@ class Categorias extends Component
     {
         $this->validate([
             'nueva_plantilla_nombre'  => 'required|string|max:100',
-            'nueva_plantilla_imagen'  => 'required|image|mimes:jpeg,png|max:2048',
+            'nueva_plantilla_imagen'  => 'required|image|mimes:jpeg,png|max:30720',
             'nueva_plantilla_tipo'    => ['required', Rule::in(PlantillaCertificado::TIPOS)],
         ]);
 
@@ -187,7 +187,7 @@ class Categorias extends Component
         $this->validate([
             'editando_plantilla_nombre' => 'required|string|max:100',
             'editando_plantilla_tipo' => ['required', Rule::in(PlantillaCertificado::TIPOS)],
-            'editando_plantilla_imagen' => 'nullable|image|mimes:jpeg,png|max:2048',
+            'editando_plantilla_imagen' => 'nullable|image|mimes:jpeg,png|max:30720',
         ]);
 
         $plantilla = PlantillaCertificado::findOrFail($this->editando_plantilla_id);
