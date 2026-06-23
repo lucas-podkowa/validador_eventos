@@ -295,6 +295,8 @@ class RegistroEventoPublico extends Component
 
     public function render()
     {
-        return view('livewire.registro-evento-publico')->layout('layouts.guest');
+        return view('livewire.registro-evento-publico')->layout('layouts.guest', [
+            'title' => $this->evento->nombre,
+        ]);
     }
 }
