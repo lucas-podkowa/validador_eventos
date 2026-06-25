@@ -89,10 +89,10 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 px-6">
 
                     <!-- Requiere Aprobación -->
-                    <label class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer">
+                    <label class="flex items-center gap-3 p-3 border border-blue-300 rounded-lg bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-colors cursor-pointer shadow-sm">
                         <input type="checkbox" id="por_aprobacion" wire:model="por_aprobacion"
-                            class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer">
-                        <span class="text-sm font-medium text-gray-700 select-none">
+                            class="w-5 h-5 text-blue-600 bg-white border-blue-400 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer">
+                        <span class="text-sm font-semibold text-blue-800 select-none">
                             Requiere Aprobación
                         </span>
                     </label>
@@ -125,10 +125,10 @@
 
                     <!-- Arancel -->
                     <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <label class="flex items-center gap-3 cursor-pointer mb-3">
+                        <label class="flex items-center gap-3 cursor-pointer mb-3 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 shadow-sm">
                             <input type="checkbox" wire:model.live="arancel"
-                                class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
-                            <span class="text-sm font-medium text-gray-700 select-none">Evento arancelado</span>
+                                class="w-5 h-5 text-blue-600 bg-white border-blue-400 rounded focus:ring-blue-500 focus:ring-2">
+                            <span class="text-sm font-semibold text-blue-800 select-none">Evento arancelado</span>
                         </label>
                         @error('arancel')
                             <span class="text-sm text-red-500">{{ $message }}</span>
@@ -211,7 +211,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Destinatarios y precios @if ($arancel) <span class="text-red-500">*</span> @endif
+                                Destinatarios, Documentación y Precios @if ($arancel) <span class="text-red-500">*</span> @endif
                             </label>
                             @error('destinatarioSeleccionado')
                                 <span class="text-sm text-red-500 block mb-2">{{ $message }}</span>

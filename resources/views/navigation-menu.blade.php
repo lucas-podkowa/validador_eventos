@@ -3,7 +3,7 @@
     <div class="sidebar-header">
         <a href="{{ route('welcome') }}" class="flex items-center gap-1">
             <img src="{{ asset('logos/logo_acreditar.png') }}" alt="Acreditar"
-                class="h-16 w-auto max-w-[160px]" style="filter: brightness(0) invert(1);">
+                class="h-12 w-auto max-w-[120px] md:h-16 md:max-w-[160px]" style="filter: brightness(0) invert(1);">
         </a>
     </div>
 

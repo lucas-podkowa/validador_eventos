@@ -51,7 +51,13 @@
         </aside>
 
         <!-- Sidebar (mobile) -->
-        <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-brand-primary text-white transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col">
+        <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 z-50 w-[84vw] max-w-72 bg-brand-primary text-white transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <span class="text-sm font-semibold uppercase tracking-wide text-white/80">Menú</span>
+                <button type="button" onclick="toggleMobileSidebar()" class="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white" aria-label="Cerrar menú">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
             @livewire('navigation-menu')
         </aside>
 
@@ -88,19 +94,38 @@
     @livewireScripts
 
     <script>
-        function toggleMobileSidebar() {
+        function openMobileSidebar() {
             const sidebar = document.getElementById('mobile-sidebar');
             const overlay = document.getElementById('mobile-sidebar-overlay');
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('mobile-sidebar');
+            const overlay = document.getElementById('mobile-sidebar-overlay');
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('mobile-sidebar');
             const isHidden = sidebar.classList.contains('-translate-x-full');
-            
+
             if (isHidden) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
+                openMobileSidebar();
             } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.add('hidden');
+                closeMobileSidebar();
             }
         }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                closeMobileSidebar();
+            }
+        });
 
         document.addEventListener('livewire:init', () => {
             Livewire.on('alert', (event) => {

@@ -226,66 +226,84 @@
         </div>
 
         @if (count($inscriptos))
-            <table class="w-full min-w-full divide-y divide-gray-200 mt-6">
+            <div class="mt-6 overflow-x-auto rounded-lg border border-gray-200">
+                <table class="min-w-[620px] w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Apellido</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">DNI</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Teléfono</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Destinatario</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Monto</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Documentos</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach ($inscriptos as $inscripto)
                         <tr>
-                            <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->nombre }}</td>
-                            <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->apellido }}</td>
-                            <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->dni }}</td>
-                            <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->mail }}</td>
-                            <td class="px-6 whitespace-nowrap">{{ $inscripto->participante->telefono }}</td>
-                            <td class="px-6 whitespace-nowrap">{{ $inscripto->destinatario?->nombre ?? '—' }}</td>
-                            <td class="px-6 whitespace-nowrap text-right">
-                                @if ($inscripto->monto !== null)
-                                    ${{ number_format($inscripto->monto, 2, ',', '.') }}
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td class="px-6 text-center whitespace-nowrap">
-                                @if ($inscripto->documentos->isNotEmpty())
-                                    @foreach ($inscripto->documentos as $doc)
-                                        <a href="{{ route('documento.show', $doc) }}"
-                                            class="text-blue-600 hover:text-blue-800 mr-2 text-xs" title="{{ $doc->requisito?->titulo ?? 'Documento' }}"
-                                            target="_blank">
-                                            <i class="fa-regular fa-file-pdf mr-0.5"></i>{{ $doc->requisito?->titulo ?? 'Doc' }}
-                                        </a>
-                                    @endforeach
-                                @else
-                                    <span class="text-gray-400 text-xs">—</span>
-                                @endif
-                            </td>
-                            <td class="px-6 text-center whitespace-nowrap">
-                                @if ($inscripto->comprobante_pago)
-                                    <a href="{{ route('comprobante.show', $inscripto) }}"
-                                        class="text-green-600 hover:text-green-800 mr-2" title="Descargar comprobante"
-                                        target="_blank">
-                                        <i class="fas fa-file-invoice-dollar"></i>
-                                    </a>
-                                @endif
-                                <button onclick="confirmUnregister('{{ $inscripto->inscripcion_participante_id }}')"
-                                    class="text-red-600 hover:text-red-900" title="Desmatricular">
-                                    <i class="fas fa-user-times"></i>
-                                </button>
-                            </td>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500">Nombre</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500">Apellido</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500">Destinatario</th>
+                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500">Monto</th>
+                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500">Documentos</th>
+                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500">Acciones</th>
                         </tr>
+                    </thead>
+                    @foreach ($inscriptos as $inscripto)
+                        <tbody class="bg-white divide-y divide-gray-200" x-data="{ infoOpen: false }">
+                            <tr class="align-top">
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <button type="button" @click="infoOpen = !infoOpen"
+                                        class="text-left font-medium text-gray-700 hover:text-blue-600 underline-offset-2 hover:underline">
+                                        {{ $inscripto->participante->nombre }}
+                                    </button>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <button type="button" @click="infoOpen = !infoOpen"
+                                        class="text-left font-medium text-gray-700 hover:text-blue-600 underline-offset-2 hover:underline">
+                                        {{ $inscripto->participante->apellido }}
+                                    </button>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">{{ $inscripto->destinatario?->nombre ?? '—' }}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-right">
+                                    @if ($inscripto->monto !== null)
+                                        ${{ number_format($inscripto->monto, 2, ',', '.') }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2 text-center whitespace-nowrap">
+                                    @if ($inscripto->documentos->isNotEmpty())
+                                        @foreach ($inscripto->documentos as $doc)
+                                            <a href="{{ route('documento.show', $doc) }}"
+                                                class="mr-2 text-xs text-blue-600 hover:text-blue-800" title="{{ $doc->requisito?->titulo ?? 'Documento' }}"
+                                                target="_blank">
+                                                <i class="fa-regular fa-file-pdf mr-0.5"></i>{{ $doc->requisito?->titulo ?? 'Doc' }}
+                                            </a>
+                                        @endforeach
+                                    @else
+                                        <span class="text-xs text-gray-400">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2 text-center whitespace-nowrap">
+                                    <div class="flex items-center justify-center gap-2">
+                                        @if ($inscripto->comprobante_pago)
+                                            <a href="{{ route('comprobante.show', $inscripto) }}"
+                                                class="text-green-600 hover:text-green-800" title="Descargar comprobante"
+                                                target="_blank">
+                                                <i class="fas fa-file-invoice-dollar"></i>
+                                            </a>
+                                        @endif
+                                        <button onclick="confirmUnregister('{{ $inscripto->inscripcion_participante_id }}')"
+                                            class="text-red-600 hover:text-red-900" title="Desmatricular">
+                                            <i class="fas fa-user-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr x-show="infoOpen" x-cloak>
+                                <td colspan="6" class="px-3 py-3 bg-gray-50">
+                                    <div class="rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700 shadow-sm">
+                                        <p class="font-semibold text-gray-800">Datos de contacto</p>
+                                        <p class="mt-1"><span class="font-medium">DNI:</span> {{ $inscripto->participante->dni }}</p>
+                                        <p><span class="font-medium">Email:</span> {{ $inscripto->participante->mail }}</p>
+                                        <p><span class="font-medium">Teléfono:</span> {{ $inscripto->participante->telefono }}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
                     @endforeach
-                </tbody>
-            </table>
+                </table>
+            </div>
         @else
             <div class="px-6 py-4">Aún no se han registrado Asistentes</div>
         @endif
