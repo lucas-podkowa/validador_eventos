@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ComprobantePagoController;
+use App\Http\Controllers\DocumentoRequisitoController;
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\WelcomeController;
 use App\Livewire\Admin\Categorias;
@@ -59,6 +60,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // Participantes visibles para administrador y gestor
     Route::middleware('can:ver_participantes')->group(function () {
         Route::get('/participantes', Participantes::class)->name('participantes');
+        Route::get('/documento/{documento}', [DocumentoRequisitoController::class, 'show'])->name('documento.show');
     });
 
     // Aprobaciones (admin, gestor y revisor)

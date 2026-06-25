@@ -2,27 +2,37 @@
 
 namespace App\Livewire;
 
-use App\Models\Evento;
-use App\Models\SesionEvento;
 use App\Models\AsistenciaParticipante;
+use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Rol;
+use App\Models\SesionEvento;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class Asistencias extends Component
 {
     public $eventos;
+
     public $evento_selected;
+
     public $sesiones;
+
     public $sesionSeleccionada;
+
     public $mostrarModalSesion = false;
+
     public $mostrarModalAsistencia = false;
+
     public $nombre;
+
     public $fecha_hora_inicio;
+
     public $fecha_hora_fin;
+
     public $asistencias = [];
+
     public $searchParticipante;
 
     private $rol_participante_id;
@@ -34,8 +44,9 @@ class Asistencias extends Component
         // Obtener el ID del rol "Participante" una sola vez
         $rolParticipante = Rol::where('nombre', 'Participante')->first();
 
-        if (!$rolParticipante) {
+        if (! $rolParticipante) {
             session()->flash('error', 'Error crítico: No se encontró el rol "Participante" en el sistema.');
+
             return;
         }
 
@@ -74,7 +85,7 @@ class Asistencias extends Component
             'evento_id' => $this->evento_selected->evento_id,
             'nombre' => $this->nombre,
             'fecha_hora_inicio' => $this->fecha_hora_inicio,
-            'fecha_hora_fin' => $this->fecha_hora_fin
+            'fecha_hora_fin' => $this->fecha_hora_fin,
         ]);
 
         $this->sesiones = $this->evento_selected->sesiones()->get();
@@ -84,28 +95,27 @@ class Asistencias extends Component
         $this->dispatch('alert', message: 'Sesión creada exitosamente.');
     }
 
-
-
-
-    //----------------------------------------------------------------------------
-    //------ Cargar asistencias SOLO de participantes con rol "Asistente" --------
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Cargar asistencias SOLO de participantes con rol "Asistente" --------
+    // ----------------------------------------------------------------------------
 
     public function cargarAsistencias()
     {
-        if (!$this->evento_selected || !$this->sesionSeleccionada) return;
+        if (! $this->evento_selected || ! $this->sesionSeleccionada) {
+            return;
+        }
 
         $query = $this->evento_selected
             ->planillaInscripcion
             ->inscripcionesParticipantes(); // Filtra por rol "Participante" y hace with('participante')
 
         // Filtro de búsqueda por nombre, apellido o DNI
-        if (!empty($this->searchParticipante)) {
+        if (! empty($this->searchParticipante)) {
             $searchTerm = $this->searchParticipante;
             $query->whereHas('participante', function ($q) use ($searchTerm) {
-                $q->where('nombre', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('apellido', 'like', '%' . $searchTerm . '%')
-                    ->orWhere('dni', 'like', '%' . $searchTerm . '%');
+                $q->where('nombre', 'like', '%'.$searchTerm.'%')
+                    ->orWhere('apellido', 'like', '%'.$searchTerm.'%')
+                    ->orWhere('dni', 'like', '%'.$searchTerm.'%');
             });
         }
 
@@ -123,13 +133,12 @@ class Asistencias extends Component
 
             return [
                 'inscripcion_participante_id' => $inscripcionId,
-                'nombre' => $inscripcion->participante->nombre . ' ' . $inscripcion->participante->apellido,
+                'nombre' => $inscripcion->participante->nombre.' '.$inscripcion->participante->apellido,
                 'dni' => $inscripcion->participante->dni,
                 'asistio' => (bool) $asistio,
             ];
         })->toArray();
     }
-
 
     public function updatedSearchParticipante()
     {
@@ -144,10 +153,9 @@ class Asistencias extends Component
         $this->mostrarModalAsistencia = true;
     }
 
-
-    //----------------------------------------------------------------------------
-    //------ Guardar asistencia --------
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Guardar asistencia --------
+    // ----------------------------------------------------------------------------
 
     public function guardarAsistencia()
     {
@@ -156,7 +164,7 @@ class Asistencias extends Component
                 AsistenciaParticipante::updateOrCreate(
                     [
                         'inscripcion_participante_id' => $asistencia['inscripcion_participante_id'],
-                        'sesion_evento_id' => $this->sesionSeleccionada->sesion_evento_id
+                        'sesion_evento_id' => $this->sesionSeleccionada->sesion_evento_id,
                     ],
                     ['asistio' => $asistencia['asistio']]
                 );
@@ -191,16 +199,15 @@ class Asistencias extends Component
         $this->dispatch('alert', message: 'Todos los asistentes marcados como ausentes.');
     }
 
-
-
-    //----------------------------------------------------------------------------
-    //------ Descargar PDF de asistencias SOLO del ROL Asistentes --------
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Descargar PDF de asistencias SOLO del ROL Asistentes --------
+    // ----------------------------------------------------------------------------
 
     public function descargarAsistencias()
     {
-        if (!$this->evento_selected) {
+        if (! $this->evento_selected) {
             $this->dispatch('oops', message: 'Debe seleccionar un evento primero.');
+
             return;
         }
 
@@ -210,11 +217,10 @@ class Asistencias extends Component
         $sesiones = $evento->sesiones;
         $inscripciones = $evento->planillaInscripcion->inscripcionesParticipantes;
 
-
-
         // Si no hay participantes registrados
         if ($inscripciones->isEmpty()) {
             $this->dispatch('oops', message: 'No hay participantes registrados en este evento.');
+
             return;
         }
 
@@ -223,14 +229,14 @@ class Asistencias extends Component
             ->whereIn('sesion_evento_id', $sesiones->pluck('sesion_evento_id'))
             ->get()
             ->keyBy(function ($item) {
-                return $item->inscripcion_participante_id . '-' . $item->sesion_evento_id;
+                return $item->inscripcion_participante_id.'-'.$item->sesion_evento_id;
             });
 
         $datos = $inscripciones->map(function ($inscripcion) use ($sesiones, $asistenciasData) {
             $asistencias = [];
 
             foreach ($sesiones as $sesion) {
-                $key = $inscripcion->inscripcion_participante_id . '-' . $sesion->sesion_evento_id;
+                $key = $inscripcion->inscripcion_participante_id.'-'.$sesion->sesion_evento_id;
 
                 // Buscar la asistencia en el mapa de datos pre-cargados
                 $asistio = $asistenciasData->get($key)->asistio ?? false;
@@ -239,7 +245,7 @@ class Asistencias extends Component
             }
 
             return [
-                'nombre' => $inscripcion->participante->nombre . ' ' . $inscripcion->participante->apellido,
+                'nombre' => $inscripcion->participante->nombre.' '.$inscripcion->participante->apellido,
                 'dni' => $inscripcion->participante->dni,
                 'asistencias' => $asistencias,
             ];
@@ -251,18 +257,19 @@ class Asistencias extends Component
         ]);
 
         return response()->streamDownload(
-            fn() => print($pdf->output()),
-            'asistencias_' . \Str::slug($evento->nombre) . '.pdf'
+            fn () => print ($pdf->output()),
+            'asistencias_'.\Str::slug($evento->nombre).'.pdf'
         );
     }
-
 
     /**
      * Método auxiliar para obtener estadísticas (opcional)
      */
     public function obtenerEstadisticasSesion($sesionId)
     {
-        if (!$this->evento_selected || !$this->evento_selected->planillaInscripcion) return null;
+        if (! $this->evento_selected || ! $this->evento_selected->planillaInscripcion) {
+            return null;
+        }
 
         $planillaId = $this->evento_selected->planillaInscripcion->planilla_inscripcion_id;
 
@@ -283,14 +290,13 @@ class Asistencias extends Component
             })
             ->count();
 
-
         return [
             'total' => $totalAsistentes,
             'presentes' => $presentes,
             'ausentes' => $totalAsistentes - $presentes,
             'porcentaje_asistencia' => $totalAsistentes > 0
                 ? round(($presentes / $totalAsistentes) * 100, 2)
-                : 0
+                : 0,
         ];
     }
 

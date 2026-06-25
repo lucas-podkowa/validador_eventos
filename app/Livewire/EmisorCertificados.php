@@ -3,42 +3,59 @@
 namespace App\Livewire;
 
 use App\Models\Evento;
-use App\Models\Participante;
 use App\Models\EventoParticipante;
+use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\Rol;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-
+use Livewire\WithPagination;
 
 class EmisorCertificados extends Component
 {
-    use WithPagination;
     use WithFileUploads;
+    use WithPagination;
 
     public $modal_abierto = false;
+
     public $evento_id;
+
     public $rol_id;
-    public $nombre, $apellido, $dni, $telefono, $mail;
+
+    public $nombre;
+
+    public $apellido;
+
+    public $dni;
+
+    public $telefono;
+
+    public $mail;
+
     public ?array $participanteExistente = null;
+
     public $background_image;
 
     // Plantillas de categoría
     public $plantilla_id = null;
+
     public $plantillas_disponibles = [];
+
     public $certificado_tipo = null;
+
     public $plantillas_por_tipo = [];
 
     public $eventoParticipantes = [];
+
     public $eventos = [];
+
     public $roles = [];
 
     protected $rules = [
@@ -86,7 +103,7 @@ class EmisorCertificados extends Component
                         return $p->tipo ?: 'asistencia';
                     });
                     // Convertir a arrays para Livewire
-                    $this->plantillas_por_tipo = $grouped->map(fn($items) => $items->map->toArray())->toArray();
+                    $this->plantillas_por_tipo = $grouped->map(fn ($items) => $items->map->toArray())->toArray();
                 }
 
                 // Determinar tipo y plantilla por defecto según rol y si el evento es por aprobación
@@ -137,7 +154,7 @@ class EmisorCertificados extends Component
         // Si el tipo preferido está disponible, usarlo; si no, usar el primer disponible
         if ($preferred && in_array($preferred, $availableTypes)) {
             $this->certificado_tipo = $preferred;
-        } elseif (!empty($availableTypes)) {
+        } elseif (! empty($availableTypes)) {
             $this->certificado_tipo = $availableTypes[0];
         }
 
@@ -146,11 +163,14 @@ class EmisorCertificados extends Component
             $group = $this->plantillas_por_tipo[$this->certificado_tipo];
             $porDefecto = null;
             foreach ($group as $g) {
-                if (!empty($g['por_defecto'])) { $porDefecto = $g; break; }
+                if (! empty($g['por_defecto'])) {
+                    $porDefecto = $g;
+                    break;
+                }
             }
             if ($porDefecto) {
                 $this->plantilla_id = $porDefecto['plantilla_id'];
-            } elseif (!empty($group)) {
+            } elseif (! empty($group)) {
                 $this->plantilla_id = $group[0]['plantilla_id'];
             }
         }
@@ -189,19 +209,19 @@ class EmisorCertificados extends Component
         $this->validate(array_merge($this->rules, $extraRules));
 
         $backgroundPath = null;
-        if (!empty($plantillasForTipo) && $this->plantilla_id) {
+        if (! empty($plantillasForTipo) && $this->plantilla_id) {
             $plantilla = PlantillaCertificado::find($this->plantilla_id);
             // Seguridad: comprobar que la plantilla pertenece a la categoría y al tipo seleccionado
             $evento = Evento::with('categoria')->find($this->evento_id);
-            if (!$plantilla || !$evento || $plantilla->categoria_id !== $evento->categoria_id || ($plantilla->tipo ?? 'asistencia') !== $this->certificado_tipo) {
+            if (! $plantilla || ! $evento || $plantilla->categoria_id !== $evento->categoria_id || ($plantilla->tipo ?? 'asistencia') !== $this->certificado_tipo) {
                 $this->dispatch('oops', message: 'La plantilla seleccionada no corresponde a la categoría/tipo del evento.');
+
                 return;
             }
             $backgroundPath = $plantilla ? $plantilla->imagen_path : null;
         } elseif ($this->background_image) {
             $backgroundPath = $this->background_image->store('images', 'public');
         }
-
 
         DB::beginTransaction();
         try {
@@ -211,7 +231,7 @@ class EmisorCertificados extends Component
 
             $participante = Participante::where('dni', $this->dni)->first();
 
-            if (!$participante) {
+            if (! $participante) {
                 $participante = Participante::create([
                     'nombre' => $this->nombre,
                     'apellido' => $this->apellido,
@@ -229,16 +249,17 @@ class EmisorCertificados extends Component
             if ($yaExiste) {
                 DB::rollBack();
                 $this->dispatch('oops', message: 'Este participante ya está registrado en el evento.');
+
                 return;
             }
 
             // Generar URL y QR
             $url = route('validar.participante', [
                 'evento_id' => $this->evento_id,
-                'participante_id' => $participante->participante_id
+                'participante_id' => $participante->participante_id,
             ]);
 
-            $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd());
+            $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd);
             $writer = new Writer($renderer);
             $qrcode = $writer->writeString($url);
 
@@ -260,7 +281,7 @@ class EmisorCertificados extends Component
             $this->modal_abierto = false;
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Error: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error: '.$e->getMessage());
         }
     }
 
@@ -275,8 +296,8 @@ class EmisorCertificados extends Component
             ->first()
             ?->pivot;
 
-        if (!$pivot) {
-            throw new \Exception("No se encontró el vínculo entre evento y participante.");
+        if (! $pivot) {
+            throw new \Exception('No se encontró el vínculo entre evento y participante.');
         }
 
         // Resolver ruta absoluta del fondo (soporta storage público y privado)
@@ -293,7 +314,7 @@ class EmisorCertificados extends Component
             'nombre' => $participante->nombre,
             'apellido' => $participante->apellido,
             'dni' => $participante->dni,
-            'qr' => 'data:image/svg+xml;base64,' . base64_encode($pivot->qrcode),
+            'qr' => 'data:image/svg+xml;base64,'.base64_encode($pivot->qrcode),
             'background' => $backgroundAbsPath,
         ])->setPaper('a4', 'landscape');
 
@@ -306,7 +327,6 @@ class EmisorCertificados extends Component
             ->update(['certificado_path' => $filename]);
 
         // (opcionalmente también podés guardar esa ruta en el modelo Evento si querés mantenerlo como está)
-
 
         $evento->update(['certificado_path' => $folderPath]);
     }

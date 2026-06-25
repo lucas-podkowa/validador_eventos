@@ -12,32 +12,45 @@ use Livewire\WithPagination;
 
 class Categorias extends Component
 {
-    use WithPagination;
     use WithFileUploads;
+    use WithPagination;
 
     // Modal principal (crear/editar categoría)
     public $open_modal = false;
+
     public $editando_id = null;
+
     public $nombre = '';
+
     public $descripcion = '';
 
     // Panel de gestión de plantillas
     public $categoria_activa_id = null;
+
     public $categoria_activa_nombre = '';
+
     public $plantillas_de_categoria = [];
 
     // Formulario de nueva plantilla
     public $nueva_plantilla_nombre = '';
+
     public $nueva_plantilla_imagen = null;
+
     public $nueva_plantilla_tipo = 'asistencia';
+
     public $nueva_plantilla_por_defecto = false;
 
     // Edición de plantilla existente
     public $open_modal_plantilla_edit = false;
+
     public $editando_plantilla_id = null;
+
     public $editando_plantilla_nombre = '';
+
     public $editando_plantilla_tipo = 'asistencia';
+
     public $editando_plantilla_por_defecto = false;
+
     public $editando_plantilla_imagen = null; // optional replacement image
 
     public $search = '';
@@ -59,9 +72,9 @@ class Categorias extends Component
     public function editar(int $id): void
     {
         $categoria = CategoriaEvento::findOrFail($id);
-        $this->editando_id  = $categoria->categoria_id;
-        $this->nombre       = $categoria->nombre;
-        $this->descripcion  = $categoria->descripcion ?? '';
+        $this->editando_id = $categoria->categoria_id;
+        $this->nombre = $categoria->nombre;
+        $this->descripcion = $categoria->descripcion ?? '';
         $this->resetValidation();
         $this->open_modal = true;
     }
@@ -98,6 +111,7 @@ class Categorias extends Component
 
         if ($categoria->eventos_count > 0) {
             $this->dispatch('oops', message: "No se puede eliminar: existen {$categoria->eventos_count} evento(s) en esta categoría.");
+
             return;
         }
 
@@ -120,7 +134,7 @@ class Categorias extends Component
     public function abrirPlantillas(int $id): void
     {
         $categoria = CategoriaEvento::with('plantillas')->findOrFail($id);
-        $this->categoria_activa_id     = $categoria->categoria_id;
+        $this->categoria_activa_id = $categoria->categoria_id;
         $this->categoria_activa_nombre = $categoria->nombre;
         $this->plantillas_de_categoria = $categoria->plantillas->toArray();
         $this->reset(['nueva_plantilla_nombre', 'nueva_plantilla_imagen', 'nueva_plantilla_tipo', 'nueva_plantilla_por_defecto']);
@@ -135,9 +149,9 @@ class Categorias extends Component
     public function agregarPlantilla(): void
     {
         $this->validate([
-            'nueva_plantilla_nombre'  => 'required|string|max:100',
-            'nueva_plantilla_imagen'  => 'required|image|mimes:jpeg,png|max:30720',
-            'nueva_plantilla_tipo'    => ['required', Rule::in(PlantillaCertificado::TIPOS)],
+            'nueva_plantilla_nombre' => 'required|string|max:100',
+            'nueva_plantilla_imagen' => 'required|image|mimes:jpeg,png|max:30720',
+            'nueva_plantilla_tipo' => ['required', Rule::in(PlantillaCertificado::TIPOS)],
         ]);
 
         $path = $this->nueva_plantilla_imagen->store(
@@ -154,10 +168,10 @@ class Categorias extends Component
 
         PlantillaCertificado::create([
             'categoria_id' => $this->categoria_activa_id,
-            'nombre'       => $this->nueva_plantilla_nombre,
-            'imagen_path'  => $path,
-            'tipo'         => $this->nueva_plantilla_tipo,
-            'por_defecto'  => (bool) $this->nueva_plantilla_por_defecto,
+            'nombre' => $this->nueva_plantilla_nombre,
+            'imagen_path' => $path,
+            'tipo' => $this->nueva_plantilla_tipo,
+            'por_defecto' => (bool) $this->nueva_plantilla_por_defecto,
         ]);
 
         $this->reset(['nueva_plantilla_nombre', 'nueva_plantilla_imagen', 'nueva_plantilla_tipo', 'nueva_plantilla_por_defecto']);
@@ -246,7 +260,7 @@ class Categorias extends Component
     public function render()
     {
         $categorias = CategoriaEvento::withCount(['eventos', 'plantillas'])
-            ->when($this->search, fn($q) => $q->where('nombre', 'like', "%{$this->search}%"))
+            ->when($this->search, fn ($q) => $q->where('nombre', 'like', "%{$this->search}%"))
             ->orderBy('nombre')
             ->paginate(10);
 

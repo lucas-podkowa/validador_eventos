@@ -9,8 +9,11 @@ use Livewire\Component;
 class AsignarGestores extends Component
 {
     public $evento_id;
+
     public $evento;
+
     public $gestoresSeleccionados = [];
+
     public $searchGestor = '';
 
     public function mount($evento_id)
@@ -23,8 +26,10 @@ class AsignarGestores extends Component
     public function guardar()
     {
         $this->evento->gestores()->sync($this->gestoresSeleccionados);
+
         return redirect()->route('eventos', ['tab' => 'pendientes'])->with('message', 'Gestores asignados correctamente.');
     }
+
     public function redirectToEventos($tab)
     {
         return redirect()->route('eventos', ['tab' => $tab]);
@@ -35,8 +40,8 @@ class AsignarGestores extends Component
         $query = User::role('gestor');
 
         // Si hay algo en el buscador, aplica el filtro
-        if (!empty($this->searchGestor)) {
-            $searchTerm = '%' . $this->searchGestor . '%';
+        if (! empty($this->searchGestor)) {
+            $searchTerm = '%'.$this->searchGestor.'%';
             // Asumiendo que el nombre y apellido están en la columna 'name'
             $query->where('name', 'like', $searchTerm);
         }

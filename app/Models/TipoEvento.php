@@ -10,9 +10,10 @@ class TipoEvento extends Model
     use HasFactory;
 
     public $timestamps = false;
-    protected $table = 'tipo_evento';
-    protected $primaryKey = 'tipo_evento_id';
 
+    protected $table = 'tipo_evento';
+
+    protected $primaryKey = 'tipo_evento_id';
 
     protected $fillable = ['nombre'];
 

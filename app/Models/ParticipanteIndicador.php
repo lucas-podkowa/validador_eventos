@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class ParticipanteIndicador extends Model
 {
     protected $table = 'participante_indicador';
+
     protected $primaryKey = 'participante_indicador_id';
+
     public $timestamps = false;
 
     protected $fillable = [

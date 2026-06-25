@@ -35,7 +35,7 @@ class Destinatario extends Model
     {
         $raw = $this->nombre ?? '';
         $small = [
-            'de', 'del', 'la', 'el', 'las', 'los', 'y', 'en', 'para', 'con', 'por', 'a', 'al', 'o', 'su', 'sus', 'e'
+            'de', 'del', 'la', 'el', 'las', 'los', 'y', 'en', 'para', 'con', 'por', 'a', 'al', 'o', 'su', 'sus', 'e',
         ];
 
         $parts = preg_split('/\s+/', mb_strtolower(trim($raw), 'UTF-8'));

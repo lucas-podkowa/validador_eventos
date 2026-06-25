@@ -19,7 +19,6 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-
 class CrearEvent extends Component
 {
     use WithFileUploads;
@@ -27,22 +26,28 @@ class CrearEvent extends Component
     public bool $processing = false; // Estado de procesamiento
 
     public $tipo_evento = null;
+
     public $nombreEvento = null;
+
     public $fecha_cierre = null;
+
     public $lugarEvento = null;
+
     public $fileInput = null;
+
     public $estudiante = null;
+
     public $localidad = false;
 
     public $tiposEventos = [];
 
     // Reglas de validación
     protected $rules = [
-        'tipo_evento'  => 'required|integer',
+        'tipo_evento' => 'required|integer',
         'nombreEvento' => 'required|string|max:255',
         'fecha_cierre' => 'required|date',
-        'lugarEvento'  => 'required|string|max:255',
-        'fileInput'    => 'required|file' // Límite de 10MB
+        'lugarEvento' => 'required|string|max:255',
+        'fileInput' => 'required|file', // Límite de 10MB
     ];
 
     public function mount()
@@ -59,7 +64,6 @@ class CrearEvent extends Component
         // Validar los datos del formulario
         $this->validate();
 
-
         DB::beginTransaction();
         try {
             $datosEvento = [
@@ -67,38 +71,37 @@ class CrearEvent extends Component
                 'lugar' => $this->lugarEvento,
                 'fecha_cierre' => Carbon::parse($this->fecha_cierre),
                 'cudap' => uniqid(), // Generar un código único
-                'tipo_evento_id' => $this->tipo_evento
+                'tipo_evento_id' => $this->tipo_evento,
             ];
 
             $evento = Evento::firstOrCreate([
                 'nombre' => $datosEvento['nombre'],
                 'lugar' => $datosEvento['lugar'],
                 'tipo_evento_id' => $datosEvento['tipo_evento_id'],
-                'fecha_cierre' => $datosEvento['fecha_cierre']
+                'fecha_cierre' => $datosEvento['fecha_cierre'],
             ], [
                 // Si no se encuentra, entonces se utiliza cudap para crear el nuevo evento
-                'cudap' => $datosEvento['cudap']
+                'cudap' => $datosEvento['cudap'],
             ]);
-
 
             $this->procesarArchivo($evento);
 
-            //Confirmar transacción
+            // Confirmar transacción
             DB::commit();
 
-
-            //Resetear los campos después de guardar
+            // Resetear los campos después de guardar
             $this->reset([
                 'tipo_evento',
                 'nombreEvento',
                 'fecha_cierre',
                 'lugarEvento',
-                'fileInput'
+                'fileInput',
             ]);
         } catch (\Exception $e) {
 
             DB::rollBack();
-            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: '.$e->getMessage());
+
             return;
         } finally {
             // Finalizar el procesamiento
@@ -126,12 +129,12 @@ class CrearEvent extends Component
     private function procesarCSV($evento, $path)
     {
         try {
-            if (($handle = fopen(storage_path('app/private/' . $path), 'r')) === false) {
+            if (($handle = fopen(storage_path('app/private/'.$path), 'r')) === false) {
                 throw new Exception('No se pudo abrir el archivo.');
             } else {
 
                 // Saltar la primera línea (cabeceras)
-                //fgetcsv($handle, 1000, ',');
+                // fgetcsv($handle, 1000, ',');
                 $headers = fgetcsv($handle, 1000, ',');
                 $headers = array_map('strtolower', $headers);
 
@@ -143,7 +146,6 @@ class CrearEvent extends Component
                     'pais' => ['pais', 'nacionalidad'],
                 ];
                 $participantes_del_evento = [];
-
 
                 while (($data = fgetcsv($handle, 1000, ',')) !== false) {
                     $mappedData = [];
@@ -160,7 +162,7 @@ class CrearEvent extends Component
                     }
 
                     // Validar si tiene los datos mínimos (nombre, apellido y dni son obligatorios)
-                    if (!$mappedData['ape_nom'] || !$mappedData['dni'] || !$mappedData['mail']) {
+                    if (! $mappedData['ape_nom'] || ! $mappedData['dni'] || ! $mappedData['mail']) {
                         continue; // Saltar si falta alguno de estos campos esenciales
                     }
 
@@ -170,7 +172,7 @@ class CrearEvent extends Component
                         $paisMinusculas = mb_strtolower($mappedData['pais']);
                         $pais = Pais::whereRaw('LOWER(nombre) = ?', [$paisMinusculas])->first();
 
-                        if (!$pais) {
+                        if (! $pais) {
                             $pais = Pais::create(['nombre' => $paisMinusculas]);
                         }
 
@@ -178,27 +180,25 @@ class CrearEvent extends Component
                         $localidadMin = mb_strtolower($mappedData['localidad']);
                         $localidad = Localidad::whereRaw('LOWER(nombre) = ? AND pais_id = ?', [$localidadMin, $pais->pais_id])->first();
 
-                        if (!$localidad) {
+                        if (! $localidad) {
                             $localidad = Localidad::create([
                                 'nombre' => $localidadMin,
                                 'pais_id' => $pais->pais_id,
                             ]);
                         }
 
-
                         $participante = Participante::where('dni', $mappedData['dni'])->first();
 
                         // Buscar o crear el participante
 
-                        if (!$participante) {
+                        if (! $participante) {
                             $participante = Participante::create([
                                 'dni' => $mappedData['dni'],
                                 'ape_nom' => $mappedData['ape_nom'],
                                 'mail' => $mappedData['mail'],
-                                'localidad_id' => $localidad->localidad_id
+                                'localidad_id' => $localidad->localidad_id,
                             ]);
                         }
-
 
                         // Generar la URL
                         $url = "http://localhost:8080/validate/{$evento->evento_id}/{$participante->participante_id}";
@@ -206,7 +206,7 @@ class CrearEvent extends Component
                         // Crear el QR en formato SVG usando BaconQrCode
                         $renderer = new ImageRenderer(
                             new RendererStyle(200),
-                            new SvgImageBackEnd()
+                            new SvgImageBackEnd
                         );
                         $writer = new Writer($renderer);
 
@@ -220,6 +220,7 @@ class CrearEvent extends Component
                         ];
                     } catch (Exception $e) {
                         $this->dispatch('oops', message: $e->getMessage());
+
                         continue; // Saltar fila corrupta
                     }
                 }
@@ -233,22 +234,21 @@ class CrearEvent extends Component
                 $this->dispatch('alert', message: 'Evento y participantes procesados exitosamente.');
             }
         } catch (Exception $e) {
-            $this->dispatch('oops', message: 'Error abriendo archivo: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error abriendo archivo: '.$e->getMessage());
+
             return response()->json(['error' => 'No se pudo abrir el archivo.'], 500);
         }
     }
 
-
-    //----------------------------------------------------------------
-    //----------------------------------------------------------------
-    //----------------------------------------------------------------
-
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
 
     private function procesarXLSX($evento, $path)
     {
 
         try {
-            $spreadsheet = IOFactory::load(storage_path('app/private/' . $path));
+            $spreadsheet = IOFactory::load(storage_path('app/private/'.$path));
             $sheet = $spreadsheet->getActiveSheet();
             $rows = $sheet->toArray();
 
@@ -281,7 +281,7 @@ class CrearEvent extends Component
                 }
 
                 // Validar si tiene los datos mínimos (nombre, apellido y dni son obligatorios)
-                if (!$mappedData['ape_nom'] || !$mappedData['dni'] || !$mappedData['mail']) {
+                if (! $mappedData['ape_nom'] || ! $mappedData['dni'] || ! $mappedData['mail']) {
                     continue; // Saltar si falta alguno de estos campos esenciales
                 }
 
@@ -293,12 +293,12 @@ class CrearEvent extends Component
 
                         $localidadMin = mb_strtolower($mappedData['localidad']);
                         if ($localidadMin != '') {
-                            //$localidad = Localidad::whereRaw('LOWER(nombre) = ? AND pais_id = ?', [$localidadMin, $pais->pais_id])->first();
+                            // $localidad = Localidad::whereRaw('LOWER(nombre) = ? AND pais_id = ?', [$localidadMin, $pais->pais_id])->first();
                             $localidad = Localidad::whereRaw('LOWER(nombre) = ?', [$localidadMin])->first();
 
-                            if (!$localidad) {
+                            if (! $localidad) {
                                 $localidad = Localidad::create([
-                                    'nombre' => $localidadMin
+                                    'nombre' => $localidadMin,
                                     // 'pais_id' => $pais->pais_id,
                                 ]);
                             }
@@ -307,7 +307,7 @@ class CrearEvent extends Component
 
                     /*
                     // fragmento si es que se utiliza el campo pais
-                    
+
                     $paisMinusculas = mb_strtolower($mappedData['pais']);
                     $pais = Pais::whereRaw('LOWER(nombre) = ?', [$paisMinusculas])->first();
 
@@ -320,19 +320,18 @@ class CrearEvent extends Component
                     // Buscar o crear el participante
                     $participante = Participante::where('dni', $mappedData['dni'])->first();
 
-                    if (!$participante) {
+                    if (! $participante) {
                         $participante = Participante::create([
                             'dni' => $mappedData['dni'],
                             'ape_nom' => $mappedData['ape_nom'],
                             'mail' => $mappedData['mail'],
-                            'localidad_id' => $localidad ? $localidad->localidad_id : null
+                            'localidad_id' => $localidad ? $localidad->localidad_id : null,
                         ]);
                     }
 
-
                     // Generar la URL y el QR
                     $url = "http://localhost:8080/validate/{$evento->evento_id}/{$participante->participante_id}";
-                    $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd());
+                    $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd);
                     $writer = new Writer($renderer);
                     $qrCodeSvg = $writer->writeString($url);
 
@@ -342,7 +341,8 @@ class CrearEvent extends Component
                         'qrcode' => $qrCodeSvg,
                     ];
                 } catch (Exception $e) {
-                    $this->dispatch('oops', message: 'Error procesando fila: ' . $e->getMessage());
+                    $this->dispatch('oops', message: 'Error procesando fila: '.$e->getMessage());
+
                     continue; // Saltar fila corrupta
                 }
             }
@@ -354,14 +354,15 @@ class CrearEvent extends Component
 
             $this->dispatch('alert', message: 'Evento y participantes procesados exitosamente.');
         } catch (Exception $e) {
-            $this->dispatch('oops', message: 'Error procesando archivo: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error procesando archivo: '.$e->getMessage());
+
             return response()->json(['error' => 'No se pudo procesar el archivo.'], 500);
         }
     }
 
-    //----------------------------------------------------------------
-    //----------------------------------------------------------------
-    //----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
+    // ----------------------------------------------------------------
 
     //  Obtener el índice de la columna basado en sus alias.
     private function getColumnIndex($headers, $aliases)
@@ -372,9 +373,9 @@ class CrearEvent extends Component
                 return $index;
             }
         }
+
         return null; // Retornar null si no se encuentra
     }
-
 
     public function render()
     {

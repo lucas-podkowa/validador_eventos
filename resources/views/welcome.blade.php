@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="{{ asset('logos/icono.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('logos/icono.png') }}">
 
-    <title>Validador</title>
+    <title>Acreditar</title>
 
     @vite('resources/css/app.css')
 

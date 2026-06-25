@@ -2,22 +2,21 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Writer;
 use App\Models\Evento;
 use App\Models\Participante;
-
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+use Livewire\Component;
 
 class QRGenerator extends Component
 {
-
     public $evento_id;
-    public $participante_id;
-    public $qrCode;
 
+    public $participante_id;
+
+    public $qrCode;
 
     public function mount($evento_id, $participante_id)
     {
@@ -26,7 +25,7 @@ class QRGenerator extends Component
             $this->participante_id = $participante_id;
 
             // Validar que los IDs sean enteros positivos
-            if (!is_numeric($evento_id) || !is_numeric($participante_id) || $evento_id <= 0 || $participante_id <= 0) {
+            if (! is_numeric($evento_id) || ! is_numeric($participante_id) || $evento_id <= 0 || $participante_id <= 0) {
                 throw new \InvalidArgumentException('IDs inválidos para evento o participante.');
             }
 
@@ -36,7 +35,7 @@ class QRGenerator extends Component
             // Crear el QR usando BaconQrCode
             $renderer = new ImageRenderer(
                 new RendererStyle(200),
-                new SvgImageBackEnd()
+                new SvgImageBackEnd
             );
             $writer = new Writer($renderer);
 
@@ -44,10 +43,9 @@ class QRGenerator extends Component
             $this->qrCode = $writer->writeString($url);
         } catch (\Throwable $e) {
             $this->qrCode = null;
-            $this->dispatch('oops', message: 'Error generando QR: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error generando QR: '.$e->getMessage());
         }
     }
-
 
     public function render()
     {
@@ -61,7 +59,8 @@ class QRGenerator extends Component
                 'qrCode' => $this->qrCode,
             ]);
         } catch (\Throwable $e) {
-            $this->dispatch('oops', message: 'Error cargando datos: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error cargando datos: '.$e->getMessage());
+
             return view('livewire.qr-generator', [
                 'evento' => null,
                 'participante' => null,

@@ -9,6 +9,7 @@ use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -80,25 +81,25 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Usuario Administrador',
             'email' => 'admin@mail.com',
-            'password' => bcrypt('password123'),
+            'password' => Hash::make('password123'),
         ])->assignRole('Administrador');
 
         User::factory()->create([
             'name' => 'Usuario Revisor',
             'email' => 'revisor@mail.com',
-            'password' => bcrypt('password123'),
+            'password' => Hash::make('password123'),
         ])->assignRole('Revisor');
 
         User::factory()->create([
             'name' => 'Usuario Colaborador',
             'email' => 'colaborador@mail.com',
-            'password' => bcrypt('password123'),
+            'password' => Hash::make('password123'),
         ])->assignRole('Colaborador');
 
         User::factory()->create([
             'name' => 'Usuario Invitado',
             'email' => 'invitado@mail.com',
-            'password' => bcrypt('password123'),
+            'password' => Hash::make('password123'),
         ])->assignRole('Invitado');
 
         // // Crear 100 usuarios aleatorios con roles distintos

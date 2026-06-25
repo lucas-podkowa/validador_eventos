@@ -13,43 +13,57 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-
+use Livewire\WithPagination;
 
 class EventosFinalizados extends Component
 {
-    use WithPagination;
     use WithFileUploads;
+    use WithPagination;
 
     public $evento_selected = null;
+
     public $open_detail = false;
+
     public $sort = 'nombre';
+
     public $direction = 'asc';
+
     public $search = ''; // Búsqueda por evento
+
     public $searchParticipante = ''; // Búsqueda por participante (DNI)
+
     public $searchTipoEvento = '';
+
     public $participantes = [];
+
     public $tiposEvento = [];
 
     public $open_emitir = false;
 
     public $open_enviar_mail = false;
+
     public $participantes_mail = [];
+
     public $selected_participantes = [];
 
     public $background_image; // <- Usada como plantilla genérica (Asistente en evento simple)
+
     public $background_image_disertante;
+
     public $background_image_colaborador;
+
     public $background_image_asistencia;
+
     public $background_image_aprobacion;
 
     public $hasDisertantes = false;
+
     public $hasColaboradores = false;
 
     public $plantillas_por_tipo = [];
-    public $usar_plantilla_categoria = [];
 
+    public $usar_plantilla_categoria = [];
 
     protected $paginationTheme = 'tailwind';
 
@@ -58,33 +72,32 @@ class EventosFinalizados extends Component
         $this->tiposEvento = TipoEvento::orderBy('nombre')->get();
     }
 
-
     protected function rules()
     {
         $rules = [];
         $maxSize = '30720';
 
         if ($this->evento_selected && $this->evento_selected->por_aprobacion) {
-            if (!($this->usar_plantilla_categoria['asistencia'] ?? false)) {
+            if (! ($this->usar_plantilla_categoria['asistencia'] ?? false)) {
                 $rules['background_image_asistencia'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
             }
-            if (!($this->usar_plantilla_categoria['aprobacion'] ?? false)) {
+            if (! ($this->usar_plantilla_categoria['aprobacion'] ?? false)) {
                 $rules['background_image_aprobacion'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
             }
         } else {
-            if (!($this->usar_plantilla_categoria['asistencia'] ?? false)) {
+            if (! ($this->usar_plantilla_categoria['asistencia'] ?? false)) {
                 $rules['background_image'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
             }
         }
 
         if ($this->evento_selected && $this->hasDisertantes) {
-            if (!($this->usar_plantilla_categoria['disertante'] ?? false)) {
+            if (! ($this->usar_plantilla_categoria['disertante'] ?? false)) {
                 $rules['background_image_disertante'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
             }
         }
 
         if ($this->evento_selected && $this->hasColaboradores) {
-            if (!($this->usar_plantilla_categoria['colaborador'] ?? false)) {
+            if (! ($this->usar_plantilla_categoria['colaborador'] ?? false)) {
                 $rules['background_image_colaborador'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
             }
         }
@@ -97,7 +110,7 @@ class EventosFinalizados extends Component
      */
     public function emitir($evento)
     {
-        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
 
         $this->evento_selected = Evento::with('categoria.plantillas')->find($evento['evento_id']);
 
@@ -110,7 +123,7 @@ class EventosFinalizados extends Component
                 $grouped = $plantillas->groupBy(function ($p) {
                     return $p->tipo ?: 'asistencia';
                 });
-                $this->plantillas_por_tipo = $grouped->map(fn($items) => $items->toArray())->toArray();
+                $this->plantillas_por_tipo = $grouped->map(fn ($items) => $items->toArray())->toArray();
 
                 foreach (array_keys($this->plantillas_por_tipo) as $tipo) {
                     $this->usar_plantilla_categoria[$tipo] = true;
@@ -143,7 +156,6 @@ class EventosFinalizados extends Component
         $this->open_emitir = true;
     }
 
-
     public function usarPlantillaManual($tipo): void
     {
         $this->usar_plantilla_categoria[$tipo] = false;
@@ -161,9 +173,10 @@ class EventosFinalizados extends Component
             return null;
         }
         $default = collect($available)->firstWhere('por_defecto', true);
-        if (!$default) {
+        if (! $default) {
             $default = $available[0];
         }
+
         return $default['imagen_path'];
     }
 
@@ -172,10 +185,10 @@ class EventosFinalizados extends Component
      */
     public function emitirCertificados()
     {
-        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
 
         $rules = $this->rules();
-        if (!empty($rules)) {
+        if (! empty($rules)) {
             $this->validate($rules);
         }
 
@@ -187,8 +200,9 @@ class EventosFinalizados extends Component
         $rolDisertanteId = $roles['Disertante'] ?? null;
         $rolColaboradorId = $roles['Colaborador'] ?? null;
 
-        if (!$rolAsistenteId || !$rolDisertanteId || !$rolColaboradorId) {
+        if (! $rolAsistenteId || ! $rolDisertanteId || ! $rolColaboradorId) {
             $this->dispatch('oops', message: 'Faltan IDs de roles esenciales (Participante, Disertante, Colaborador) en la base de datos.');
+
             return;
         }
 
@@ -255,10 +269,10 @@ class EventosFinalizados extends Component
                 }
             }
         } catch (\Exception $e) {
-            $this->dispatch('oops', message: 'Error al subir una o más plantillas: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error al subir una o más plantillas: '.$e->getMessage());
+
             return;
         }
-
 
         // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
         foreach ($participantes as $participante) {
@@ -282,6 +296,7 @@ class EventosFinalizados extends Component
 
             if (is_null($background)) {
                 Log::warning("No se encontró plantilla o la plantilla no fue requerida/subida para el rol ID {$rolParticipanteId} del participante {$participante->participante_id}");
+
                 continue; // Saltar si no se pudo determinar la plantilla (ej. rol no reconocido o plantilla no requerida)
             }
 
@@ -291,8 +306,8 @@ class EventosFinalizados extends Component
                 'nombre' => $participante->nombre,
                 'apellido' => $participante->apellido,
                 'dni' => $participante->dni,
-                'qr' => 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode),
-                'background' => $background
+                'qr' => 'data:image/svg+xml;base64,'.base64_encode($participante->pivot->qrcode),
+                'background' => $background,
             ])->setPaper('a4', 'landscape');
 
             Storage::put($filename, $pdf->output());
@@ -303,7 +318,7 @@ class EventosFinalizados extends Component
         }
 
         $this->evento_selected->update([
-            'certificado_path' => $folderPath
+            'certificado_path' => $folderPath,
         ]);
 
         $this->reset([
@@ -327,26 +342,28 @@ class EventosFinalizados extends Component
      */
     public function descargarDisposicion()
     {
-        if (!$this->evento_selected || !$this->evento_selected->planillaInscripcion) {
+        if (! $this->evento_selected || ! $this->evento_selected->planillaInscripcion) {
             $this->dispatch('oops', message: 'No se encontró la planilla de inscripción.');
+
             return;
         }
 
         $disposicion = $this->evento_selected->planillaInscripcion->disposicion;
 
-        if (!$disposicion || !Storage::disk('private')->exists($disposicion)) {
+        if (! $disposicion || ! Storage::disk('private')->exists($disposicion)) {
             $this->dispatch('oops', message: 'No se encontró el archivo de disposición respaldatoria.');
+
             return;
         }
 
         return response()->download(Storage::disk('private')->path($disposicion));
     }
 
-
     public function abrirCarpeta($path)
     {
-        if (!Storage::exists($path)) {
+        if (! Storage::exists($path)) {
             session()->flash('error', 'La carpeta no existe.');
+
             return;
         }
 
@@ -354,11 +371,11 @@ class EventosFinalizados extends Component
         $zipPath = storage_path("app/private/{$zipFile}");
 
         // Crear ZIP si no existe aún
-        if (!Storage::exists("private/{$zipFile}")) {
+        if (! Storage::exists("private/{$zipFile}")) {
             $files = Storage::files($path);
-            $zip = new \ZipArchive();
+            $zip = new \ZipArchive;
 
-            if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
+            if ($zip->open($zipPath, \ZipArchive::CREATE) === true) {
                 foreach ($files as $file) {
                     $fullFilePath = storage_path("app/private/{$file}");
                     if (file_exists($fullFilePath)) {
@@ -375,10 +392,9 @@ class EventosFinalizados extends Component
         return response()->download($zipPath);
     }
 
-    //----------------------------------------------------------------------------
-    //------------  MÉTODOS PARA ENVÍO DE CORREOS --------------------------------
-    //----------------------------------------------------------------------------
-
+    // ----------------------------------------------------------------------------
+    // ------------  MÉTODOS PARA ENVÍO DE CORREOS --------------------------------
+    // ----------------------------------------------------------------------------
 
     public function abrirModalMail($evento)
     {
@@ -387,7 +403,6 @@ class EventosFinalizados extends Component
         $this->selected_participantes = []; // Resetea la selección
         $this->open_enviar_mail = true;
     }
-
 
     public function enviarMailsTodos()
     {
@@ -400,11 +415,11 @@ class EventosFinalizados extends Component
         $this->reset(['open_enviar_mail', 'evento_selected', 'participantes_mail', 'selected_participantes']);
     }
 
-
     public function enviarMailsSeleccionados()
     {
         if (empty($this->selected_participantes)) {
             session()->flash('error', 'No ha seleccionado ningún participante.');
+
             return;
         }
 
@@ -432,6 +447,7 @@ class EventosFinalizados extends Component
                 Mail::to($participante->mail)->send(new CertificadoEventoMail($this->evento_selected, $participante, $relacion->certificado_path));
             } catch (\Exception $e) {
                 $this->dispatch('oops', message: $e->getMessage());
+
                 return;
             }
         } else {
@@ -439,8 +455,8 @@ class EventosFinalizados extends Component
         }
     }
 
-    //----------------------------------------------------------------------------
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
 
     public function updatingSearchParticipante()
     {
@@ -472,11 +488,11 @@ class EventosFinalizados extends Component
                 });
             })
             ->when($this->search, function ($query) {
-                $query->where('evento.nombre', 'like', '%' . $this->search . '%');
+                $query->where('evento.nombre', 'like', '%'.$this->search.'%');
             })
             ->when($this->searchParticipante, function ($query) {
                 $query->whereHas('participantes', function ($q) {
-                    $q->where('dni', 'like', '%' . $this->searchParticipante . '%');
+                    $q->where('dni', 'like', '%'.$this->searchParticipante.'%');
                 });
             })
             ->when($this->searchTipoEvento !== '', function ($query) {
@@ -495,7 +511,6 @@ class EventosFinalizados extends Component
         ]);
     }
 
-
     private function resolveSortColumn(): string
     {
         return match ($this->sort) {
@@ -505,24 +520,23 @@ class EventosFinalizados extends Component
         };
     }
 
-
     public function order($sort)
     {
-        if ($this->sort == $sort) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+        if ($this->sort == $sort) { // si estoy en la misma columna me pregunto por la direccion de ordenamiento
             if ($this->direction == 'asc') {
                 $this->direction = 'desc';
             } else {
                 $this->direction = 'asc';
             }
-        } else { //si es una columna nueva, ordeno de forma ascendente
+        } else { // si es una columna nueva, ordeno de forma ascendente
             $this->sort = $sort;
             $this->direction = 'asc';
         }
     }
 
-    //----------------------------------------------------------------------------
-    //------ Metodo llamado al precionar el boton QR para ver los participantes --
-    //----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // ------ Metodo llamado al precionar el boton QR para ver los participantes --
+    // ----------------------------------------------------------------------------
     public function detail($evento)
     {
         $this->resetValidation();
@@ -532,7 +546,8 @@ class EventosFinalizados extends Component
             ->withPivot('qrcode')
             ->get()
             ->map(function ($participante) {
-                $participante->qrcode_base64 = 'data:image/svg+xml;base64,' . base64_encode($participante->pivot->qrcode);
+                $participante->qrcode_base64 = 'data:image/svg+xml;base64,'.base64_encode($participante->pivot->qrcode);
+
                 return $participante;
             });
 

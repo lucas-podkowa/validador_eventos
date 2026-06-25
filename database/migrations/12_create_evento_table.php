@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('evento', function (Blueprint $table) {
             $table->uuid('evento_id')->primary();
-            //$table->uuid('evento_id')->primary()->default(DB::raw('(UUID())'));
+            // $table->uuid('evento_id')->primary()->default(DB::raw('(UUID())'));
             $table->string('nombre');
             $table->date('fecha_inicio');
             $table->unsignedInteger('cupo')->nullable();

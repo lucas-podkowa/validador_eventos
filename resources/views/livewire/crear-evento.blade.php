@@ -207,21 +207,23 @@
                                     <p class="text-sm text-gray-500">No hay métodos de pago cargados todavía. Agregá uno para que el usuario vea opciones al inscribirse.</p>
                                 @endif
                             </div>
+                        @endif
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Destinatarios y precios <span class="text-red-500">*</span>
-                                </label>
-                                @error('destinatarioSeleccionado')
-                                    <span class="text-sm text-red-500 block mb-2">{{ $message }}</span>
-                                @enderror
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Destinatarios y precios @if ($arancel) <span class="text-red-500">*</span> @endif
+                            </label>
+                            @error('destinatarioSeleccionado')
+                                <span class="text-sm text-red-500 block mb-2">{{ $message }}</span>
+                            @enderror
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    @foreach ($destinatarios as $d)
-                                        @php
-                                            $seleccionado = in_array((string) $d->destinatario_id, array_map('strval', $destinatarioSeleccionado));
-                                        @endphp
-                                        <div class="flex items-center gap-3 p-2 bg-white border rounded-md {{ $d->activo ? '' : 'opacity-60' }}">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                @foreach ($destinatarios as $d)
+                                    @php
+                                        $seleccionado = in_array((string) $d->destinatario_id, array_map('strval', $destinatarioSeleccionado));
+                                    @endphp
+                                    <div class="flex flex-col p-2 bg-white border rounded-md {{ $d->activo ? '' : 'opacity-60' }}">
+                                        <div class="flex items-center gap-3">
                                             <input type="checkbox" wire:model.live="destinatarioSeleccionado"
                                                 value="{{ $d->destinatario_id }}"
                                                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
@@ -231,23 +233,68 @@
                                                     <p class="text-xs text-gray-500">Inactivo</p>
                                                 @endif
                                             </div>
-                                            <div class="w-28">
-                                                <input type="number" step="0.01" min="0"
-                                                    wire:model="destinatarioPrecio.{{ $d->destinatario_id }}"
-                                                    placeholder="0,00"
-                                                    @disabled(! $seleccionado)
-                                                    class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                                @if ($seleccionado)
-                                                    @error("destinatarioPrecio.{$d->destinatario_id}")
-                                                        <span class="text-xs text-red-500">{{ $message }}</span>
-                                                    @enderror
+                                            @if ($arancel)
+                                                <div class="w-28">
+                                                    <input type="number" step="0.01" min="0"
+                                                        wire:model="destinatarioPrecio.{{ $d->destinatario_id }}"
+                                                        placeholder="0,00"
+                                                        @disabled(! $seleccionado)
+                                                        class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                                    @if ($seleccionado)
+                                                        @error("destinatarioPrecio.{$d->destinatario_id}")
+                                                            <span class="text-xs text-red-500">{{ $message }}</span>
+                                                        @enderror
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        @if ($seleccionado)
+                                            <div class="ml-7 mt-2 p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                                        <i class="fa-solid fa-file-lines mr-1"></i>Requisitos de documentación
+                                                    </span>
+                                                    <button type="button" wire:click="addRequisito({{ $d->destinatario_id }})"
+                                                        class="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                                                        + Agregar requisito
+                                                    </button>
+                                                </div>
+
+                                                @error('destinatarioRequisitos')
+                                                    <p class="text-xs text-red-500 mb-1">{{ $message }}</p>
+                                                @enderror
+
+                                                @foreach (($destinatarioRequisitos[$d->destinatario_id] ?? []) as $idx => $req)
+                                                    <div wire:key="requisito-{{ $d->destinatario_id }}-{{ $idx }}"
+                                                        class="flex items-center gap-2 mb-2">
+                                                        <input type="text"
+                                                            wire:model="destinatarioRequisitos.{{ $d->destinatario_id }}.{{ $idx }}.titulo"
+                                                            placeholder="Título del documento (ej: Certificado de Convivencia)"
+                                                            class="flex-1 border-gray-300 rounded-md text-xs shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                        <button type="button" wire:click="moveRequisitoUp({{ $d->destinatario_id }}, {{ $idx }})"
+                                                            class="text-xs text-gray-600" title="Subir">↑</button>
+                                                        <button type="button" wire:click="moveRequisitoDown({{ $d->destinatario_id }}, {{ $idx }})"
+                                                            class="text-xs text-gray-600" title="Bajar">↓</button>
+                                                        <button type="button" wire:click="removeRequisito({{ $d->destinatario_id }}, {{ $idx }})"
+                                                            class="text-xs text-red-600" title="Eliminar">
+                                                            <i class="fa-regular fa-trash-can"></i>
+                                                        </button>
+                                                        @error("destinatarioRequisitos.{$d->destinatario_id}.{$idx}.titulo")
+                                                            <span class="text-xs text-red-500">{{ $message }}</span>
+                                                        @enderror
+                                                    </div>
+                                                @endforeach
+
+                                                @if (empty($destinatarioRequisitos[$d->destinatario_id] ?? []))
+                                                    <p class="text-xs text-gray-400">Sin requisitos. Hacé clic en "Agregar requisito" para añadir documentación obligatoria.</p>
                                                 @endif
                                             </div>
-                                        </div>
-                                    @endforeach
-                                </div>
+                                        @endif
+                                    </div>
+                                @endforeach
                             </div>
-                        @endif
+                        </div>
                     </div>
 
                     <!-- Indicadores -->

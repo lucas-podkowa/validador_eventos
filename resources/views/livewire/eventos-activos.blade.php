@@ -236,6 +236,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Teléfono</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Destinatario</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Monto</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Documentos</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Acciones</th>
                     </tr>
                 </thead>
@@ -253,6 +254,19 @@
                                     ${{ number_format($inscripto->monto, 2, ',', '.') }}
                                 @else
                                     —
+                                @endif
+                            </td>
+                            <td class="px-6 text-center whitespace-nowrap">
+                                @if ($inscripto->documentos->isNotEmpty())
+                                    @foreach ($inscripto->documentos as $doc)
+                                        <a href="{{ route('documento.show', $doc) }}"
+                                            class="text-blue-600 hover:text-blue-800 mr-2 text-xs" title="{{ $doc->requisito?->titulo ?? 'Documento' }}"
+                                            target="_blank">
+                                            <i class="fa-regular fa-file-pdf mr-0.5"></i>{{ $doc->requisito?->titulo ?? 'Doc' }}
+                                        </a>
+                                    @endforeach
+                                @else
+                                    <span class="text-gray-400 text-xs">—</span>
                                 @endif
                             </td>
                             <td class="px-6 text-center whitespace-nowrap">

@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class Rol extends Model
 {
     use HasFactory;
+
     public $timestamps = false;
+
     protected $table = 'rol';
+
     protected $primaryKey = 'rol_id';
+
     public $incrementing = true;
 
     protected $fillable = ['nombre'];
@@ -20,7 +24,6 @@ class Rol extends Model
         return $this->hasMany(EventoParticipante::class, 'rol_id');
     }
 }
-
 
 /*
 // Obtener el rol de un participante de evento

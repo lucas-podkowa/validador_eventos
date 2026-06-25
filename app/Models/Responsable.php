@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Responsable extends Model
 {
     public $timestamps = false;
+
     protected $table = 'responsable';
+
     protected $primaryKey = 'responsable_id';
 
     protected $fillable = ['nombre', 'apellido', 'dni'];

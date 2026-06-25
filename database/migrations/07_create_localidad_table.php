@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('localidad', function (Blueprint $table) {
             $table->uuid('localidad_id')->primary();
             $table->string('nombre');
-            //$table->unsignedBigInteger('pais_id');
-            //$table->foreign('pais_id')->references('pais_id')->on('pais')->onDelete('cascade');
+            // $table->unsignedBigInteger('pais_id');
+            // $table->foreign('pais_id')->references('pais_id')->on('pais')->onDelete('cascade');
         });
     }
 

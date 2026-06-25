@@ -2,18 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Str;
 
 class Participante extends Model
 {
     use HasFactory;
+
     public $timestamps = false;
+
     protected $table = 'participante';
+
     protected $primaryKey = 'participante_id';
+
     public $incrementing = false; // Clave primaria no incrementa automáticamente
+
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
     protected $fillable = ['participante_id', 'nombre', 'apellido', 'dni', 'mail', 'telefono'];
@@ -27,13 +32,14 @@ class Participante extends Model
             }
         });
     }
+
     /**
      * Obtiene el nombre del participante formateado.
      */
     protected function nombre(): Attribute
     {
         return Attribute::make(
-            get: fn($value) => mb_convert_case(mb_strtolower(trim($value)), MB_CASE_TITLE, "UTF-8")
+            get: fn ($value) => mb_convert_case(mb_strtolower(trim($value)), MB_CASE_TITLE, 'UTF-8')
         );
     }
 
@@ -43,7 +49,7 @@ class Participante extends Model
     protected function apellido(): Attribute
     {
         return Attribute::make(
-            get: fn($value) => mb_convert_case(mb_strtolower(trim($value)), MB_CASE_TITLE, "UTF-8")
+            get: fn ($value) => mb_convert_case(mb_strtolower(trim($value)), MB_CASE_TITLE, 'UTF-8')
         );
     }
 
@@ -63,7 +69,6 @@ class Participante extends Model
         return $this->belongsToMany(Evento::class, 'evento_participantes', 'participante_id', 'evento_id')
             ->withPivot('url', 'qrcode', 'rol_id', 'aprobado');
     }
-
 
     public function inscripciones()
     {

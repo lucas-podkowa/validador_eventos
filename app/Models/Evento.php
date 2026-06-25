@@ -86,6 +86,11 @@ class Evento extends Model
             ->withPivot('precio');
     }
 
+    public function requisitos()
+    {
+        return $this->hasMany(RequisitoDocumentacion::class, 'evento_id', 'evento_id')->orderBy('orden');
+    }
+
     public function planillaInscripcion()
     {
         return $this->hasOne(PlanillaInscripcion::class, 'evento_id');

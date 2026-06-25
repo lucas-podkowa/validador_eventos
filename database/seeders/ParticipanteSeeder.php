@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Participante;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ParticipanteSeeder extends Seeder
@@ -21,7 +21,7 @@ class ParticipanteSeeder extends Seeder
                 'apellido' => "Apellido $i",
                 'dni' => rand(99999, 99999999),
                 'mail' => "participante$i@example.com",
-                'telefono' => '123456789' . $i,
+                'telefono' => '123456789'.$i,
             ]);
         }
     }

@@ -10,7 +10,9 @@ use Livewire\WithPagination;
 class EventosPendientes extends Component
 {
     public $sort = 'nombre';
+
     public $direction = 'asc';
+
     public $activeTab = 'pendientes'; // Define la primera pestaña como activa por defecto
 
     use WithPagination;
@@ -20,10 +22,9 @@ class EventosPendientes extends Component
         $this->activeTab = $tab;
     }
 
-
-    //-------------------------------------------------------------------------------------------------
-    //------ Metodo llamado al precionar el boton "Clonar Evento" en Eventos Pendientes -------
-    //-------------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------------------
+    // ------ Metodo llamado al precionar el boton "Clonar Evento" en Eventos Pendientes -------
+    // -------------------------------------------------------------------------------------------------
     public function duplicarEvento($evento)
     {
         DB::beginTransaction();
@@ -34,11 +35,11 @@ class EventosPendientes extends Component
             $nuevoEvento = Evento::create([
                 'tipo_evento_id' => $eventoOriginal->tipo_evento_id,
                 'categoria_id' => $eventoOriginal->categoria_id,
-                'nombre' => $eventoOriginal->nombre . ' (copia)',
+                'nombre' => $eventoOriginal->nombre.' (copia)',
                 'lugar' => $eventoOriginal->lugar,
                 'fecha_inicio' => $eventoOriginal->fecha_inicio,
                 'cupo' => $eventoOriginal->cupo,
-                'por_aprobacion' =>  (bool) $eventoOriginal->por_aprobacion,
+                'por_aprobacion' => (bool) $eventoOriginal->por_aprobacion,
                 'responsable_id' => $eventoOriginal->responsable_id,
             ]);
 
@@ -46,10 +47,9 @@ class EventosPendientes extends Component
             $this->dispatch('refreshMainComponent');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo duplicar el evento: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'No se pudo duplicar el evento: '.$e->getMessage());
         }
     }
-
 
     public function render()
     {
@@ -63,15 +63,15 @@ class EventosPendientes extends Component
             })
             ->orderBy($this->sort, $this->direction)
             ->get();
+
         return view('livewire.eventos-pendientes', compact('eventos'));
     }
 
-
     public function order($field)
     {
-        if ($this->sort == $field) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+        if ($this->sort == $field) { // si estoy en la misma columna me pregunto por la direccion de ordenamiento
             $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
-        } else { //si es una columna nueva, ordeno de forma ascendente
+        } else { // si es una columna nueva, ordeno de forma ascendente
             $this->sort = $field;
             $this->direction = 'asc';
         }

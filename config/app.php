@@ -68,7 +68,6 @@ return [
     //    'timezone' => env('APP_TIMEZONE', 'UTC+3'),
     'timezone' => 'America/Argentina/Buenos_Aires',
 
-
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

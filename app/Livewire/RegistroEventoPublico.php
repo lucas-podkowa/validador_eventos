@@ -3,11 +3,13 @@
 namespace App\Livewire;
 
 use App\Mail\ConfirmacionInscripcion;
+use App\Models\DocumentoPresentado;
 use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\ParticipanteIndicador;
 use App\Models\PlanillaInscripcion;
+use App\Models\RequisitoDocumentacion;
 use App\Models\Rol;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -59,6 +61,10 @@ class RegistroEventoPublico extends Component
 
     public ?float $montoDestinatario = null;
 
+    public $requisitosActivos = [];
+
+    public array $documentos = [];
+
     protected $rules = [
         'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
         'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
@@ -79,7 +85,7 @@ class RegistroEventoPublico extends Component
             $this->planilla_id = $this->planilla_inscripcion->planilla_inscripcion_id;
         }
 
-        $this->evento = Evento::with('destinatarios')->findOrFail($eventoId);
+        $this->evento = Evento::with('destinatarios', 'requisitos')->findOrFail($eventoId);
 
         // Hidratar métodos de pago si existen
         $this->metodosPago = is_array($this->evento->metodos_pago) ? $this->evento->metodos_pago : ($this->evento->metodos_pago ? json_decode($this->evento->metodos_pago, true) : []);
@@ -131,6 +137,13 @@ class RegistroEventoPublico extends Component
     {
         $destinatario = $this->evento->destinatarios->firstWhere('destinatario_id', $value);
         $this->montoDestinatario = $destinatario ? (float) $destinatario->pivot->precio : null;
+
+        $this->requisitosActivos = RequisitoDocumentacion::where('evento_id', $this->evento_id)
+            ->where('destinatario_id', $value)
+            ->orderBy('orden')
+            ->get()
+            ->toArray();
+        $this->documentos = [];
     }
 
     protected function reglas()
@@ -143,15 +156,21 @@ class RegistroEventoPublico extends Component
             'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         ];
 
-        if ($this->evento->arancel) {
+        $tieneDestinatarios = $this->evento->destinatarios->isNotEmpty();
+
+        if ($tieneDestinatarios) {
             $reglas['destinatario_id'] = [
                 'required',
                 Rule::in($this->evento->destinatarios->pluck('destinatario_id')->toArray()),
             ];
+        }
 
-            if ($this->montoDestinatario > 0) {
-                $reglas['comprobante'] = 'required|file|mimes:pdf,jpg,png|max:30720';
-            }
+        if ($this->evento->arancel && $this->montoDestinatario > 0) {
+            $reglas['comprobante'] = 'required|file|mimes:pdf,jpg,png|max:30720';
+        }
+
+        foreach ($this->requisitosActivos as $requisito) {
+            $reglas["documentos.{$requisito['requisito_id']}"] = 'required|file|mimes:pdf|max:30720';
         }
 
         return $reglas;
@@ -248,17 +267,34 @@ class RegistroEventoPublico extends Component
                 $comprobantePath = $this->comprobante->store("comprobantes/{$this->evento_id}", 'private');
             }
 
+            $tieneDestinatarios = $this->evento->destinatarios->isNotEmpty();
+
             $inscripcion = InscripcionParticipante::create([
                 'planilla_id' => $this->planilla_id,
                 'participante_id' => $participante->participante_id,
                 'rol_id' => $this->rol_participante_id,
-                'destinatario_id' => $this->evento->arancel ? $this->destinatario_id : null,
-                'monto' => $this->evento->arancel ? $this->montoDestinatario : null,
+                'destinatario_id' => $tieneDestinatarios ? $this->destinatario_id : null,
+                'monto' => $tieneDestinatarios ? $this->montoDestinatario : null,
                 'comprobante_pago' => $comprobantePath,
                 'metodo_pago' => $this->evento->getPrimaryMetodoPago(),
                 'fecha_inscripcion' => now(),
                 'asistencia' => false,
             ]);
+
+            // Guardar documentos presentados
+            foreach ($this->requisitosActivos as $requisito) {
+                $file = $this->documentos[$requisito['requisito_id']] ?? null;
+
+                if ($file) {
+                    $path = $file->store("documentos/{$this->evento_id}/{$inscripcion->inscripcion_participante_id}", 'private');
+
+                    DocumentoPresentado::create([
+                        'inscripcion_participante_id' => $inscripcion->inscripcion_participante_id,
+                        'requisito_id' => $requisito['requisito_id'],
+                        'path' => $path,
+                    ]);
+                }
+            }
 
             // Guardar indicadores
 
@@ -281,7 +317,7 @@ class RegistroEventoPublico extends Component
             Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento, $this->asunto));
             $this->dispatch('alert', message: '¡Inscripción completada con éxito!');
 
-            $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos', 'destinatario_id', 'comprobante', 'montoDestinatario']);
+            $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos', 'destinatario_id', 'comprobante', 'montoDestinatario', 'requisitosActivos', 'documentos']);
             $this->verificarInscripcionActiva(); // <-- Refresca el estado del formulario
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);

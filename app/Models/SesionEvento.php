@@ -10,7 +10,9 @@ class SesionEvento extends Model
     use HasFactory;
 
     protected $table = 'sesion_evento'; // Nombre de la tabla
+
     protected $primaryKey = 'sesion_evento_id'; // Clave primaria
+
     public $timestamps = false; // Deshabilita timestamps
 
     protected $fillable = [
@@ -25,7 +27,6 @@ class SesionEvento extends Model
     {
         return $this->belongsTo(Evento::class, 'evento_id', 'evento_id');
     }
-
 
     // Relación con asistencia participante
     public function asistencias()

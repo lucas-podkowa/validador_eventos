@@ -387,7 +387,7 @@ class EventosActivos extends Component
             $query = $this->evento_selected
                 ->planillaInscripcion
                 ->inscripcionesParticipantes()
-                ->with(['participante', 'destinatario']); // Obtiene el Query Builder de la relación
+                ->with(['participante', 'destinatario', 'documentos.requisito']); // Obtiene el Query Builder de la relación
 
             if (! empty($this->searchParticipante)) {
                 $searchTerm = $this->searchParticipante;

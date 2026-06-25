@@ -2,39 +2,47 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
+use App\Mail\ConfirmacionInscripcion;
+use App\Mail\CredencialesColaborador;
 use App\Models\Evento;
-use App\Models\PlanillaInscripcion;
-use App\Models\Participante;
 use App\Models\InscripcionParticipante;
+use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\ConfirmacionInscripcion;
-use App\Mail\CredencialesColaborador;
+use Livewire\Component;
 
 class InscribirStaff extends Component
 {
-
     public $asunto = 'staff';
+
     public $evento;
+
     public $evento_id;
+
     public $planilla_id;
+
     public $nombre = '';
+
     public $apellido = '';
+
     public $dni = '';
+
     public $mail = '';
+
     public $telefono = '';
+
     public $rol_seleccionado = '';
+
     public ?array $participante = null;
 
     protected $rules = [
         'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
-        'nombre'   => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
-        'dni'      => ['required', 'digits_between:6,10', 'numeric'],
-        'mail'     => ['required', 'email'],
+        'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+        'dni' => ['required', 'digits_between:6,10', 'numeric'],
+        'mail' => ['required', 'email'],
         'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         'rol_seleccionado' => ['required', 'in:Disertante,Colaborador'],
     ];
@@ -71,8 +79,9 @@ class InscribirStaff extends Component
         $this->evento_id = $evento_id;
         $this->evento = Evento::with('planillaInscripcion')->findOrFail($evento_id);
 
-        if (!$this->evento->planillaInscripcion) {
+        if (! $this->evento->planillaInscripcion) {
             session()->flash('error', 'No se encontró la planilla de inscripción para este evento.');
+
             return redirect()->route('eventos', ['tab' => 'activos']);
         }
 
@@ -100,30 +109,32 @@ class InscribirStaff extends Component
         $this->validate();
 
         // Normalizar nombre y apellido
-        $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, "UTF-8");
-        $this->apellido = mb_convert_case(mb_strtolower(trim($this->apellido)), MB_CASE_TITLE, "UTF-8");
+        $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, 'UTF-8');
+        $this->apellido = mb_convert_case(mb_strtolower(trim($this->apellido)), MB_CASE_TITLE, 'UTF-8');
 
         DB::beginTransaction();
         try {
             // Obtener el rol seleccionado
             $rol = Rol::where('nombre', $this->rol_seleccionado)->first();
 
-            if (!$rol) {
+            if (! $rol) {
                 DB::rollBack();
                 $this->dispatch('oops', message: "Error: No se encontró el rol '{$this->rol_seleccionado}'.");
+
                 return;
             }
 
             // Buscar o crear participante
             $participante = Participante::where('dni', $this->dni)->first();
 
-            if (!$participante) {
+            if (! $participante) {
                 // Verificar que el email no exista
                 $mailExistente = Participante::where('mail', $this->mail)->exists();
 
                 if ($mailExistente) {
                     DB::rollBack();
                     $this->dispatch('oops', message: 'El correo electrónico ingresado ya está registrado para otro participante.');
+
                     return;
                 }
 
@@ -155,6 +166,7 @@ class InscribirStaff extends Component
                     if ($mailUsadoPorOtro) {
                         DB::rollBack();
                         $this->dispatch('oops', message: 'El correo ingresado ya está siendo utilizado por otro participante.');
+
                         return;
                     }
 
@@ -165,7 +177,7 @@ class InscribirStaff extends Component
                     $datosActualizados['telefono'] = $this->telefono;
                 }
 
-                if (!empty($datosActualizados)) {
+                if (! empty($datosActualizados)) {
                     $participante->update($datosActualizados);
                 }
             }
@@ -178,6 +190,7 @@ class InscribirStaff extends Component
             if ($yaInscripto) {
                 DB::rollBack();
                 $this->dispatch('oops', message: 'Este participante ya está inscrito en este evento.');
+
                 return;
             }
 
@@ -197,12 +210,12 @@ class InscribirStaff extends Component
             if ($this->rol_seleccionado === 'Colaborador') {
                 $user = User::where('email', $this->mail)->first();
 
-                if (!$user) {
+                if (! $user) {
                     // Crear nuevo usuario con el DNI como contraseña inicial
                     $passwordPlano = $this->dni;
                     $user = User::create([
-                        'name'     => "{$this->nombre} {$this->apellido}",
-                        'email'    => $this->mail,
+                        'name' => "{$this->nombre} {$this->apellido}",
+                        'email' => $this->mail,
                         'password' => Hash::make($passwordPlano),
                     ]);
                     $usuarioNuevo = true;
@@ -223,7 +236,7 @@ class InscribirStaff extends Component
                     $this->asunto,
                 ));
             } catch (\Exception $mailException) {
-                $this->dispatch('oops', message: 'Error enviando correo de confirmación: ' . $mailException->getMessage());
+                $this->dispatch('oops', message: 'Error enviando correo de confirmación: '.$mailException->getMessage());
             }
 
             // Enviar credenciales si se creó o asignó usuario Colaborador
@@ -238,7 +251,7 @@ class InscribirStaff extends Component
                         $usuarioNuevo,
                     ));
                 } catch (\Exception $mailException) {
-                    $this->dispatch('oops', message: 'Error enviando credenciales de acceso: ' . $mailException->getMessage());
+                    $this->dispatch('oops', message: 'Error enviando credenciales de acceso: '.$mailException->getMessage());
                 }
             }
 
@@ -246,11 +259,11 @@ class InscribirStaff extends Component
             return redirect()->route('eventos', [
                 'tab' => 'en_curso',
                 'evento_id' => $this->evento_id,
-                'mostrar' => 'disertantes'
+                'mostrar' => 'disertantes',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Error al procesar la inscripción: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error al procesar la inscripción: '.$e->getMessage());
         }
     }
 
@@ -259,10 +272,9 @@ class InscribirStaff extends Component
         return redirect()->route('eventos', [
             'tab' => 'activos',
             'evento_id' => $this->evento_id,
-            'mostrar' => 'disertantes'
+            'mostrar' => 'disertantes',
         ]);
     }
-
 
     public function render()
     {

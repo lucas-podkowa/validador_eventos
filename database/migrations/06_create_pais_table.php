@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('pais_id');
             $table->enum('nombre', [
                 'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia',
-                'Ecuador', 'México', 'Paraguay', 'Perú', 'Uruguay' 
+                'Ecuador', 'México', 'Paraguay', 'Perú', 'Uruguay',
             ])->unique();
             $table->timestamps();
         });

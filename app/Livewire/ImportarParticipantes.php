@@ -2,17 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Models\Evento;
+use App\Models\InscripcionParticipante;
+use App\Models\Participante;
+use App\Models\PlanillaInscripcion;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use App\Models\Evento;
-use App\Models\PlanillaInscripcion;
-use App\Models\Participante;
-use App\Models\InscripcionParticipante;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ConfirmacionInscripcion;
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Rap2hpoutre\FastExcel\FastExcel;
 
 class ImportarParticipantes extends Component
@@ -20,12 +17,19 @@ class ImportarParticipantes extends Component
     use WithFileUploads;
 
     public $evento;
+
     public $evento_id;
+
     public $planilla;
+
     public $archivo;
+
     public $resultados = [];
+
     public $total = 0;
+
     public $exitosos = 0;
+
     public $errores = 0;
 
     protected $rules = [
@@ -47,10 +51,10 @@ class ImportarParticipantes extends Component
             $ext = $this->archivo->getClientOriginalExtension();
 
             // Guarda explícitamente en el disco "private"
-            $path = $this->archivo->storeAs('temp', uniqid() . '.' . $ext, 'private');
+            $path = $this->archivo->storeAs('temp', uniqid().'.'.$ext, 'private');
 
             // Ruta absoluta al archivo real
-            $fullPath = storage_path('app/private/' . $path);
+            $fullPath = storage_path('app/private/'.$path);
 
             if ($ext === 'csv') {
                 $data = $this->leerCSV($fullPath);
@@ -65,7 +69,7 @@ class ImportarParticipantes extends Component
                 unlink($fullPath);
             }
         } catch (\Exception $e) {
-            $this->dispatch('oops', message: 'Error al procesar el archivo: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error al procesar el archivo: '.$e->getMessage());
         }
     }
 
@@ -78,10 +82,11 @@ class ImportarParticipantes extends Component
                 'nombre' => 'Juan',
                 'mail' => 'juanperez@mail.com',
                 'telefono' => '3755998877',
-            ]
+            ],
         ];
 
         $fileName = 'plantilla_importar_participantes.xlsx';
+
         return response()->streamDownload(function () use ($ejemplo) {
             (new \Rap2hpoutre\FastExcel\FastExcel(collect($ejemplo)))->export('php://output');
         }, $fileName, [
@@ -98,8 +103,9 @@ class ImportarParticipantes extends Component
             $header = null;
 
             while (($row = fgetcsv($handle, 1000, ',')) !== false) {
-                if (!$header) {
+                if (! $header) {
                     $header = array_map('strtolower', $row);
+
                     continue;
                 }
                 $rows->push(array_combine($header, $row));
@@ -132,7 +138,7 @@ class ImportarParticipantes extends Component
                 ];
             });
         } catch (\Exception $e) {
-            throw new \Exception('Error al leer el archivo XLSX: ' . $e->getMessage());
+            throw new \Exception('Error al leer el archivo XLSX: '.$e->getMessage());
         }
     }
 
@@ -149,12 +155,13 @@ class ImportarParticipantes extends Component
             foreach ($data as $fila) {
                 try {
                     // Validar datos requeridos
-                    if (!$fila['dni'] || !$fila['nombre'] || !$fila['apellido'] || !$fila['mail']) {
+                    if (! $fila['dni'] || ! $fila['nombre'] || ! $fila['apellido'] || ! $fila['mail']) {
                         $this->errores++;
                         $this->resultados[] = [
                             'dni' => $fila['dni'] ?: 'N/A',
-                            'estado' => 'Error: Datos incompletos'
+                            'estado' => 'Error: Datos incompletos',
                         ];
+
                         continue;
                     }
 
@@ -162,10 +169,10 @@ class ImportarParticipantes extends Component
                     $participante = Participante::firstOrCreate(
                         ['dni' => $fila['dni']],
                         [
-                            'nombre' => mb_convert_case(mb_strtolower(trim($fila['nombre'])), MB_CASE_TITLE, "UTF-8"),
-                            'apellido' => mb_convert_case(mb_strtolower(trim($fila['apellido'])), MB_CASE_TITLE, "UTF-8"),
+                            'nombre' => mb_convert_case(mb_strtolower(trim($fila['nombre'])), MB_CASE_TITLE, 'UTF-8'),
+                            'apellido' => mb_convert_case(mb_strtolower(trim($fila['apellido'])), MB_CASE_TITLE, 'UTF-8'),
                             'mail' => $fila['mail'],
-                            'telefono' => $fila['telefono'] ?? ''
+                            'telefono' => $fila['telefono'] ?? '',
                         ]
                     );
 
@@ -178,8 +185,9 @@ class ImportarParticipantes extends Component
                         $this->errores++;
                         $this->resultados[] = [
                             'dni' => $fila['dni'],
-                            'estado' => 'Ya inscripto'
+                            'estado' => 'Ya inscripto',
                         ];
+
                         continue;
                     }
 
@@ -195,13 +203,13 @@ class ImportarParticipantes extends Component
                     $this->exitosos++;
                     $this->resultados[] = [
                         'dni' => $fila['dni'],
-                        'estado' => 'Inscripto correctamente'
+                        'estado' => 'Inscripto correctamente',
                     ];
                 } catch (\Throwable $e) {
                     $this->errores++;
                     $this->resultados[] = [
                         'dni' => $fila['dni'] ?? 'Desconocido',
-                        'estado' => 'Error: ' . $e->getMessage()
+                        'estado' => 'Error: '.$e->getMessage(),
                     ];
                 }
             }
@@ -210,7 +218,7 @@ class ImportarParticipantes extends Component
             $this->dispatch('alert', message: "Importación finalizada: {$this->exitosos}/{$this->total} inscriptos correctamente.");
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Error general: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error general: '.$e->getMessage());
         }
     }
 

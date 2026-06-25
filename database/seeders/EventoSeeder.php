@@ -3,10 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Evento;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-
 
 class EventoSeeder extends Seeder
 {
@@ -25,7 +23,7 @@ class EventoSeeder extends Seeder
                 'estado' => 'Pendiente',
                 'tipo_evento_id' => 1, // Ajusta según los datos que tengas en la tabla tipo_evento
                 'certificado_path' => null,
-                'por_aprobacion' => (bool)rand(0, 1),
+                'por_aprobacion' => (bool) rand(0, 1),
             ]);
         }
     }

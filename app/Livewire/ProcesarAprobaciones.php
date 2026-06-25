@@ -6,15 +6,19 @@ use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Rol;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class ProcesarAprobaciones extends Component
 {
     public $eventos = [];
+
     public $eventoSeleccionado = null;
+
     public $participantes = [];
+
     public $estadoAprobacion = [];
+
     protected $listeners = ['finalizarRevision'];
 
     public function mount()
@@ -32,7 +36,6 @@ class ProcesarAprobaciones extends Component
         $this->eventos = $query->get();
     }
 
-
     public function seleccionarEvento($eventoId)
     {
         $evento = Evento::findOrFail($eventoId);
@@ -45,9 +48,10 @@ class ProcesarAprobaciones extends Component
 
         $rolParticipante = Rol::where('nombre', 'Participante')->first();
 
-        if (!$rolParticipante) {
+        if (! $rolParticipante) {
             $this->dispatch('oops', message: 'Error: No se encontró el Rol "Participante" en la base de datos.');
             $this->reset('eventoSeleccionado');
+
             return;
         }
 
@@ -60,8 +64,6 @@ class ProcesarAprobaciones extends Component
             $this->estadoAprobacion[$p->evento_participantes_id] = $p->aprobado ?? false;
         }
     }
-
-
 
     public function actualizarEstado($index, $valor)
     {
@@ -76,11 +78,11 @@ class ProcesarAprobaciones extends Component
         DB::beginTransaction();
 
         try {
-            //dd($this->estadoAprobacion); // solo para debug
+            // dd($this->estadoAprobacion); // solo para debug
             foreach ($this->participantes as $p) {
                 $p->update(['aprobado' => $this->estadoAprobacion[$p->evento_participantes_id]]);
             }
-            //$this->eventoSeleccionado->update(['revisado' => true]);
+            // $this->eventoSeleccionado->update(['revisado' => true]);
 
             DB::commit();
             $this->dispatch('alert', message: 'Participantes actualizados correctamente.');
@@ -88,7 +90,7 @@ class ProcesarAprobaciones extends Component
             $this->mount(); // recargar eventos
         } catch (\Throwable $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'No se pudo Actualizar el listado de Aprobados: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'No se pudo Actualizar el listado de Aprobados: '.$e->getMessage());
         }
     }
 
@@ -99,10 +101,9 @@ class ProcesarAprobaciones extends Component
             $this->reset(['eventoSeleccionado', 'participantes']);
             $this->mount();
         } catch (\Throwable $e) {
-            $this->dispatch('oops', message: 'Error al finalizar la revisión: ' . $e->getMessage());
+            $this->dispatch('oops', message: 'Error al finalizar la revisión: '.$e->getMessage());
         }
     }
-
 
     public function render()
     {

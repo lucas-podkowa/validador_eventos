@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-
 class EventoParticipante extends Model
 {
     use HasFactory;
+
     public $timestamps = false;
+
     protected $table = 'evento_participantes';
+
     protected $fillable = [
         'evento_participantes_id',
         'evento_id',
@@ -21,12 +23,14 @@ class EventoParticipante extends Model
         'qrcode',
         'aprobado',
         'emision_directa',
-        'certificado_path'
+        'certificado_path',
     ];
-    protected $primaryKey = 'evento_participantes_id';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
+    protected $primaryKey = 'evento_participantes_id';
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
 
     protected static function boot()
     {
@@ -48,6 +52,7 @@ class EventoParticipante extends Model
     {
         return $this->belongsTo(Participante::class, 'participante_id');
     }
+
     public function rol()
     {
         return $this->belongsTo(Rol::class, 'rol_id', 'rol_id');

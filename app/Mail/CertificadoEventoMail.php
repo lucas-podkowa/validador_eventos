@@ -5,12 +5,11 @@ namespace App\Mail;
 use App\Models\Evento;
 use App\Models\Participante;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Support\Facades\Storage;
 
 class CertificadoEventoMail extends Mailable
@@ -18,7 +17,9 @@ class CertificadoEventoMail extends Mailable
     use Queueable, SerializesModels;
 
     public $evento;
+
     public $participante;
+
     public $certificadoPath;
 
     public function __construct(Evento $evento, Participante $participante, string $certificadoPath)
@@ -28,11 +29,10 @@ class CertificadoEventoMail extends Mailable
         $this->certificadoPath = $certificadoPath;
     }
 
-
     public function envelope()
     {
         return new Envelope(
-            subject: 'Tu Certificado del Evento: ' . $this->evento->nombre,
+            subject: 'Tu Certificado del Evento: '.$this->evento->nombre,
         );
     }
 

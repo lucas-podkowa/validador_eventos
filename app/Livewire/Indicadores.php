@@ -11,19 +11,25 @@ use Livewire\Component;
 class Indicadores extends Component
 {
     public $tipoSeleccionadoId = null;
+
     public $showIndicadorModal = false;
 
     public $sortField = 'nombre';
+
     public $sortDirection = 'asc';
 
     public $modoTipo = 'idle';
+
     public $modoIndicador = 'idle';
 
     public $tipo_nombre = '';
+
     public $tipo_selector = 'Selección Única';
+
     public $editingTipoId = null;
 
     public $indicador_nombre = '';
+
     public $editingIndicadorId = null;
 
     public function mount()
@@ -48,7 +54,7 @@ class Indicadores extends Component
 
     public function sortBy($field)
     {
-        if (!in_array($field, ['nombre', 'indicador_id'], true)) {
+        if (! in_array($field, ['nombre', 'indicador_id'], true)) {
             return;
         }
 
@@ -79,7 +85,7 @@ class Indicadores extends Component
     #[Computed]
     public function tipoActivo()
     {
-        if (!$this->tipoSeleccionadoId) {
+        if (! $this->tipoSeleccionadoId) {
             return null;
         }
 
@@ -91,7 +97,7 @@ class Indicadores extends Component
     #[Computed]
     public function indicadores()
     {
-        if (!$this->tipoSeleccionadoId) {
+        if (! $this->tipoSeleccionadoId) {
             return collect();
         }
 
@@ -116,7 +122,7 @@ class Indicadores extends Component
     {
         $tipoId = $id ? (int) $id : (int) $this->tipoSeleccionadoId;
 
-        if (!$tipoId) {
+        if (! $tipoId) {
             $this->dispatch('oops', message: 'Seleccione un tipo antes de editarlo.');
 
             return;
@@ -186,12 +192,12 @@ class Indicadores extends Component
         $this->cancelTipoForm();
         $this->cancelIndicadorForm();
 
-        $this->dispatch('alert', message: 'Se eliminó el tipo de indicador ' . $nombreTipo . '.');
+        $this->dispatch('alert', message: 'Se eliminó el tipo de indicador '.$nombreTipo.'.');
     }
 
     public function createIndicador()
     {
-        if (!$this->tipoSeleccionadoId) {
+        if (! $this->tipoSeleccionadoId) {
             $this->dispatch('oops', message: 'Primero debe crear o seleccionar un tipo de indicador.');
 
             return;
@@ -222,7 +228,7 @@ class Indicadores extends Component
 
     public function saveIndicador()
     {
-        if (!$this->tipoSeleccionadoId) {
+        if (! $this->tipoSeleccionadoId) {
             $this->dispatch('oops', message: 'Seleccione un tipo de indicador antes de guardar.');
 
             return;
@@ -274,7 +280,7 @@ class Indicadores extends Component
             $this->cancelIndicadorForm();
         }
 
-        $this->dispatch('alert', message: 'Se eliminó el indicador ' . $nombreIndicador . '.');
+        $this->dispatch('alert', message: 'Se eliminó el indicador '.$nombreIndicador.'.');
     }
 
     public function cancelTipoForm()

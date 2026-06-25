@@ -57,6 +57,11 @@ class InscripcionParticipante extends Model
         return $this->belongsTo(Destinatario::class, 'destinatario_id', 'destinatario_id');
     }
 
+    public function documentos()
+    {
+        return $this->hasMany(DocumentoPresentado::class, 'inscripcion_participante_id');
+    }
+
     public function scopeParticipantes($query)
     {
         $rolParticipante = Rol::where('nombre', 'Participante')->first();

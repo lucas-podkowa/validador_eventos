@@ -8,6 +8,7 @@ use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\InscripcionParticipante;
 use App\Models\PlanillaInscripcion;
+use App\Models\RequisitoDocumentacion;
 use App\Models\Responsable;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
@@ -20,6 +21,7 @@ use Livewire\WithFileUploads;
 class CrearEvento extends Component
 {
     use WithFileUploads;
+
     public $evento_id = null; // Para saber si es edición o creación
 
     public $categoria_id = null;
@@ -55,6 +57,8 @@ class CrearEvento extends Component
     public array $destinatarioSeleccionado = [];
 
     public array $destinatarioPrecio = [];
+
+    public array $destinatarioRequisitos = [];
 
     // Métodos de pago flexibles (url, cbu, alias, qr_image path, etc.)
     public array $metodosPago = [];
@@ -96,7 +100,7 @@ class CrearEvento extends Component
         $this->tiposIndicadores = TipoIndicador::all();
 
         if ($evento_id) {
-            $evento = Evento::with('destinatarios')->find($evento_id);
+            $evento = Evento::with('destinatarios', 'requisitos')->find($evento_id);
             $seleccionadosIds = $evento ? $evento->destinatarios->pluck('destinatario_id')->toArray() : [];
             $this->destinatarios = Destinatario::where('activo', true)
                 ->orWhereIn('destinatario_id', $seleccionadosIds)
@@ -108,7 +112,7 @@ class CrearEvento extends Component
 
         if ($evento_id) {
             $this->evento_id = $evento_id;
-            $evento = Evento::with('tipoIndicadores')->find($evento_id);
+            $evento = Evento::with('tipoIndicadores', 'requisitos')->find($evento_id);
 
             if ($evento) {
                 $this->categoria_id = $evento->categoria_id;
@@ -136,6 +140,18 @@ class CrearEvento extends Component
                 foreach ($evento->destinatarios as $destinatario) {
                     $this->destinatarioSeleccionado[] = (string) $destinatario->destinatario_id;
                     $this->destinatarioPrecio[$destinatario->destinatario_id] = $destinatario->pivot->precio;
+                }
+
+                foreach ($evento->requisitos as $requisito) {
+                    $this->destinatarioRequisitos[$requisito->destinatario_id][] = [
+                        'requisito_id' => $requisito->requisito_id,
+                        'titulo' => $requisito->titulo,
+                        'orden' => $requisito->orden,
+                    ];
+                }
+                // Sort each group by orden
+                foreach ($this->destinatarioRequisitos as $destId => $reqs) {
+                    usort($this->destinatarioRequisitos[$destId], fn ($a, $b) => ($a['orden'] ?? 0) <=> ($b['orden'] ?? 0));
                 }
 
                 // Cargar responsable si existe
@@ -177,9 +193,11 @@ class CrearEvento extends Component
         // Validar la fecha siempre que esté presente
         $reglas['fecha_inicio'] = 'required|date';
 
+        $reglas['destinatarioSeleccionado'] = 'nullable|array';
+        $reglas['destinatarioSeleccionado.*'] = 'exists:destinatarios,destinatario_id';
+
         if ($this->arancel) {
             $reglas['destinatarioSeleccionado'] = 'required|array|min:1';
-            $reglas['destinatarioSeleccionado.*'] = 'exists:destinatarios,destinatario_id';
 
             foreach ($this->destinatarioSeleccionado as $id) {
                 $reglas["destinatarioPrecio.$id"] = 'required|numeric|min:0';
@@ -219,36 +237,59 @@ class CrearEvento extends Component
             }
         }
 
+        $seleccionados = array_map('strval', $this->destinatarioSeleccionado);
+        $existingRequisitos = $this->evento_id
+            ? RequisitoDocumentacion::where('evento_id', $this->evento_id)->get()->groupBy('destinatario_id')
+            : collect();
+
+        foreach ($this->destinatarioRequisitos as $destId => $requisitos) {
+            if (! in_array((string) $destId, $seleccionados, true)) {
+                continue;
+            }
+
+            $titulosVistos = [];
+            $titulosExistentes = $existingRequisitos->get($destId, collect())
+                ->filter(fn ($req) => empty($req->requisito_id) || ! collect($requisitos)->contains(fn ($item) => (int) ($item['requisito_id'] ?? 0) === (int) $req->requisito_id))
+                ->pluck('titulo')
+                ->map(fn ($titulo) => mb_strtolower(trim((string) $titulo)))
+                ->all();
+
+            foreach ($requisitos as $i => $req) {
+                $titulo = trim((string) ($req['titulo'] ?? ''));
+                $tituloNormalizado = mb_strtolower($titulo);
+
+                if ($titulo !== '' && (
+                    in_array($tituloNormalizado, array_map('mb_strtolower', $titulosVistos), true) ||
+                    in_array($tituloNormalizado, $titulosExistentes, true)
+                )) {
+                    $this->addError("destinatarioRequisitos.$destId.$i.titulo", 'No pueden existir dos requisitos con el mismo título para el mismo destinatario.');
+
+                    return;
+                }
+
+                $titulosVistos[] = $titulo;
+                $reglas["destinatarioRequisitos.$destId.$i.titulo"] = 'required|string|min:1|max:255';
+            }
+        }
+
         $this->validate($reglas, $mensajes);
 
-        // Validar que no se desmarquen destinatarios ya usados ni se quite el arancel si hay inscripciones pagas
+        // Validar que no se desmarquen destinatarios en uso
         if ($this->evento_id) {
             $evento = Evento::find($this->evento_id);
             $planilla = $evento?->planillaInscripcion;
 
             if ($planilla) {
-                if ($this->arancel) {
-                    $seleccionados = collect($this->destinatarioSeleccionado)->map(fn ($id) => (int) $id)->all();
-                    $enUso = InscripcionParticipante::where('planilla_id', $planilla->planilla_inscripcion_id)
-                        ->whereNotIn('destinatario_id', $seleccionados)
-                        ->whereNotNull('destinatario_id')
-                        ->exists();
+                $seleccionados = collect($this->destinatarioSeleccionado)->map(fn ($id) => (int) $id)->all();
+                $enUso = InscripcionParticipante::where('planilla_id', $planilla->planilla_inscripcion_id)
+                    ->whereNotIn('destinatario_id', $seleccionados)
+                    ->whereNotNull('destinatario_id')
+                    ->exists();
 
-                    if ($enUso) {
-                        $this->addError('destinatarioSeleccionado', 'No se pueden desmarcar destinatarios que ya tienen inscripciones asociadas.');
+                if ($enUso) {
+                    $this->addError('destinatarioSeleccionado', 'No se pueden desmarcar destinatarios que ya tienen inscripciones asociadas.');
 
-                        return;
-                    }
-                } else {
-                    $tieneInscripcionesPagas = InscripcionParticipante::where('planilla_id', $planilla->planilla_inscripcion_id)
-                        ->whereNotNull('destinatario_id')
-                        ->exists();
-
-                    if ($tieneInscripcionesPagas) {
-                        $this->addError('arancel', 'No se puede quitar el arancel porque ya existen inscripciones con destinatarios asociadas.');
-
-                        return;
-                    }
+                    return;
                 }
             }
         }
@@ -301,14 +342,63 @@ class CrearEvento extends Component
                 }
             }
 
-            if ($this->arancel) {
-                $sync = [];
-                foreach ($this->destinatarioSeleccionado as $id) {
-                    $sync[(int) $id] = ['precio' => (float) ($this->destinatarioPrecio[$id] ?? 0)];
+            // Sync destinatarios (always, not just when arancel)
+            $sync = [];
+            foreach ($this->destinatarioSeleccionado as $id) {
+                $sync[(int) $id] = ['precio' => (float) ($this->destinatarioPrecio[$id] ?? 0)];
+            }
+            $evento->destinatarios()->sync($sync);
+
+            // Sync requisitos
+            $existingRequisitos = $evento->requisitos()->get()->keyBy('requisito_id');
+            $newRequisitoIds = [];
+
+            foreach ($this->destinatarioRequisitos as $destId => $requisitos) {
+                if (! in_array((string) $destId, array_map('strval', $this->destinatarioSeleccionado))) {
+                    continue;
                 }
-                $evento->destinatarios()->sync($sync);
-            } else {
-                $evento->destinatarios()->detach();
+
+                foreach ($requisitos as $i => $req) {
+                    $data = [
+                        'evento_id' => $evento->evento_id,
+                        'destinatario_id' => (int) $destId,
+                        'titulo' => trim($req['titulo']),
+                        'orden' => $i,
+                    ];
+
+                    if (! empty($req['requisito_id']) && $existingRequisitos->has($req['requisito_id'])) {
+                        $existing = $existingRequisitos[$req['requisito_id']];
+
+                        if ($existing->titulo !== $data['titulo'] && $existing->documentos()->exists()) {
+                            $this->addError('destinatarioRequisitos', "No se puede renombrar el requisito «{$existing->titulo}» porque ya hay inscripciones que presentaron ese documento.");
+                            $this->dispatch('oops', message: "No se puede renombrar el requisito «{$existing->titulo}» porque ya hay inscripciones que presentaron ese documento.");
+                            DB::rollBack();
+
+                            return;
+                        }
+
+                        $existing->update($data);
+                        $newRequisitoIds[] = (int) $req['requisito_id'];
+                    } else {
+                        $r = RequisitoDocumentacion::create($data);
+                        $newRequisitoIds[] = $r->requisito_id;
+                    }
+                }
+            }
+
+            // Delete removed requisitos that have no documentos
+            $toDelete = $existingRequisitos->whereNotIn('requisito_id', $newRequisitoIds);
+
+            foreach ($toDelete as $req) {
+                if ($req->documentos()->exists()) {
+                    $this->addError('destinatarioRequisitos', "No se puede eliminar el requisito «{$req->titulo}» porque ya hay inscripciones que presentaron ese documento.");
+                    $this->dispatch('oops', message: "No se puede eliminar el requisito «{$req->titulo}» porque ya hay inscripciones que presentaron ese documento.");
+                    DB::rollBack();
+
+                    return;
+                }
+
+                $req->delete();
             }
 
             Log::info('Evento guardado correctamente', ['evento_id' => $evento->evento_id]);
@@ -330,6 +420,7 @@ class CrearEvento extends Component
                 'link_pago',
                 'destinatarioSeleccionado',
                 'destinatarioPrecio',
+                'destinatarioRequisitos',
                 'responsable_id',
                 'responsable_dni',
                 'responsable_nombre',
@@ -584,8 +675,49 @@ class CrearEvento extends Component
     }
 
     // ----------------------------------------------------------------
+    // -----  Requisitos de documentación (repeater) ------------------
     // ----------------------------------------------------------------
-    // ----------------------------------------------------------------
+
+    public function addRequisito($destinatarioId)
+    {
+        $this->destinatarioRequisitos[(int) $destinatarioId][] = [
+            'requisito_id' => null,
+            'titulo' => '',
+        ];
+    }
+
+    public function removeRequisito($destinatarioId, $index)
+    {
+        $destId = (int) $destinatarioId;
+        if (isset($this->destinatarioRequisitos[$destId][$index])) {
+            array_splice($this->destinatarioRequisitos[$destId], $index, 1);
+
+            if (empty($this->destinatarioRequisitos[$destId])) {
+                unset($this->destinatarioRequisitos[$destId]);
+            }
+        }
+    }
+
+    public function moveRequisitoUp($destinatarioId, $index)
+    {
+        $destId = (int) $destinatarioId;
+        if ($index > 0 && isset($this->destinatarioRequisitos[$destId][$index - 1])) {
+            $tmp = $this->destinatarioRequisitos[$destId][$index - 1];
+            $this->destinatarioRequisitos[$destId][$index - 1] = $this->destinatarioRequisitos[$destId][$index];
+            $this->destinatarioRequisitos[$destId][$index] = $tmp;
+        }
+    }
+
+    public function moveRequisitoDown($destinatarioId, $index)
+    {
+        $destId = (int) $destinatarioId;
+        $count = count($this->destinatarioRequisitos[$destId] ?? []);
+        if ($index < $count - 1 && isset($this->destinatarioRequisitos[$destId][$index + 1])) {
+            $tmp = $this->destinatarioRequisitos[$destId][$index + 1];
+            $this->destinatarioRequisitos[$destId][$index + 1] = $this->destinatarioRequisitos[$destId][$index];
+            $this->destinatarioRequisitos[$destId][$index] = $tmp;
+        }
+    }
 
     public function render()
     {

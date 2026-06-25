@@ -3,14 +3,16 @@
 {{-- <div class="bg-gray-200 bg-opacity-25 gap-6 lg:gap-8 p-6 lg:p-8 justify-center"> --}}
 <div class="min-h-screen flex flex-col">
 
-    <header class="w-full flex justify-center bg-gray-200">
-        @if (isset($planilla_inscripcion['header']) && $planilla_inscripcion['header'])
-            <img src="{{ asset('storage/' . $planilla_inscripcion['header']) }}" alt="Cabecera del formulario"
-                class="w-full h-auto object-cover">
-        @endif
+    <header class="w-full bg-slate-100/80">
+        <div class="mx-auto w-full max-w-4xl">
+            @if (isset($planilla_inscripcion['header']) && $planilla_inscripcion['header'])
+                <img src="{{ asset('storage/' . $planilla_inscripcion['header']) }}" alt="Cabecera del formulario"
+                    class="block w-full h-auto object-cover">
+            @endif
+        </div>
     </header>
 
-    <main class="flex-1 p-4 justify-center max-w-4xl mx-auto">
+    <main class="flex-1 w-full p-4 justify-center max-w-4xl mx-auto">
         <!-- Título del formulario -->
         <h2 class="text-2xl font-semibold text-center">Inscripción al evento: {{ $evento->nombre }}</h2>
 
@@ -73,8 +75,8 @@
                         </div>
                     </div>
 
-                    <!-- Destinatario y pago -->
-                    @if ($evento->arancel)
+                    <!-- Destinatario y documentación -->
+                    @if ($evento->destinatarios->isNotEmpty())
                         <div class="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                             <div class="flex flex-col">
                                 <label for="destinatario_id" class="mb-1 lg:mb-0 font-medium">
@@ -89,7 +91,7 @@
                                             @if ($dest->pivot->precio > 0)
                                                 — ${{ number_format($dest->pivot->precio, 2, ',', '.') }}
                                             @else
-                                                — Gratuito
+                                                — No Arancelado
                                             @endif
                                         </option>
                                     @endforeach
@@ -167,12 +169,35 @@
                                         <input type="file" id="comprobante" wire:model="comprobante"
                                             accept=".pdf,image/jpeg,image/png"
                                             class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
-                                        <p class="text-xs text-gray-500 mt-1">PDF, JPG o PNG, máximo 2 MB.</p>
+                                        <p class="text-xs text-gray-500 mt-1">PDF, JPG o PNG, máximo 30 MB.</p>
                                         @error('comprobante')
                                             <span class="text-sm text-red-600">{{ $message }}</span>
                                         @enderror
                                     </div>
                                 @endif
+                            @endif
+
+                            @if (count($requisitosActivos) > 0)
+                                <div class="space-y-3 border-t border-gray-200 pt-4">
+                                    <p class="font-semibold text-sm text-gray-800">
+                                        <i class="fa-solid fa-file-lines mr-1"></i>Documentación requerida
+                                    </p>
+                                    @foreach ($requisitosActivos as $requisito)
+                                        <div class="flex flex-col">
+                                            <label class="mb-1 lg:mb-0 font-medium">
+                                                {{ $requisito['titulo'] }} <span class="text-red-600">*</span>
+                                            </label>
+                                            <input type="file"
+                                                wire:model="documentos.{{ $requisito['requisito_id'] }}"
+                                                accept=".pdf"
+                                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                                            <p class="text-xs text-gray-500 mt-1">PDF, máximo 30 MB.</p>
+                                            @error("documentos.{$requisito['requisito_id']}")
+                                                <span class="text-sm text-red-600">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    @endforeach
+                                </div>
                             @endif
                         </div>
                     @endif
@@ -241,10 +266,12 @@
 
     </main>
 
-    <footer class="w-full flex justify-center bg-gray-200">
-        @if (isset($planilla_inscripcion['footer']) && $planilla_inscripcion['footer'])
-            <img src="{{ asset('storage/' . $planilla_inscripcion['footer']) }}" alt="Cabecera del formulario"
-                class="w-full h-auto object-cover">
-        @endif
+    <footer class="w-full bg-slate-100/80">
+        <div class="mx-auto w-full max-w-4xl">
+            @if (isset($planilla_inscripcion['footer']) && $planilla_inscripcion['footer'])
+                <img src="{{ asset('storage/' . $planilla_inscripcion['footer']) }}" alt="Pie del formulario"
+                    class="block w-full h-auto object-cover">
+            @endif
+        </div>
     </footer>
 </div>

@@ -2,18 +2,32 @@
 
 namespace App\Livewire;
 
+use App\Models\Participante;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Participante;
 
 class Participantes extends Component
 {
     use WithPagination;
 
-    public $participante_id, $nombre, $apellido, $dni, $mail, $telefono;
+    public $participante_id;
+
+    public $nombre;
+
+    public $apellido;
+
+    public $dni;
+
+    public $mail;
+
+    public $telefono;
+
     public $open_modal = false;
+
     public $searchParticipante = '';
+
     public $sort = 'nombre';
+
     public $direction = 'asc';
 
     protected $rules = [
@@ -24,13 +38,11 @@ class Participantes extends Component
         'telefono' => 'required|string|max:20',
     ];
 
-
     // Resetea la paginación cuando cambia el filtro
     public function updatedSearchParticipante()
     {
         $this->resetPage();
     }
-
 
     public function edit($id)
     {
@@ -49,12 +61,11 @@ class Participantes extends Component
     {
         $this->validate([
             'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
-            'nombre'   => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
-            'dni'      => ['required', 'digits_between:6,10', 'numeric'],
-            'mail'     => ['required', 'email'],
+            'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+            'dni' => ['required', 'digits_between:6,10', 'numeric'],
+            'mail' => ['required', 'email'],
             'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         ]);
-
 
         // Normalizar nombre y apellido antes de guardar o actualizar
         $this->nombre = ucfirst(mb_strtolower(trim($this->nombre)));
@@ -75,7 +86,7 @@ class Participantes extends Component
     {
         $query = Participante::orderBy('apellido');
 
-        if (!empty($this->searchParticipante)) {
+        if (! empty($this->searchParticipante)) {
             $query->where(function ($q) {
                 $q->where('nombre', 'like', "%{$this->searchParticipante}%")
                     ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
@@ -88,12 +99,11 @@ class Participantes extends Component
         return view('livewire.participantes', compact('participantes'));
     }
 
-
     public function order($field)
     {
-        if ($this->sort == $field) { //si estoy en la misma columna me pregunto por la direccion de ordenamiento
+        if ($this->sort == $field) { // si estoy en la misma columna me pregunto por la direccion de ordenamiento
             $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
-        } else { //si es una columna nueva, ordeno de forma ascendente
+        } else { // si es una columna nueva, ordeno de forma ascendente
             $this->sort = $field;
             $this->direction = 'asc';
         }

@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Localidad extends Model
 {
     use HasFactory;
+
     protected $table = 'localidad';
+
     protected $primaryKey = 'localidad_id';
 
     // protected $fillable = ['nombre', 'pais_id'];

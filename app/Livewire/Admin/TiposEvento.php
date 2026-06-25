@@ -12,8 +12,11 @@ class TiposEvento extends Component
     use WithPagination;
 
     public $open_modal = false;
+
     public $editando_id = null;
+
     public $nombre = '';
+
     public $search = '';
 
     public function updatingSearch(): void
@@ -68,6 +71,7 @@ class TiposEvento extends Component
 
         if ($tipo->eventos_count > 0) {
             $this->dispatch('oops', message: "No se puede eliminar: existen {$tipo->eventos_count} evento(s) asociados a este tipo.");
+
             return;
         }
 
@@ -78,7 +82,7 @@ class TiposEvento extends Component
     public function render()
     {
         $tipos = TipoEvento::withCount('eventos')
-            ->when($this->search, fn($q) => $q->where('nombre', 'like', "%{$this->search}%"))
+            ->when($this->search, fn ($q) => $q->where('nombre', 'like', "%{$this->search}%"))
             ->orderBy('nombre')
             ->paginate(10);
 

@@ -16,7 +16,7 @@ return new class extends Migration
 
         // 2. Insertar categoría "General" por defecto
         $categoriaId = DB::table('categoria_evento')->insertGetId([
-            'nombre'      => 'General',
+            'nombre' => 'General',
             'descripcion' => 'Categoría por defecto para eventos existentes',
         ], 'categoria_id');
 

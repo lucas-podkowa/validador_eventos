@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class PlantillaCertificado extends Model
 {
     public $timestamps = false;
+
     protected $table = 'plantilla_certificado';
+
     protected $primaryKey = 'plantilla_id';
 
     public const TIPOS = ['asistencia', 'aprobacion', 'disertante', 'colaborador'];

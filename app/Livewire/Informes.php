@@ -14,18 +14,26 @@ use Livewire\Component;
 class Informes extends Component
 {
     public $modo = 'general';
+
     public $anio = '';
+
     public $fechaDesde = '';
+
     public $fechaHasta = '';
+
     public $tipoEventoId = '';
+
     public $eventoId = '';
+
     public $tiposEvento = [];
+
     public $anios = [];
+
     public $roles = [];
 
     public function mount(): void
     {
-        abort_if(!auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede acceder a Informes.');
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede acceder a Informes.');
 
         $this->tiposEvento = TipoEvento::orderBy('nombre')->get();
         $this->anios = Evento::query()
@@ -35,7 +43,7 @@ class Informes extends Component
             ->orderByDesc('anio')
             ->pluck('anio')
             ->filter()
-            ->map(fn($anio) => (string) $anio)
+            ->map(fn ($anio) => (string) $anio)
             ->values()
             ->all();
         $this->roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])
@@ -83,7 +91,7 @@ class Informes extends Component
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
-        }, 'informe-general-' . now()->format('Ymd-His') . '.pdf');
+        }, 'informe-general-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function exportarPdfCurso()
@@ -92,13 +100,15 @@ class Informes extends Component
 
         if ($this->eventoId === '') {
             $this->dispatch('oops', message: 'Seleccione un curso o evento antes de exportar.');
+
             return;
         }
 
         $reporte = $this->buildCourseReport($this->eventoId);
 
-        if (!$reporte) {
+        if (! $reporte) {
             $this->dispatch('oops', message: 'No se encontró información para el curso seleccionado.');
+
             return;
         }
 
@@ -110,7 +120,7 @@ class Informes extends Component
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
-        }, 'informe-' . Str::slug($reporte['evento']['nombre']) . '-' . now()->format('Ymd-His') . '.pdf');
+        }, 'informe-'.Str::slug($reporte['evento']['nombre']).'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function render()
@@ -271,7 +281,7 @@ class Informes extends Component
         $evento = Evento::with(['tipoEvento', 'responsable', 'planillaInscripcion'])
             ->find($eventoId);
 
-        if (!$evento) {
+        if (! $evento) {
             return null;
         }
 
@@ -380,7 +390,7 @@ class Informes extends Component
                 'fecha_inicio' => $evento->fecha_inicio_formatted,
                 'estado' => $evento->estado,
                 'responsable' => $evento->responsable
-                    ? $evento->responsable->apellido . ', ' . $evento->responsable->nombre
+                    ? $evento->responsable->apellido.', '.$evento->responsable->nombre
                     : 'Sin asignar',
                 'certificacion' => $evento->por_aprobacion ? 'Por Aprobación' : 'Por Asistencia',
             ],
@@ -405,15 +415,15 @@ class Informes extends Component
         $totals = $rows
             ->groupBy(function ($row) use ($groupKeys) {
                 return collect($groupKeys)
-                    ->map(fn($key) => $row->{$key})
+                    ->map(fn ($key) => $row->{$key})
                     ->implode('|');
             })
-            ->map(fn(Collection $items) => $items->sum('total'));
+            ->map(fn (Collection $items) => $items->sum('total'));
 
         return $rows
             ->map(function ($row) use ($groupKeys, $totals) {
                 $groupKey = collect($groupKeys)
-                    ->map(fn($key) => $row->{$key})
+                    ->map(fn ($key) => $row->{$key})
                     ->implode('|');
 
                 $result = [];
@@ -443,7 +453,7 @@ class Informes extends Component
             ->where('evento_id', $this->eventoId)
             ->exists();
 
-        if (!$eventoExiste) {
+        if (! $eventoExiste) {
             $this->eventoId = '';
         }
     }
@@ -458,20 +468,20 @@ class Informes extends Component
         $filters = [];
 
         if ($this->anio !== '') {
-            $filters[] = 'Año: ' . $this->anio;
+            $filters[] = 'Año: '.$this->anio;
         }
 
         if ($this->fechaDesde !== '') {
-            $filters[] = 'Desde: ' . date('d/m/Y', strtotime($this->fechaDesde));
+            $filters[] = 'Desde: '.date('d/m/Y', strtotime($this->fechaDesde));
         }
 
         if ($this->fechaHasta !== '') {
-            $filters[] = 'Hasta: ' . date('d/m/Y', strtotime($this->fechaHasta));
+            $filters[] = 'Hasta: '.date('d/m/Y', strtotime($this->fechaHasta));
         }
 
         if ($this->tipoEventoId !== '') {
             $tipoEvento = collect($this->tiposEvento)->firstWhere('tipo_evento_id', (int) $this->tipoEventoId);
-            $filters[] = 'Tipo: ' . ($tipoEvento->nombre ?? 'Sin tipo');
+            $filters[] = 'Tipo: '.($tipoEvento->nombre ?? 'Sin tipo');
         }
 
         return count($filters) > 0 ? implode(' | ', $filters) : 'Sin filtros adicionales';
