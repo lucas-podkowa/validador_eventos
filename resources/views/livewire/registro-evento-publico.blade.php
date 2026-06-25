@@ -1,20 +1,20 @@
 @section('title', $evento->nombre ?? 'Inscripción')
 
 {{-- <div class="bg-gray-200 bg-opacity-25 gap-6 lg:gap-8 p-6 lg:p-8 justify-center"> --}}
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col bg-slate-100/80" style="font-family: 'Roboto', sans-serif;">
 
-    <header class="w-full bg-slate-100/80">
+    <header class="w-full bg-slate-100/80 ">
         <div class="mx-auto w-full max-w-4xl">
             @if (isset($planilla_inscripcion['header']) && $planilla_inscripcion['header'])
                 <img src="{{ asset('storage/' . $planilla_inscripcion['header']) }}" alt="Cabecera del formulario"
-                    class="block w-full h-auto object-cover">
+                    class="block w-full h-auto object-cover rounded-md">
             @endif
         </div>
     </header>
 
-    <main class="flex-1 w-full p-4 justify-center max-w-4xl mx-auto">
+    <main class="flex-1 w-full py-4 justify-center max-w-4xl mx-auto ">
         <!-- Título del formulario -->
-        <h2 class="text-2xl font-semibold text-center">Inscripción al evento: {{ $evento->nombre }}</h2>
+        <h2 class="text-2xl font-semibold text-center" style="font-family: 'Roboto Condensed', sans-serif;">{{ $evento->nombre }}</h2>
 
         <div class="w-full p-4 bg-white shadow-md rounded-lg">
             @if ($inscripcion_activa)
@@ -270,7 +270,7 @@
         <div class="mx-auto w-full max-w-4xl">
             @if (isset($planilla_inscripcion['footer']) && $planilla_inscripcion['footer'])
                 <img src="{{ asset('storage/' . $planilla_inscripcion['footer']) }}" alt="Pie del formulario"
-                    class="block w-full h-auto object-cover">
+                    class="block w-full h-auto object-cover rounded-md">
             @endif
         </div>
     </footer>
