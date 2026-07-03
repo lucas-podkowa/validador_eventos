@@ -58,7 +58,6 @@
             left: 0px;
             right: 0px;
             height: 50px;
-            border-top: 1px solid #003366;
         }
 
         table {
