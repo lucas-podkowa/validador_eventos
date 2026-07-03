@@ -19,15 +19,39 @@
 
         header {
             position: fixed;
-            top: -90px;
-            left: 0;
-            right: 0;
+            top: -80px;
+            left: 0px;
+            right: 0px;
+            height: 75px;
+            border-bottom: 1px solid #003366;
         }
 
-        header img {
+        .header-row {
             width: 100%;
-            height: auto;
-            display: block;
+        }
+
+        .header-row table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-row td {
+            border: none;
+            padding: 0;
+        }
+
+        .header-logo-left img,
+        .header-logo-right img {
+            height: 52px;
+            width: auto;
+        }
+
+        .header-logo-left {
+            text-align: left;
+        }
+
+        .header-logo-right {
+            text-align: right;
         }
 
         footer {
@@ -123,7 +147,18 @@
 
 <body>
     <header>
-        <img src="{{ public_path('logos/cabecera_informes.png') }}" alt="Cabecera institucional">
+        <div class="header-row">
+            <table>
+                <tr>
+                    <td class="header-logo-left">
+                        <img src="{{ public_path('logos/logo_acreditar_azul.png') }}" alt="Acreditar azul">
+                    </td>
+                    <td class="header-logo-right">
+                        <img src="{{ public_path('logos/logo_fi_azul.png') }}" alt="Facultad de Ingeniería azul">
+                    </td>
+                </tr>
+            </table>
+        </div>
     </header>
 
     <footer>
@@ -146,6 +181,7 @@
 
         @yield('content')
     </main>
+
 </body>
 
 </html>
