@@ -89,10 +89,10 @@
             <table>
                 <tr>
                     <td class="header-logo-left">
-                        <img src="{{ public_path('logos/logo_acreditar_azul.png') }}" alt="Acreditar azul">
+                        <img src="{{ public_path('logos/logo_fi_azul.png') }}" alt="Facultad de Ingeniería azul">
                     </td>
                     <td class="header-logo-right">
-                        <img src="{{ public_path('logos/logo_fi_azul.png') }}" alt="Facultad de Ingeniería azul">
+                        <img src="{{ public_path('logos/logo_acreditar_azul.png') }}" alt="Acreditar azul">
                     </td>
                 </tr>
             </table>
