@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         @page {
-            margin: 100px 25px;
+            margin: 95px 25px;
         }
 
         body {
@@ -20,23 +20,45 @@
             top: -80px;
             left: 0px;
             right: 0px;
-            height: 50px;
+            height: 75px;
+            border-bottom: 1px solid #003366;
+        }
+
+        .header-row {
+            width: 100%;
+        }
+
+        .header-row table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-row td {
+            border: none;
+            padding: 0;
+        }
+
+        .header-logo-left img,
+        .header-logo-right img {
+            height: 52px;
+            width: auto;
+        }
+
+        .header-logo-left {
+            text-align: left;
+        }
+
+        .header-logo-right {
+            text-align: right;
         }
 
         footer {
             position: fixed;
-            bottom: -60px;
+            bottom: -10px;
             left: 0px;
             right: 0px;
             height: 50px;
-        }
-
-        .header-logo {
-            text-align: right;
-        }
-
-        .header-logo img {
-            width: 180px;
+            border-top: 1px solid #003366;
         }
 
         table {
@@ -64,8 +86,17 @@
 
 <body>
     <header>
-        <div class="header-logo">
-            <img src="{{ public_path('logos/logo-unam-color.png') }}">
+        <div class="header-row">
+            <table>
+                <tr>
+                    <td class="header-logo-left">
+                        <img src="{{ public_path('logos/logo_acreditar_azul.png') }}" alt="Acreditar azul">
+                    </td>
+                    <td class="header-logo-right">
+                        <img src="{{ public_path('logos/logo_fi_azul.png') }}" alt="Facultad de Ingeniería azul">
+                    </td>
+                </tr>
+            </table>
         </div>
     </header>
     <footer>

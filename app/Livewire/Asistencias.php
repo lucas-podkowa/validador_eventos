@@ -250,11 +250,13 @@ class Asistencias extends Component
                 'asistencias' => $asistencias,
             ];
         });
-        $pdf = Pdf::loadView('livewire.pdf-asistencias', [
-            'evento' => $evento,
-            'sesiones' => $sesiones,
-            'datos' => $datos,
-        ]);
+        $pdf = Pdf::setOption(['isPhpEnabled' => true])
+            ->loadView('livewire.pdf-asistencias', [
+                'evento' => $evento,
+                'sesiones' => $sesiones,
+                'datos' => $datos,
+            ])
+            ->setPaper('A4', 'portrait');
 
         return response()->streamDownload(
             fn () => print ($pdf->output()),
