@@ -135,6 +135,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // EventoSeeder::class,
             // ParticipanteSeeder::class,
+            // AcademicaSeeder::class, // idempotente: rol 'Académica', permiso 'academica' y carreras
         ]);
     }
 }

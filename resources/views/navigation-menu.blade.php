@@ -1,4 +1,4 @@
-<div class="flex flex-col h-full" x-data="{ adminOpen: true }">
+<div class="flex flex-col h-full" x-data="{ adminOpen: true, academicaOpen: true }">
     <!-- Sidebar Header -->
     <div class="sidebar-header">
         <a href="{{ route('welcome') }}" class="flex items-center gap-1">
@@ -42,6 +42,38 @@
             <i class="fa-solid fa-users w-5 text-center"></i>
             <span>Participantes</span>
         </a>
+        @endrole
+
+        {{-- Académica temporalmente oculto hasta que la funcionalidad esté lista para producción. --}}
+        @role('Administrador|Académica')
+        <div class="hidden">
+            <button @click="academicaOpen = !academicaOpen" class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
+                <span>Académica</span>
+                <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': academicaOpen }"></i>
+            </button>
+
+            <div x-show="academicaOpen" class="collapse-content">
+            <a href="{{ route('academica.plantillas') }}" class="{{ request()->routeIs('academica.plantillas') ? 'active' : '' }}">
+                <i class="fa-solid fa-image w-5 text-center"></i>
+                <span>Plantillas</span>
+            </a>
+
+            <a href="{{ route('academica.emision') }}" class="{{ request()->routeIs('academica.emision') ? 'active' : '' }}">
+                <i class="fa-solid fa-certificate w-5 text-center"></i>
+                <span>Emisión</span>
+            </a>
+
+            <a href="{{ route('academica.emisiones') }}" class="{{ request()->routeIs('academica.emisiones') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-lines w-5 text-center"></i>
+                <span>Emisiones Realizadas</span>
+            </a>
+
+            <a href="{{ route('academica.titulos_intermedios') }}" class="{{ request()->routeIs('academica.titulos_intermedios') ? 'active' : '' }}">
+                <i class="fa-solid fa-graduation-cap w-5 text-center"></i>
+                <span>Títulos Intermedios</span>
+            </a>
+            </div>
+        </div>
         @endrole
 
         @role('Administrador')

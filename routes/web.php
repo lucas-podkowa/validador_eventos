@@ -4,6 +4,10 @@ use App\Http\Controllers\ComprobantePagoController;
 use App\Http\Controllers\DocumentoRequisitoController;
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\WelcomeController;
+use App\Livewire\Academica\EmisionesRealizadas;
+use App\Livewire\Academica\EmisionTitulo;
+use App\Livewire\Academica\Plantillas;
+use App\Livewire\Academica\TitulosIntermedios;
 use App\Livewire\Admin\Categorias;
 use App\Livewire\Admin\Destinatarios;
 use App\Livewire\Admin\TiposEvento;
@@ -21,6 +25,7 @@ use App\Livewire\InscribirStaff;
 use App\Livewire\Participantes;
 use App\Livewire\ProcesarAprobaciones;
 use App\Livewire\RegistroEventoPublico;
+use App\Models\CertificadoEmitido;
 use App\Models\EventoParticipante;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -72,6 +77,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::middleware('can:asistencias')->group(function () {
         Route::get('/asistencias', Asistencias::class)->name('asistencias');
     });
+
+    // Módulo Académica (títulos intermedios): administradores y secretaría académica
+    Route::middleware('can:academica')->group(function () {
+        Route::get('/academica/plantillas', Plantillas::class)->name('academica.plantillas');
+        Route::get('/academica/emision', EmisionTitulo::class)->name('academica.emision');
+        Route::get('/academica/emisiones', EmisionesRealizadas::class)->name('academica.emisiones');
+        Route::get('/academica/titulos-intermedios', TitulosIntermedios::class)->name('academica.titulos_intermedios');
+    });
 });
 
 Route::get('/ver-certificado/{eventoParticipante}', function (EventoParticipante $eventoParticipante) {
@@ -83,3 +96,13 @@ Route::get('/ver-certificado/{eventoParticipante}', function (EventoParticipante
 
     return response()->file(storage_path("app/private/{$path}"));
 })->name('ver.certificado');
+
+Route::get('/academica/certificado/{certificadoEmitido}', function (CertificadoEmitido $certificadoEmitido) {
+    $path = $certificadoEmitido->certificado_path;
+
+    if (! $path || ! Storage::disk('private')->exists($path)) {
+        abort(404, 'Certificado no encontrado.');
+    }
+
+    return response()->file(storage_path("app/private/{$path}"));
+})->name('academica.ver_certificado');
