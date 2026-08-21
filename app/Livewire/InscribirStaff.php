@@ -38,6 +38,24 @@ class InscribirStaff extends Component
 
     public ?array $participante = null;
 
+    protected function redirectToStaffList(?string $message = null, array $warnings = [])
+    {
+        $redirect = redirect()->route('eventos', [
+            'tab' => 'en_curso',
+            'evento_id' => $this->evento_id,
+            'mostrar' => 'disertantes',
+        ]);
+
+        if ($message !== null || ! empty($warnings)) {
+            $redirect->with('staff_feedback', [
+                'message' => $message,
+                'warnings' => $warnings,
+            ]);
+        }
+
+        return $redirect;
+    }
+
     protected $rules = [
         'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
         'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
@@ -82,7 +100,7 @@ class InscribirStaff extends Component
         if (! $this->evento->planillaInscripcion) {
             session()->flash('error', 'No se encontró la planilla de inscripción para este evento.');
 
-            return redirect()->route('eventos', ['tab' => 'activos']);
+            return redirect()->route('eventos', ['tab' => 'en_curso']);
         }
 
         $this->planilla_id = $this->evento->planillaInscripcion->planilla_inscripcion_id;
@@ -90,17 +108,30 @@ class InscribirStaff extends Component
 
     public function buscarParticipante()
     {
-        if ($this->dni) {
-            $this->participante = Participante::where('dni', $this->dni)->first()?->toArray();
+        if (! $this->dni) {
+            $this->participante = null;
 
-            if ($this->participante) {
-                $this->nombre = $this->participante['nombre'];
-                $this->apellido = $this->participante['apellido'];
-                $this->mail = $this->participante['mail'];
-                $this->telefono = $this->participante['telefono'];
-            } else {
-                $this->reset(['nombre', 'apellido', 'mail', 'telefono']);
-            }
+            return;
+        }
+
+        $participanteAnterior = $this->participante;
+        $this->participante = Participante::where('dni', $this->dni)->first()?->toArray();
+
+        if ($this->participante) {
+            $this->nombre = $this->participante['nombre'];
+            $this->apellido = $this->participante['apellido'];
+            $this->mail = $this->participante['mail'];
+            $this->telefono = $this->participante['telefono'];
+
+            return;
+        }
+
+        if ($participanteAnterior
+            && $this->nombre === $participanteAnterior['nombre']
+            && $this->apellido === $participanteAnterior['apellido']
+            && $this->mail === $participanteAnterior['mail']
+            && $this->telefono === $participanteAnterior['telefono']) {
+            $this->reset(['nombre', 'apellido', 'mail', 'telefono']);
         }
     }
 
@@ -227,6 +258,8 @@ class InscribirStaff extends Component
 
             DB::commit();
 
+            $mailWarnings = [];
+
             // Enviar correo de confirmación de inscripción
             try {
                 Mail::to($this->mail)->send(new ConfirmacionInscripcion(
@@ -236,7 +269,7 @@ class InscribirStaff extends Component
                     $this->asunto,
                 ));
             } catch (\Exception $mailException) {
-                $this->dispatch('oops', message: 'Error enviando correo de confirmación: '.$mailException->getMessage());
+                $mailWarnings[] = 'No se pudo enviar el correo de confirmación.';
             }
 
             // Enviar credenciales si se creó o asignó usuario Colaborador
@@ -251,16 +284,11 @@ class InscribirStaff extends Component
                         $usuarioNuevo,
                     ));
                 } catch (\Exception $mailException) {
-                    $this->dispatch('oops', message: 'Error enviando credenciales de acceso: '.$mailException->getMessage());
+                    $mailWarnings[] = 'No se pudieron enviar las credenciales de acceso.';
                 }
             }
 
-            // Redirigir de vuelta a eventos activos con la tabla abierta
-            return redirect()->route('eventos', [
-                'tab' => 'en_curso',
-                'evento_id' => $this->evento_id,
-                'mostrar' => 'disertantes',
-            ]);
+            return $this->redirectToStaffList('La inscripción se guardó correctamente.', $mailWarnings);
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'Error al procesar la inscripción: '.$e->getMessage());
@@ -269,11 +297,7 @@ class InscribirStaff extends Component
 
     public function volver()
     {
-        return redirect()->route('eventos', [
-            'tab' => 'activos',
-            'evento_id' => $this->evento_id,
-            'mostrar' => 'disertantes',
-        ]);
+        return $this->redirectToStaffList();
     }
 
     public function render()

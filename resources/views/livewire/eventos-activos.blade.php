@@ -1,4 +1,30 @@
 <div>
+    @if (session('staff_feedback'))
+        @php
+            $staffFeedback = session('staff_feedback');
+        @endphp
+        <script>
+            const showStaffFeedback = () => {
+                Swal.fire({
+                    position: 'bottom-end',
+                    icon: 'success',
+                    title: @js($staffFeedback['message'] ?: 'Regresaste a la lista de staff.'),
+                    html: @js(! empty($staffFeedback['warnings']) ? implode('<br>', $staffFeedback['warnings']) : ''),
+                    showConfirmButton: false,
+                    timer: empty($staffFeedback['warnings']) ? 2200 : 4200,
+                });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showStaffFeedback, {
+                    once: true
+                });
+            } else {
+                showStaffFeedback();
+            }
+        </script>
+    @endif
+
     <x-table>
         <table class="w-full min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">

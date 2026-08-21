@@ -5,8 +5,8 @@
             {{-- Header con breadcrumb --}}
             <div class="mb-6">
                 <nav class="flex items-center text-sm text-gray-500 mb-4">
-                    <a href="{{ route('eventos', ['tab' => 'activos']) }}" class="hover:text-blue-600 transition">
-                        <i class="fa-solid fa-calendar-alt"></i> Eventos Activos
+                    <a href="{{ route('eventos', ['tab' => 'en_curso', 'evento_id' => $evento->evento_id, 'mostrar' => 'disertantes']) }}" class="hover:text-blue-600 transition">
+                        <i class="fa-solid fa-calendar-alt"></i> Eventos en Curso
                     </a>
                     <i class="fa-solid fa-chevron-right mx-2 text-xs"></i>
                     <span class="text-gray-700 font-medium">Inscribir Disertante/Colaborador</span>
@@ -87,8 +87,7 @@
                             Número de DNI <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input type="text" id="dni" wire:model.defer="dni"
-                                wire:keydown.enter.prevent="buscarParticipante" wire:keydown.tab="buscarParticipante"
+                            <input type="text" id="dni" wire:model.blur="dni"
                                 wire:blur="buscarParticipante"
                                 class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                                 placeholder="Ej: 12345678" maxlength="10">
@@ -96,7 +95,7 @@
                         </div>
                         <p class="text-xs text-gray-500 mt-1">
                             <i class="fa-solid fa-info-circle"></i>
-                            Presione Enter o Tab para buscar automáticamente
+                            Al salir del campo se buscará automáticamente si el DNI ya existe
                         </p>
                         @error('dni')
                             <p class="text-sm text-red-600 mt-1">{{ $message }}</p>

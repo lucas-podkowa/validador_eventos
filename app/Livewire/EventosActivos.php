@@ -111,6 +111,20 @@ class EventosActivos extends Component
         $this->get_inscriptos($this->evento_selected);
     }
 
+    public function updatedSearchParticipante()
+    {
+        if ($this->evento_selected && $this->mostrar_inscriptos) {
+            $this->get_inscriptos(['evento_id' => $this->evento_selected->evento_id]);
+        }
+    }
+
+    public function updatedSearchDisertante()
+    {
+        if ($this->evento_selected && $this->mostrar_disertantes_colaboradores) {
+            $this->get_staff(['evento_id' => $this->evento_selected->evento_id]);
+        }
+    }
+
     public function updatedApertura($value)
     {
         $this->apertura = Carbon::parse($value)->format('Y-m-d H:i');

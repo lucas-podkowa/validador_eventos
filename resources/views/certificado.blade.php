@@ -4,9 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Certificado</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
+        @font-face {
+            font-family: 'Roboto Condensed Local';
+            font-style: normal;
+            font-weight: 700;
+            src: url('{{ public_path('fonts/RobotoCondensed-Bold-700.ttf') }}') format('truetype');
+        }
+
         @page {
             margin: 0cm;
         }
@@ -38,24 +44,26 @@
         .dni {
             position: absolute;
             height: 5.3%;
-            font-family: 'Roboto', sans-serif;
-            font-weight: bold;
+            font-family: 'Roboto Condensed Local', sans-serif;
+            font-weight: 700;
             text-align: center;
+            color: #0A1B3A;
         }
 
         .ape_nom {
-            top: 39.5%;
-            left: 30%;
-            right: 25%;
-            width: auto;
-            font-size: 28px;
+            top: 37.5%;
+            left: calc(50% - 80px);
+            transform: translateX(-50%);
+            width: 55%;
+            font-size: 48px;
             display: flex;
             justify-content: center;
             align-items: center;
+            white-space: nowrap;
         }
 
         .qr {
-            top: 75%;
+            top: 72%;
             left: 25%;
             right: 25%;
             width: auto;
@@ -66,9 +74,9 @@
 
 
         .dni {
-            top: 39.5%;
-            left: 82%;
-            font-size: 28px;
+            top: 38%;
+            left: 77%;
+            font-size: 48px;
         }
     </style>
 </head>
@@ -78,10 +86,10 @@
         <img src="{{ public_path('storage/' . $background) }}" class="background">
     @endif
 
-    <div class="ape_nom">{{ $apellido }} {{ $nombre }}</div>
+    <div class="ape_nom">{{ $apellido }}, {{ $nombre }}</div>
     <div class="dni">{{ $dni }}</div>
     <div class="qr">
-        <img src="{{ $qr }}" width="125" height="125" alt="QR Code" />
+        <img src="{{ $qr }}" width="145" height="145" alt="QR Code" />
     </div>
 </body>
 
