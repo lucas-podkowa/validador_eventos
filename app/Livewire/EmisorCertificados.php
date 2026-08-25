@@ -7,12 +7,14 @@ use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\Rol;
+use App\Support\CertificadoPdfAssets;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -300,14 +302,37 @@ class EmisorCertificados extends Component
             throw new \Exception('No se encontró el vínculo entre evento y participante.');
         }
 
-        // Resolver ruta absoluta del fondo (soporta storage público y privado)
-        $backgroundAbsPath = null;
-        if ($backgroundPath) {
-            if (Storage::disk('public')->exists($backgroundPath)) {
-                $backgroundAbsPath = Storage::disk('public')->path($backgroundPath);
-            } else {
-                $backgroundAbsPath = Storage::path($backgroundPath);
-            }
+        $fontPath = CertificadoPdfAssets::fontPath();
+        $fontCacheDirectory = CertificadoPdfAssets::fontCacheDirectory();
+
+        if (! is_readable($fontPath)) {
+            Log::error('No se encontró la fuente base para emisión directa.', [
+                'font_path' => $fontPath,
+                'evento_id' => $evento->evento_id,
+            ]);
+
+            throw new \RuntimeException('No se encontró la fuente requerida para generar el certificado.');
+        }
+
+        if (! CertificadoPdfAssets::fontCacheIsWritable()) {
+            Log::error('El directorio de cache de fuentes de Dompdf no es escribible en emisión directa.', [
+                'font_cache_directory' => $fontCacheDirectory,
+                'evento_id' => $evento->evento_id,
+            ]);
+
+            throw new \RuntimeException('El servidor no tiene permisos para generar las fuentes del certificado. Revise storage/fonts.');
+        }
+
+        $backgroundAbsPath = CertificadoPdfAssets::resolveBackgroundPath($backgroundPath);
+
+        if ($backgroundPath && ! $backgroundAbsPath) {
+            Log::error('No se pudo resolver la plantilla del certificado para emisión directa.', [
+                'background' => $backgroundPath,
+                'evento_id' => $evento->evento_id,
+                'participante_id' => $participante->participante_id,
+            ]);
+
+            throw new \RuntimeException('No se pudo resolver la plantilla seleccionada para el certificado.');
         }
 
         $pdf = Pdf::loadView('certificado', [

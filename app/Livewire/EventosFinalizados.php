@@ -8,6 +8,7 @@ use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\TipoEvento;
+use App\Support\CertificadoPdfAssets;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -20,6 +21,21 @@ class EventosFinalizados extends Component
 {
     use WithFileUploads;
     use WithPagination;
+
+    protected array $uploadFieldByTipo = [
+        'asistencia' => 'background_image_asistencia',
+        'aprobacion' => 'background_image_aprobacion',
+        'disertante' => 'background_image_disertante',
+        'colaborador' => 'background_image_colaborador',
+    ];
+
+    protected $validationAttributes = [
+        'background_image' => 'plantilla para certificado de asistentes',
+        'background_image_asistencia' => 'plantilla para certificado de asistencia',
+        'background_image_aprobacion' => 'plantilla para certificado de aprobacion',
+        'background_image_disertante' => 'plantilla para certificado de disertante',
+        'background_image_colaborador' => 'plantilla para certificado de colaborador',
+    ];
 
     public $evento_selected = null;
 
@@ -152,6 +168,7 @@ class EventosFinalizados extends Component
             'background_image_asistencia',
             'background_image_aprobacion',
         ]);
+        $this->resetValidation();
 
         $this->open_emitir = true;
     }
@@ -159,11 +176,36 @@ class EventosFinalizados extends Component
     public function usarPlantillaManual($tipo): void
     {
         $this->usar_plantilla_categoria[$tipo] = false;
+
+        if ($field = $this->getUploadFieldForTipo($tipo)) {
+            $this->resetValidation($field);
+        }
     }
 
     public function usarPlantillaCategoria($tipo): void
     {
         $this->usar_plantilla_categoria[$tipo] = true;
+
+        if ($field = $this->getUploadFieldForTipo($tipo)) {
+            $this->reset($field);
+            $this->resetValidation($field);
+        }
+    }
+
+    public function updated($propertyName): void
+    {
+        if (in_array($propertyName, array_values($this->uploadFieldByTipo), true) || $propertyName === 'background_image') {
+            $this->resetValidation($propertyName);
+        }
+    }
+
+    private function getUploadFieldForTipo(string $tipo): ?string
+    {
+        if ($tipo === 'asistencia' && ! ($this->evento_selected && $this->evento_selected->por_aprobacion)) {
+            return 'background_image';
+        }
+
+        return $this->uploadFieldByTipo[$tipo] ?? null;
     }
 
     private function getPlantillaPath($tipo): ?string
@@ -178,6 +220,30 @@ class EventosFinalizados extends Component
         }
 
         return $default['imagen_path'];
+    }
+
+    private function assertPdfEnvironmentReady(): void
+    {
+        $fontPath = CertificadoPdfAssets::fontPath();
+        $fontCacheDirectory = CertificadoPdfAssets::fontCacheDirectory();
+
+        if (! is_readable($fontPath)) {
+            Log::error('No se encontró la fuente base para certificados.', [
+                'font_path' => $fontPath,
+                'evento_id' => $this->evento_selected?->evento_id,
+            ]);
+
+            throw new \RuntimeException('No se encontró la fuente requerida para generar el certificado.');
+        }
+
+        if (! CertificadoPdfAssets::fontCacheIsWritable()) {
+            Log::error('El directorio de cache de fuentes de Dompdf no es escribible.', [
+                'font_cache_directory' => $fontCacheDirectory,
+                'evento_id' => $this->evento_selected?->evento_id,
+            ]);
+
+            throw new \RuntimeException('El servidor no tiene permisos para generar las fuentes del certificado. Revise storage/fonts.');
+        }
     }
 
     /**
@@ -274,47 +340,67 @@ class EventosFinalizados extends Component
             return;
         }
 
-        // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
-        foreach ($participantes as $participante) {
-            $rolParticipanteId = $participante->pivot->rol_id;
-            $background = null;
+        try {
+            $this->assertPdfEnvironmentReady();
 
-            // COMPRUEBA que el rol existe Y que su plantilla fue subida
-            if ($rolParticipanteId == $rolDisertanteId && isset($paths['disertante'])) {
-                $background = $paths['disertante'];
-            } elseif ($rolParticipanteId == $rolColaboradorId && isset($paths['colaborador'])) {
-                $background = $paths['colaborador'];
-            } elseif ($rolParticipanteId == $rolAsistenteId) {
-                if ($isPorAprobacion) {
-                    // Si es por aprobación, usamos aprobacion o asistencia (ambos paths son obligatorios en este flujo)
-                    $background = $participante->pivot->aprobado ? $paths['aprobacion'] : $paths['asistencia'];
-                } else {
-                    // Si es genérico, usamos el path genérico (obligatorio en este flujo)
-                    $background = $paths['asistente_generico'];
+            // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
+            foreach ($participantes as $participante) {
+                $rolParticipanteId = $participante->pivot->rol_id;
+                $background = null;
+
+                // COMPRUEBA que el rol existe Y que su plantilla fue subida
+                if ($rolParticipanteId == $rolDisertanteId && isset($paths['disertante'])) {
+                    $background = $paths['disertante'];
+                } elseif ($rolParticipanteId == $rolColaboradorId && isset($paths['colaborador'])) {
+                    $background = $paths['colaborador'];
+                } elseif ($rolParticipanteId == $rolAsistenteId) {
+                    if ($isPorAprobacion) {
+                        $background = $participante->pivot->aprobado ? $paths['aprobacion'] : $paths['asistencia'];
+                    } else {
+                        $background = $paths['asistente_generico'];
+                    }
                 }
+
+                $backgroundPath = CertificadoPdfAssets::resolveBackgroundPath($background);
+
+                if (is_null($backgroundPath)) {
+                    Log::warning('No se pudo resolver la plantilla del certificado.', [
+                        'rol_id' => $rolParticipanteId,
+                        'participante_id' => $participante->participante_id,
+                        'background' => $background,
+                        'evento_id' => $this->evento_selected->evento_id,
+                    ]);
+
+                    continue;
+                }
+
+                $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
+
+                $pdf = Pdf::loadView('certificado', [
+                    'nombre' => $participante->nombre,
+                    'apellido' => $participante->apellido,
+                    'dni' => $participante->dni,
+                    'qr' => 'data:image/svg+xml;base64,'.base64_encode($participante->pivot->qrcode),
+                    'background' => $backgroundPath,
+                ])->setPaper('a4', 'landscape');
+
+                Storage::put($filename, $pdf->output());
+
+                EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+                    ->where('participante_id', $participante->participante_id)
+                    ->update(['certificado_path' => $filename]);
             }
+        } catch (\Throwable $e) {
+            Log::error('Error al generar certificados desde eventos finalizados.', [
+                'evento_id' => $this->evento_selected?->evento_id,
+                'message' => $e->getMessage(),
+            ]);
 
-            if (is_null($background)) {
-                Log::warning("No se encontró plantilla o la plantilla no fue requerida/subida para el rol ID {$rolParticipanteId} del participante {$participante->participante_id}");
+            $this->dispatch('oops', message: $e instanceof \RuntimeException
+                ? $e->getMessage()
+                : 'Error al generar certificados. Revise la plantilla, la fuente Roboto y los permisos de storage/fonts.');
 
-                continue; // Saltar si no se pudo determinar la plantilla (ej. rol no reconocido o plantilla no requerida)
-            }
-
-            $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-
-            $pdf = Pdf::loadView('certificado', [
-                'nombre' => $participante->nombre,
-                'apellido' => $participante->apellido,
-                'dni' => $participante->dni,
-                'qr' => 'data:image/svg+xml;base64,'.base64_encode($participante->pivot->qrcode),
-                'background' => $background,
-            ])->setPaper('a4', 'landscape');
-
-            Storage::put($filename, $pdf->output());
-
-            EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
-                ->where('participante_id', $participante->participante_id)
-                ->update(['certificado_path' => $filename]);
+            return;
         }
 
         $this->evento_selected->update([

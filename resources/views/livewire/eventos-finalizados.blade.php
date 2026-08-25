@@ -237,7 +237,7 @@
                         </div>
                     </div>
                 @else
-                    <div class="mb-4">
+                    <div class="mb-4" wire:key="certificado-upload-{{ $tipo }}-{{ $usaCategoria ? 'categoria' : 'manual' }}">
                         <label for="{{ $sec['id'] }}" class="block text-sm font-medium text-gray-700">
                             <i class="fa-solid {{ $sec['icon'] }} mr-1"></i>
                             {{ $sec['label'] }}
@@ -248,6 +248,10 @@
                         <input type="file" id="{{ $sec['id'] }}" wire:model="{{ $sec['model'] }}"
                             accept="image/png, image/jpeg"
                             class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <div wire:loading wire:target="{{ $sec['model'] }}" class="mt-2 text-xs text-blue-700 flex items-center gap-2">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Cargando plantilla, espere antes de emitir.</span>
+                        </div>
                         @error($sec['model'])
                             <span class="text-red-500 text-sm">{{ $message }}</span>
                         @enderror
@@ -278,8 +282,12 @@
             </x-secondary-button>
 
             <button type="button" wire:click="emitirCertificados" style="font-size: 0.75rem; font-weight: 600"
+                wire:loading.attr="disabled"
+                wire:target="background_image,background_image_asistencia,background_image_aprobacion,background_image_disertante,background_image_colaborador,emitirCertificados"
                 class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                Emitir
+                <span wire:loading.remove wire:target="background_image,background_image_asistencia,background_image_aprobacion,background_image_disertante,background_image_colaborador,emitirCertificados">Emitir</span>
+                <span wire:loading wire:target="background_image,background_image_asistencia,background_image_aprobacion,background_image_disertante,background_image_colaborador">Subiendo plantilla...</span>
+                <span wire:loading wire:target="emitirCertificados">Emitiendo...</span>
             </button>
         </x-slot>
     </x-dialog-modal>

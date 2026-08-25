@@ -5,12 +5,16 @@
     <meta charset="UTF-8">
     <title>Certificado</title>
 
+    @php
+        $fontPath = \App\Support\CertificadoPdfAssets::fontPath();
+    @endphp
+
     <style>
         @font-face {
             font-family: 'Roboto Condensed Local';
             font-style: normal;
             font-weight: 700;
-            src: url('{{ public_path('fonts/RobotoCondensed-Bold-700.ttf') }}') format('truetype');
+            src: url('{{ $fontPath }}') format('truetype');
         }
 
         @page {
@@ -32,11 +36,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            position: absolute;
             z-index: -1;
-            background-image: url('{{ storage_path("app/public/{$background}") }}');
-            background-size: cover;
-            background-position: center;
+            object-fit: cover;
         }
 
         .ape_nom,
@@ -83,7 +84,7 @@
 
 <body>
     @if ($background)
-        <img src="{{ public_path('storage/' . $background) }}" class="background">
+        <img src="{{ $background }}" class="background">
     @endif
 
     <div class="ape_nom">{{ $apellido }}, {{ $nombre }}</div>
