@@ -212,6 +212,13 @@
                             <span class="text-sm text-red-600">{{ $message }}</span>
                         @enderror
                     </div>
+
+                    @if ($reemision)
+                        <div class="mt-4 p-3 border border-amber-300 bg-amber-50 rounded-md text-sm text-amber-800">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                            Este participante ya está registrado en el evento. Se reemitirá únicamente su certificado con los datos actualizados, sin afectar al resto.
+                        </div>
+                    @endif
                 </div>
 
             </x-slot>
@@ -226,7 +233,7 @@
 
                         <button wire:click="guardar" style="font-size: 0.75rem; font-weight: 600"
                             class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                            Guardar
+                            {{ $reemision ? 'Reemitir' : 'Guardar' }}
                         </button>
                     </div>
                 </div>

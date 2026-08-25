@@ -94,7 +94,11 @@ Route::get('/ver-certificado/{eventoParticipante}', function (EventoParticipante
         abort(404, 'Certificado no encontrado.');
     }
 
-    return response()->file(storage_path("app/private/{$path}"));
+    return response()->file(storage_path("app/private/{$path}"), [
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        'Pragma' => 'no-cache',
+        'Expires' => '0',
+    ]);
 })->name('ver.certificado');
 
 Route::get('/academica/certificado/{certificadoEmitido}', function (CertificadoEmitido $certificadoEmitido) {
@@ -104,5 +108,9 @@ Route::get('/academica/certificado/{certificadoEmitido}', function (CertificadoE
         abort(404, 'Certificado no encontrado.');
     }
 
-    return response()->file(storage_path("app/private/{$path}"));
+    return response()->file(storage_path("app/private/{$path}"), [
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        'Pragma' => 'no-cache',
+        'Expires' => '0',
+    ]);
 })->name('academica.ver_certificado');

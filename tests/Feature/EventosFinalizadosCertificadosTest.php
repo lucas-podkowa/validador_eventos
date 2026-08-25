@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Livewire\EventosFinalizados;
 use App\Models\CategoriaEvento;
 use App\Models\Evento;
+use App\Models\EventoParticipante;
+use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\Responsable;
 use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role as PermissionRole;
 use Tests\TestCase;
@@ -63,6 +66,34 @@ class EventosFinalizadosCertificadosTest extends TestCase
             'evento_id' => $evento->evento_id,
             'certificado_path' => 'certificados/'.now()->year.'/Curso/EVENTO DE PRUEBA',
         ]);
+    }
+
+    public function test_la_ruta_de_ver_certificado_envia_headers_sin_cache(): void
+    {
+        $evento = $this->crearEventoFinalizado();
+        $participante = Participante::create([
+            'nombre' => 'Juan',
+            'apellido' => 'Perez',
+            'dni' => fake()->unique()->numberBetween(10000000, 99999999),
+            'mail' => fake()->unique()->safeEmail(),
+            'telefono' => '3764000000',
+        ]);
+
+        $certificadoPath = 'certificados/'.now()->year.'/Curso/EVENTO DE PRUEBA/Perez_Juan.pdf';
+        Storage::disk('private')->put($certificadoPath, 'pdf de prueba');
+
+        $eventoParticipante = EventoParticipante::create([
+            'evento_id' => $evento->evento_id,
+            'participante_id' => $participante->participante_id,
+            'rol_id' => Rol::where('nombre', 'Participante')->value('rol_id'),
+            'certificado_path' => $certificadoPath,
+        ]);
+
+        $this->get(route('ver.certificado', $eventoParticipante))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+            ->assertHeader('Pragma', 'no-cache')
+            ->assertHeader('Expires', '0');
     }
 
     private function crearEventoFinalizado(bool $conPlantillaCategoria = false): Evento

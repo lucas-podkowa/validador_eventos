@@ -52,15 +52,20 @@
         }
 
         .ape_nom {
-            top: 37.5%;
-            left: calc(50% - 80px);
-            transform: translateX(-50%);
-            width: 55%;
-            font-size: 48px;
+            top: 39.75%;
+            left: 15%;
+            right: 30%;
+            width: auto;
+            height: auto;
+            font-size: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
             white-space: nowrap;
+            overflow-x: hidden;
+            overflow-y: visible;
+            box-sizing: border-box;
+            line-height: 1.05;
         }
 
         .qr {
@@ -74,10 +79,10 @@
         }
 
 
-        .dni {
-            top: 38%;
+.dni {
+            top: 38.6%;
             left: 77%;
-            font-size: 48px;
+            font-size: 44px;
         }
     </style>
 </head>

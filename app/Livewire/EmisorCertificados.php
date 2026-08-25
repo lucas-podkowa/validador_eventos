@@ -43,6 +43,10 @@ class EmisorCertificados extends Component
 
     public ?array $participanteExistente = null;
 
+    public $reemision = false;
+
+    public $reemision_rol = null;
+
     public $background_image;
 
     // Plantillas de categoría
@@ -72,9 +76,13 @@ class EmisorCertificados extends Component
 
     public function mount()
     {
-
         $this->eventos = Evento::where('estado', 'Finalizado')->get();
         $this->roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])->get();
+        $this->cargarEventoParticipantes();
+    }
+
+    private function cargarEventoParticipantes(): void
+    {
         $this->eventoParticipantes = EventoParticipante::with(['participante', 'evento'])
             ->where('emision_directa', true)
             ->whereHas('evento', function ($query) {
@@ -85,7 +93,7 @@ class EmisorCertificados extends Component
 
     public function abrirModal()
     {
-        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'rol_id', 'background_image', 'plantilla_id', 'plantillas_disponibles', 'certificado_tipo', 'plantillas_por_tipo']);
+        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'rol_id', 'background_image', 'plantilla_id', 'plantillas_disponibles', 'certificado_tipo', 'plantillas_por_tipo', 'reemision', 'reemision_rol']);
         $this->modal_abierto = true;
     }
 
@@ -112,6 +120,8 @@ class EmisorCertificados extends Component
                 $this->determineDefaultTipoAndPlantilla($evento);
             }
         }
+
+        $this->refreshEstadoReemision();
     }
 
     public function updatedRolId(): void
@@ -192,6 +202,27 @@ class EmisorCertificados extends Component
                 $this->reset('nombre', 'apellido', 'telefono', 'mail');
             }
         }
+
+        $this->refreshEstadoReemision();
+    }
+
+    private function refreshEstadoReemision(): void
+    {
+        $this->reemision = false;
+        $this->reemision_rol = null;
+
+        if (! $this->evento_id || ! $this->participanteExistente) {
+            return;
+        }
+
+        $existing = EventoParticipante::where('evento_id', $this->evento_id)
+            ->where('participante_id', $this->participanteExistente['participante_id'])
+            ->first();
+
+        if ($existing) {
+            $this->reemision = true;
+            $this->reemision_rol = $existing->rol_id;
+        }
     }
 
     public function guardar()
@@ -243,14 +274,35 @@ class EmisorCertificados extends Component
                 ]);
             }
 
-            // Evitar duplicados
+            // Evitar duplicados y, si ya existe, tratar como re-emisión
             $yaExiste = EventoParticipante::where('evento_id', $this->evento_id)
                 ->where('participante_id', $participante->participante_id)
-                ->exists();
+                ->first();
 
             if ($yaExiste) {
-                DB::rollBack();
-                $this->dispatch('oops', message: 'Este participante ya está registrado en el evento.');
+                if ((int) $yaExiste->rol_id !== (int) $this->rol_id) {
+                    DB::rollBack();
+                    $this->dispatch('oops', message: 'Este participante ya está registrado en el evento con otro rol.');
+
+                    return;
+                }
+
+                // Re-emisión: reusa el vínculo y el QR existentes, solo regenera su certificado
+                $participante->update([
+                    'nombre' => $this->nombre,
+                    'apellido' => $this->apellido,
+                    'dni' => $this->dni,
+                    'telefono' => $this->telefono,
+                    'mail' => $this->mail,
+                ]);
+
+                $evento = Evento::with('tipoEvento')->find($this->evento_id);
+                $this->generarCertificadoIndividual($participante, $evento, $backgroundPath);
+
+                DB::commit();
+                $this->cargarEventoParticipantes();
+                $this->dispatch('alert', message: 'Certificado reemitido correctamente.');
+                $this->modal_abierto = false;
 
                 return;
             }
@@ -279,6 +331,7 @@ class EmisorCertificados extends Component
             $this->generarCertificadoIndividual($participante, $evento, $backgroundPath);
 
             DB::commit();
+            $this->cargarEventoParticipantes();
             $this->dispatch('alert', message: 'Participante registrado correctamente.');
             $this->modal_abierto = false;
         } catch (\Exception $e) {
@@ -350,7 +403,12 @@ class EmisorCertificados extends Component
         $folderPath = "certificados/{$year}/{$tipoEvento}/{$nombreEvento}";
         $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
 
-        Storage::put($filename, $pdf->output());
+        // Re-emisión: eliminar el certificado anterior si cambió el nombre del archivo (ej. DNI corregido)
+        if ($pivot->certificado_path && $pivot->certificado_path !== $filename && Storage::disk('private')->exists($pivot->certificado_path)) {
+            Storage::disk('private')->delete($pivot->certificado_path);
+        }
+
+        Storage::disk('private')->put($filename, $pdf->output());
         EventoParticipante::where('evento_id', $evento->evento_id)
             ->where('participante_id', $participante->participante_id)
             ->update(['certificado_path' => $filename]);

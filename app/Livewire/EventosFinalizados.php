@@ -255,6 +255,23 @@ class EventosFinalizados extends Component
         }
     }
 
+    private function noCacheHeaders(): array
+    {
+        return [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
+    }
+
+    private function purgeExistingEmission(string $folderPath): void
+    {
+        $privateDisk = Storage::disk('private');
+
+        $privateDisk->delete($folderPath.'.zip');
+        $privateDisk->deleteDirectory($folderPath);
+    }
+
     /**
      * Emite los certificados, solo subiendo las plantillas que son necesarias.
      */
@@ -353,14 +370,18 @@ class EventosFinalizados extends Component
             $this->assertPdfEnvironmentReady();
             $this->extendExecutionTime($participantes->count());
 
+            $privateDisk = Storage::disk('private');
+
             $preparedPaths = [];
             foreach ($paths as $pathKey => $pathValue) {
-                $preparedPaths[$pathKey] = CertificadoPdfAssets::prepareBackgroundForPdf($pathValue);
+                $preparedPaths[$pathValue] = CertificadoPdfAssets::prepareBackgroundForPdf($pathValue);
 
-                if (! $preparedPaths[$pathKey]) {
+                if (! $preparedPaths[$pathValue]) {
                     throw new \RuntimeException('No se pudo preparar una de las plantillas para la emision PDF.');
                 }
             }
+
+            $this->purgeExistingEmission($folderPath);
 
             // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
             foreach ($participantes as $participante) {
@@ -414,7 +435,7 @@ class EventosFinalizados extends Component
                     'background' => $backgroundPath,
                 ])->setPaper('a4', 'landscape');
 
-                Storage::put($filename, $pdf->output());
+                $privateDisk->put($filename, $pdf->output());
 
                 EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
                     ->where('participante_id', $participante->participante_id)
@@ -477,35 +498,42 @@ class EventosFinalizados extends Component
 
     public function abrirCarpeta($path)
     {
-        if (! Storage::exists($path)) {
+        $privateDisk = Storage::disk('private');
+        $directoryPath = $privateDisk->path($path);
+
+        if (! is_dir($directoryPath)) {
             session()->flash('error', 'La carpeta no existe.');
 
             return;
         }
 
         $zipFile = "{$path}.zip";
-        $zipPath = storage_path("app/private/{$zipFile}");
+        $zipPath = $privateDisk->path($zipFile);
 
-        // Crear ZIP si no existe aún
-        if (! Storage::exists("private/{$zipFile}")) {
-            $files = Storage::files($path);
-            $zip = new \ZipArchive;
+        $privateDisk->delete($zipFile);
 
-            if ($zip->open($zipPath, \ZipArchive::CREATE) === true) {
-                foreach ($files as $file) {
-                    $fullFilePath = storage_path("app/private/{$file}");
-                    if (file_exists($fullFilePath)) {
-                        $relativeName = basename($file);
-                        $zip->addFile($fullFilePath, $relativeName);
-                    } else {
-                        Log::error("Archivo no encontrado: {$fullFilePath}");
-                    }
-                }
-                $zip->close();
+        $files = $privateDisk->files($path);
+        $zip = new \ZipArchive;
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            session()->flash('error', 'No se pudo generar el archivo ZIP de certificados.');
+
+            return;
+        }
+
+        foreach ($files as $file) {
+            $fullFilePath = $privateDisk->path($file);
+
+            if (file_exists($fullFilePath)) {
+                $zip->addFile($fullFilePath, basename($file));
+            } else {
+                Log::error("Archivo no encontrado: {$fullFilePath}");
             }
         }
 
-        return response()->download($zipPath);
+        $zip->close();
+
+        return response()->download($zipPath, basename($zipPath), $this->noCacheHeaders());
     }
 
     // ----------------------------------------------------------------------------
