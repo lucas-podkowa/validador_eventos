@@ -323,7 +323,11 @@ class EmisorCertificados extends Component
             throw new \RuntimeException('El servidor no tiene permisos para generar las fuentes del certificado. Revise storage/fonts.');
         }
 
-        $backgroundAbsPath = CertificadoPdfAssets::resolveBackgroundPath($backgroundPath);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
+        $backgroundAbsPath = CertificadoPdfAssets::prepareBackgroundForPdf($backgroundPath);
 
         if ($backgroundPath && ! $backgroundAbsPath) {
             Log::error('No se pudo resolver la plantilla del certificado para emisión directa.', [

@@ -246,6 +246,15 @@ class EventosFinalizados extends Component
         }
     }
 
+    private function extendExecutionTime(int $participantsCount): void
+    {
+        $seconds = max(180, $participantsCount * 12);
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit($seconds);
+        }
+    }
+
     /**
      * Emite los certificados, solo subiendo las plantillas que son necesarias.
      */
@@ -342,6 +351,16 @@ class EventosFinalizados extends Component
 
         try {
             $this->assertPdfEnvironmentReady();
+            $this->extendExecutionTime($participantes->count());
+
+            $preparedPaths = [];
+            foreach ($paths as $pathKey => $pathValue) {
+                $preparedPaths[$pathKey] = CertificadoPdfAssets::prepareBackgroundForPdf($pathValue);
+
+                if (! $preparedPaths[$pathKey]) {
+                    throw new \RuntimeException('No se pudo preparar una de las plantillas para la emision PDF.');
+                }
+            }
 
             // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
             foreach ($participantes as $participante) {
@@ -361,13 +380,24 @@ class EventosFinalizados extends Component
                     }
                 }
 
-                $backgroundPath = CertificadoPdfAssets::resolveBackgroundPath($background);
-
-                if (is_null($backgroundPath)) {
+                if (is_null($background)) {
                     Log::warning('No se pudo resolver la plantilla del certificado.', [
                         'rol_id' => $rolParticipanteId,
                         'participante_id' => $participante->participante_id,
                         'background' => $background,
+                        'evento_id' => $this->evento_selected->evento_id,
+                    ]);
+
+                    continue;
+                }
+
+                $backgroundPath = $preparedPaths[$background] ?? null;
+
+                if (is_null($backgroundPath)) {
+                    Log::warning('No se encontró la plantilla PDF ya preparada para el certificado.', [
+                        'rol_id' => $rolParticipanteId,
+                        'participante_id' => $participante->participante_id,
+                        'background_key' => $background,
                         'evento_id' => $this->evento_selected->evento_id,
                     ]);
 
