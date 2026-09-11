@@ -29,7 +29,9 @@ class RegistrationTest extends TestCase
 
         $response = $this->get('/register');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertSee('logo_acreditar_azul.png')
+            ->assertSee('Apellido y Nombre');
     }
 
     public function test_registration_screen_cannot_be_rendered_if_support_is_disabled(): void
