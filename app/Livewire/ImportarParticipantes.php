@@ -6,6 +6,8 @@ use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\PlanillaInscripcion;
+use App\Models\Rol;
+use App\Support\NombreCertificado;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -149,6 +151,8 @@ class ImportarParticipantes extends Component
         $this->exitosos = 0;
         $this->errores = 0;
 
+        $rolParticipanteId = Rol::where('nombre', 'Participante')->value('rol_id');
+
         DB::beginTransaction();
 
         try {
@@ -160,6 +164,17 @@ class ImportarParticipantes extends Component
                         $this->resultados[] = [
                             'dni' => $fila['dni'] ?: 'N/A',
                             'estado' => 'Error: Datos incompletos',
+                        ];
+
+                        continue;
+                    }
+
+                    // Validar largo para el certificado (apellido + ", " + nombre <= 36)
+                    if (NombreCertificado::excede($fila['apellido'], $fila['nombre'])) {
+                        $this->errores++;
+                        $this->resultados[] = [
+                            'dni' => $fila['dni'],
+                            'estado' => 'Error: nombre y apellido superan los '.NombreCertificado::LIMITE.' caracteres permitidos para el certificado',
                         ];
 
                         continue;
@@ -197,7 +212,7 @@ class ImportarParticipantes extends Component
                         'participante_id' => $participante->participante_id,
                         'fecha_inscripcion' => now(),
                         'asistencia' => false,
-                        'rol_id' => 1,
+                        'rol_id' => $rolParticipanteId,
                     ]);
 
                     $this->exitosos++;

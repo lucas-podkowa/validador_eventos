@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Participante;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,8 @@ class Usuarios extends Component
 
     public $email;
 
+    public $dni;
+
     public $password;
 
     public $role;
@@ -40,6 +43,12 @@ class Usuarios extends Component
     public $confirmingUserEdit = false;
 
     public $invitadoRoleId = null;
+
+    public $participante_vinculado = null;
+
+    public $busqueda_participante = '';
+
+    public $participante_candidato = null;
 
     use WithPagination;
 
@@ -70,9 +79,100 @@ class Usuarios extends Component
         $this->usuario_edit = $usuario;
         $this->name = $usuario->name;
         $this->email = $usuario->email;
+        $this->dni = $usuario->dni;
         $this->rol_id_edit = $usuario->roles->first()?->id;
         $this->roles_selected = $usuario->roles->pluck('id')->toArray();
         $this->previous_roles_selected = $this->roles_selected;
+
+        $this->busqueda_participante = '';
+        $this->participante_candidato = null;
+        $this->cargarParticipanteVinculado($usuario);
+    }
+
+    protected function cargarParticipanteVinculado(?User $usuario): void
+    {
+        $participante = $usuario?->participante;
+
+        $this->participante_vinculado = $participante ? [
+            'participante_id' => $participante->participante_id,
+            'nombre' => $participante->nombre,
+            'apellido' => $participante->apellido,
+            'dni' => $participante->dni,
+            'mail' => $participante->mail,
+        ] : null;
+    }
+
+    public function buscarParticipante()
+    {
+        $this->resetErrorBag('busqueda_participante');
+        $this->participante_candidato = null;
+
+        $this->validate(['busqueda_participante' => 'required|string|min:3']);
+        $termino = trim($this->busqueda_participante);
+
+        $participante = Participante::whereNull('user_id')
+            ->where(function ($query) use ($termino) {
+                $query->where('dni', $termino)
+                    ->orWhere('mail', 'like', "%{$termino}%")
+                    ->orWhere('apellido', 'like', "%{$termino}%")
+                    ->orWhere('nombre', 'like', "%{$termino}%");
+            })
+            ->orderBy('apellido')
+            ->first();
+
+        if (! $participante) {
+            $this->addError('busqueda_participante', 'No se encontró un participante pendiente de vinculación.');
+
+            return;
+        }
+
+        $this->participante_candidato = [
+            'participante_id' => $participante->participante_id,
+            'nombre' => $participante->nombre,
+            'apellido' => $participante->apellido,
+            'dni' => $participante->dni,
+            'mail' => $participante->mail,
+        ];
+    }
+
+    public function vincularParticipante()
+    {
+        if (! $this->participante_candidato || ! $this->usuario_edit) {
+            return;
+        }
+
+        $participante = Participante::find($this->participante_candidato['participante_id']);
+
+        if (! $participante || $participante->user_id) {
+            $this->addError('busqueda_participante', 'El participante ya no está disponible para vincular.');
+
+            return;
+        }
+
+        $participante->user_id = $this->usuario_edit->id;
+        $participante->save();
+
+        $this->cargarParticipanteVinculado($this->usuario_edit->fresh());
+        $this->participante_candidato = null;
+        $this->busqueda_participante = '';
+
+        $this->dispatch('alert', message: 'Participante vinculado');
+    }
+
+    public function desvincularParticipante()
+    {
+        $participante = $this->usuario_edit?->participante;
+
+        if (! $participante) {
+            return;
+        }
+
+        $participante->user_id = null;
+        $participante->save();
+
+        $this->cargarParticipanteVinculado($this->usuario_edit->fresh());
+
+        $this->dispatch('alert', message: 'Participante desvinculado');
     }
 
     public function updatingRolesSelected()
@@ -106,6 +206,7 @@ class Usuarios extends Component
         $this->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($this->usuarioEdit_id)],
+            'dni' => ['nullable', 'digits_between:6,12', Rule::unique('users', 'dni')->ignore($this->usuarioEdit_id)],
             'roles_selected' => 'required|array|min:1',
             'roles_selected.*' => 'exists:roles,id',
             'password' => 'nullable|min:6',
@@ -123,6 +224,7 @@ class Usuarios extends Component
         $usuario = User::findOrFail($this->usuarioEdit_id);
         $usuario->name = $this->name;
         $usuario->email = $this->email;
+        $usuario->dni = $this->dni !== '' ? $this->dni : null;
         if ($this->password) {
             $usuario->password = Hash::make($this->password);
         }
@@ -133,7 +235,7 @@ class Usuarios extends Component
         $this->open_edit = false;
 
         $this->dispatch('alert', message: 'Usuario actualizado');
-        $this->reset(['usuarioEdit_id', 'name', 'email', 'password', 'roles_selected', 'open_edit']);
+        $this->reset(['usuarioEdit_id', 'name', 'email', 'dni', 'password', 'roles_selected', 'open_edit', 'participante_vinculado', 'busqueda_participante', 'participante_candidato']);
     }
 
     public function updatingSearch()

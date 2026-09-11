@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Participante;
+use App\Rules\LargoNombreCertificado;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -60,8 +61,8 @@ class Participantes extends Component
     public function update()
     {
         $this->validate([
-            'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
-            'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+            'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50', new LargoNombreCertificado($this->nombre)], // letras, espacios, guiones y puntos
+            'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
             'dni' => ['required', 'digits_between:6,10', 'numeric'],
             'mail' => ['required', 'email'],
             'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],

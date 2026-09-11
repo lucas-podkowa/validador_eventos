@@ -3,12 +3,14 @@
 namespace App\Livewire;
 
 use App\Mail\CertificadoEventoMail;
+use App\Models\CategoriaEvento;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Support\CertificadoPdfAssets;
+use App\Support\Texto;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +23,14 @@ class EventosFinalizados extends Component
 {
     use WithFileUploads;
     use WithPagination;
+
+    public const MODOS = ['a_certificar', 'finalizados'];
+
+    /**
+     * 'a_certificar': eventos finalizados sin certificados emitidos.
+     * 'finalizados': eventos con certificados ya emitidos.
+     */
+    public string $modo = 'finalizados';
 
     protected array $uploadFieldByTipo = [
         'asistencia' => 'background_image_asistencia',
@@ -51,9 +61,15 @@ class EventosFinalizados extends Component
 
     public $searchTipoEvento = '';
 
+    public $searchResponsable = '';
+
+    public $searchCategoria = '';
+
     public $participantes = [];
 
     public $tiposEvento = [];
+
+    public $categorias = [];
 
     public $open_emitir = false;
 
@@ -83,9 +99,11 @@ class EventosFinalizados extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    public function mount()
+    public function mount(string $modo = 'finalizados')
     {
+        $this->modo = in_array($modo, self::MODOS, true) ? $modo : 'finalizados';
         $this->tiposEvento = TipoEvento::orderBy('nombre')->get();
+        $this->categorias = CategoriaEvento::orderBy('nombre')->get();
     }
 
     protected function rules()
@@ -471,7 +489,9 @@ class EventosFinalizados extends Component
             'plantillas_por_tipo',
             'usar_plantilla_categoria',
         ]);
-        session()->flash('message', 'Certificados generados correctamente.');
+        session()->flash('message', $this->modo === 'a_certificar'
+            ? 'Certificados generados correctamente. El evento ahora aparece en la pestaña "Eventos Finalizados".'
+            : 'Certificados reemitidos correctamente. Los archivos anteriores fueron reemplazados.');
     }
 
     /**
@@ -617,22 +637,56 @@ class EventosFinalizados extends Component
         $this->resetPage();
     }
 
+    public function updatingSearchResponsable()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSearchCategoria()
+    {
+        $this->resetPage();
+    }
+
+    public function getFiltrosActivosProperty(): int
+    {
+        return collect([$this->search, $this->searchResponsable, $this->searchParticipante])
+            ->filter(fn ($valor) => trim((string) $valor) !== '')
+            ->count()
+            + (int) ($this->searchTipoEvento !== '')
+            + (int) ($this->searchCategoria !== '');
+    }
+
+    public function limpiarFiltros(): void
+    {
+        $this->reset(['search', 'searchResponsable', 'searchParticipante', 'searchTipoEvento', 'searchCategoria']);
+        $this->resetPage();
+    }
+
     public function render()
     {
         $user = auth()->user();
 
         $eventosFinalizados = Evento::query()
             ->select('evento.*')
-            ->with(['gestores', 'participantes', 'tipoEvento', 'categoria'])
+            ->with(['gestores', 'tipoEvento', 'categoria'])
             ->leftJoin('tipo_evento as tipo_evento_orden', 'evento.tipo_evento_id', '=', 'tipo_evento_orden.tipo_evento_id')
+            ->leftJoin('categoria_evento as categoria_orden', 'evento.categoria_id', '=', 'categoria_orden.categoria_id')
             ->where('evento.estado', 'finalizado')
+            // Separación entre pestañas: un evento con certificado_path ya tiene emisión.
+            ->when($this->modo === 'a_certificar', fn ($query) => $query->whereNull('evento.certificado_path'))
+            ->when($this->modo === 'finalizados', fn ($query) => $query->whereNotNull('evento.certificado_path'))
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {
                 $query->whereHas('gestores', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 });
             })
-            ->when($this->search, function ($query) {
-                $query->where('evento.nombre', 'like', '%'.$this->search.'%');
+            ->when(mb_strlen(trim($this->search)) >= 3, function ($query) {
+                Texto::aplicarFiltroLike($query, 'evento.nombre', $this->search);
+            })
+            ->when(mb_strlen(trim($this->searchResponsable)) > 0, function ($query) {
+                $query->whereHas('responsable', function ($q) {
+                    Texto::aplicarFiltroLike($q, ['responsable.nombre', 'responsable.apellido'], $this->searchResponsable);
+                });
             })
             ->when($this->searchParticipante, function ($query) {
                 $query->whereHas('participantes', function ($q) {
@@ -642,12 +696,15 @@ class EventosFinalizados extends Component
             ->when($this->searchTipoEvento !== '', function ($query) {
                 $query->where('evento.tipo_evento_id', $this->searchTipoEvento);
             })
+            ->when($this->searchCategoria !== '', function ($query) {
+                $query->where('evento.categoria_id', $this->searchCategoria);
+            })
             ->orderBy($this->resolveSortColumn(), $this->direction)
             ->paginate(20);
 
-        // Chequeo de certificados (fuera del query)
+        // La emisión se marca en DB (evento.certificado_path); ya no se consulta el disco por fila.
         foreach ($eventosFinalizados as $evento) {
-            $evento->certificados_disponibles = $evento->certificado_path && Storage::exists($evento->certificado_path);
+            $evento->certificados_disponibles = (bool) $evento->certificado_path;
         }
 
         return view('livewire.eventos-finalizados', [
@@ -660,6 +717,7 @@ class EventosFinalizados extends Component
         return match ($this->sort) {
             'tipo_evento' => 'tipo_evento_orden.nombre',
             'fecha_inicio' => 'evento.fecha_inicio',
+            'categoria' => 'categoria_orden.nombre',
             default => 'evento.nombre',
         };
     }

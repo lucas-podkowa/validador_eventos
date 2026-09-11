@@ -21,7 +21,7 @@ class Participante extends Model
 
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['participante_id', 'nombre', 'apellido', 'dni', 'mail', 'telefono'];
+    protected $fillable = ['participante_id', 'nombre', 'apellido', 'dni', 'mail', 'telefono', 'user_id'];
 
     protected static function boot()
     {
@@ -68,6 +68,16 @@ class Participante extends Model
     {
         return $this->belongsToMany(Evento::class, 'evento_participantes', 'participante_id', 'evento_id')
             ->withPivot('url', 'qrcode', 'rol_id', 'aprobado');
+    }
+
+    public function eventoParticipantes()
+    {
+        return $this->hasMany(EventoParticipante::class, 'participante_id', 'participante_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function inscripciones()

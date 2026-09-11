@@ -7,6 +7,7 @@ use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\Rol;
+use App\Rules\LargoNombreCertificado;
 use App\Support\CertificadoPdfAssets;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
@@ -239,7 +240,9 @@ class EmisorCertificados extends Component
             $extraRules['plantilla_id'] = 'required|exists:plantilla_certificado,plantilla_id';
         }
 
-        $this->validate(array_merge($this->rules, $extraRules));
+        $this->validate(array_merge($this->rules, $extraRules, [
+            'apellido' => array_merge((array) $this->rules['apellido'], [new LargoNombreCertificado($this->nombre)]),
+        ]));
 
         $backgroundPath = null;
         if (! empty($plantillasForTipo) && $this->plantilla_id) {

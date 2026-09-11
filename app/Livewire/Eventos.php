@@ -10,7 +10,7 @@ class Eventos extends Component
 
     public function mount($tab = null)
     {
-        if (in_array($tab, ['pendientes', 'en_curso', 'finalizados'])) {
+        if (in_array($tab, ['pendientes', 'en_curso', 'a_certificar', 'finalizados'])) {
             $this->activeTab = $tab;
         }
     }

@@ -8,6 +8,7 @@ use App\Models\InscripcionParticipante;
 use App\Models\PlanillaInscripcion;
 use App\Models\TipoEvento;
 use App\Models\User;
+use App\Support\Texto;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -38,6 +39,8 @@ class EventosActivos extends Component
     public $planilla_selected = null;
 
     public $search = '';
+
+    public $searchResponsable = '';
 
     public $header = null;
 
@@ -95,6 +98,11 @@ class EventosActivos extends Component
     }
 
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSearchResponsable()
     {
         $this->resetPage();
     }
@@ -313,7 +321,7 @@ class EventosActivos extends Component
 
             DB::commit();
             $this->reset(['evento_selected']);
-            $this->redirectToEventos('finalizados');
+            $this->redirectToEventos('a_certificar');
         } catch (\Exception $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'No se pudo finalizar el Evento: '.$e->getMessage());
@@ -455,23 +463,42 @@ class EventosActivos extends Component
     {
         $user = auth()->user();
 
-        $eventos = Evento::with(['planillaInscripcion', 'revisor', 'gestores'])
+        $eventos = Evento::query()
+            ->select('evento.*')
+            ->with(['planillaInscripcion', 'revisor', 'gestores'])
             ->where('estado', 'en curso')
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {
                 $query->whereHas('gestores', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 });
             })
-            ->when($this->search, function ($query) {
-                $query->where('nombre', 'like', '%'.$this->search.'%');
-            })
             ->when($this->search_tipo_evento, function ($query) {
                 $query->where('tipo_evento_id', $this->search_tipo_evento);
             })
-            ->orderBy($this->sort, $this->direction)
+            ->when($this->sort === 'revisor', function ($query) {
+                $query->leftJoin('users as revisor_orden', 'evento.revisor_id', '=', 'revisor_orden.id');
+            })
+            ->when(mb_strlen(trim($this->search)) >= 3, function ($query) {
+                Texto::aplicarFiltroLike($query, 'evento.nombre', $this->search);
+            })
+            ->when(mb_strlen(trim($this->searchResponsable)) > 0, function ($query) {
+                $query->whereHas('responsable', function ($q) {
+                    Texto::aplicarFiltroLike($q, ['responsable.nombre', 'responsable.apellido'], $this->searchResponsable);
+                });
+            })
+            ->orderBy($this->resolveSortColumn(), $this->direction)
             ->get();
 
         return view('livewire.eventos-activos', compact('eventos'));
+    }
+
+    private function resolveSortColumn(): string
+    {
+        return match ($this->sort) {
+            'fecha_inicio' => 'evento.fecha_inicio',
+            'revisor' => 'revisor_orden.name',
+            default => 'evento.nombre',
+        };
     }
 
     public function order($field)

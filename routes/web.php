@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CertificadoDescargaController;
 use App\Http\Controllers\ComprobantePagoController;
 use App\Http\Controllers\DocumentoRequisitoController;
 use App\Http\Controllers\QRController;
@@ -22,13 +23,11 @@ use App\Livewire\ImportarParticipantes;
 use App\Livewire\Indicadores;
 use App\Livewire\Informes;
 use App\Livewire\InscribirStaff;
+use App\Livewire\MisCertificados;
 use App\Livewire\Participantes;
 use App\Livewire\ProcesarAprobaciones;
 use App\Livewire\RegistroEventoPublico;
-use App\Models\CertificadoEmitido;
-use App\Models\EventoParticipante;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 
 // Públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -85,32 +84,18 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/academica/emisiones', EmisionesRealizadas::class)->name('academica.emisiones');
         Route::get('/academica/titulos-intermedios', TitulosIntermedios::class)->name('academica.titulos_intermedios');
     });
+
+    // Portal del participante: cualquier usuario autenticado (incluye rol Invitado)
+    Route::get('/mis-certificados', MisCertificados::class)->name('mis_certificados');
+    Route::get('/mis-certificados/certificado/{eventoParticipante}', [CertificadoDescargaController::class, 'evento'])
+        ->name('mis_certificados.evento');
+    Route::get('/mis-certificados/titulo/{certificadoEmitido}', [CertificadoDescargaController::class, 'titulo'])
+        ->name('mis_certificados.titulo');
+
+    // Visor de certificados (dueño del certificado, administrador o gestor)
+    Route::get('/ver-certificado/{eventoParticipante}', [CertificadoDescargaController::class, 'evento'])
+        ->name('ver.certificado');
+
+    Route::get('/academica/certificado/{certificadoEmitido}', [CertificadoDescargaController::class, 'titulo'])
+        ->name('academica.ver_certificado');
 });
-
-Route::get('/ver-certificado/{eventoParticipante}', function (EventoParticipante $eventoParticipante) {
-    $path = $eventoParticipante->certificado_path;
-
-    if (! $path || ! Storage::disk('private')->exists($path)) {
-        abort(404, 'Certificado no encontrado.');
-    }
-
-    return response()->file(storage_path("app/private/{$path}"), [
-        'Cache-Control' => 'no-store, no-cache, must-revalidate',
-        'Pragma' => 'no-cache',
-        'Expires' => '0',
-    ]);
-})->name('ver.certificado');
-
-Route::get('/academica/certificado/{certificadoEmitido}', function (CertificadoEmitido $certificadoEmitido) {
-    $path = $certificadoEmitido->certificado_path;
-
-    if (! $path || ! Storage::disk('private')->exists($path)) {
-        abort(404, 'Certificado no encontrado.');
-    }
-
-    return response()->file(storage_path("app/private/{$path}"), [
-        'Cache-Control' => 'no-store, no-cache, must-revalidate',
-        'Pragma' => 'no-cache',
-        'Expires' => '0',
-    ]);
-})->name('academica.ver_certificado');

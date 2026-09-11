@@ -92,7 +92,7 @@
         <img src="{{ $background }}" class="background">
     @endif
 
-    <div class="ape_nom">{{ $apellido }}, {{ $nombre }}</div>
+    <div class="ape_nom">{{ \App\Support\NombreCertificado::paraCertificado($apellido, $nombre) }}</div>
     <div class="dni">{{ $dni }}</div>
     <div class="qr">
         <img src="{{ $qr }}" width="145" height="145" alt="QR Code" />

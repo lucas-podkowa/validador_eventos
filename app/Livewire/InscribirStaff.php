@@ -9,6 +9,7 @@ use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\User;
+use App\Rules\LargoNombreCertificado;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -57,8 +58,8 @@ class InscribirStaff extends Component
     }
 
     protected $rules = [
-        'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
-        'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+        'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
+        'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
         'dni' => ['required', 'digits_between:6,10', 'numeric'],
         'mail' => ['required', 'email'],
         'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
@@ -67,12 +68,12 @@ class InscribirStaff extends Component
 
     protected $messages = [
         'apellido.required' => 'El apellido es obligatorio.',
-        'apellido.regex' => 'El apellido solo puede contener letras, espacios y guiones.',
+        'apellido.regex' => 'El apellido solo puede contener letras, espacios, guiones y puntos.',
         'apellido.min' => 'El apellido debe tener al menos 2 caracteres.',
         'apellido.max' => 'El apellido no puede superar los 50 caracteres.',
 
         'nombre.required' => 'El nombre es obligatorio.',
-        'nombre.regex' => 'El nombre solo puede contener letras, espacios y guiones.',
+        'nombre.regex' => 'El nombre solo puede contener letras, espacios, guiones y puntos.',
         'nombre.min' => 'El nombre debe tener al menos 2 caracteres.',
         'nombre.max' => 'El nombre no puede superar los 50 caracteres.',
 
@@ -137,7 +138,9 @@ class InscribirStaff extends Component
 
     public function submit()
     {
-        $this->validate();
+        $this->validate(array_merge($this->rules, [
+            'apellido' => array_merge($this->rules['apellido'], [new LargoNombreCertificado($this->nombre)]),
+        ]));
 
         // Normalizar nombre y apellido
         $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, 'UTF-8');

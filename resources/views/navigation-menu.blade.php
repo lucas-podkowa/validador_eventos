@@ -9,6 +9,13 @@
 
     <!-- Navigation Items -->
     <nav class="sidebar-nav flex-1 py-4">
+        @if (auth()->user()?->hasRole('Invitado') || auth()->user()?->participante)
+            <a href="{{ route('mis_certificados') }}" class="{{ request()->routeIs('mis_certificados') ? 'active' : '' }}">
+                <i class="fa-solid fa-certificate w-5 text-center"></i>
+                <span>Mis Certificados</span>
+            </a>
+        @endif
+
         @role('Administrador|Gestor')
         <a href="{{ route('eventos') }}" class="{{ request()->routeIs('eventos') ? 'active' : '' }}">
             <i class="fa-solid fa-calendar-days w-5 text-center"></i>

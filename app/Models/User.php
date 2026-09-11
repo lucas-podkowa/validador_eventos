@@ -28,6 +28,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'dni',
         'password',
     ];
 
@@ -66,12 +67,18 @@ class User extends Authenticatable
         return $this->belongsToMany(Evento::class, 'evento_gestor', 'user_id', 'evento_id');
     }
 
+    public function participante()
+    {
+        return $this->hasOne(Participante::class, 'user_id', 'id');
+    }
+
     public function dashboardRouteName(): ?string
     {
         return match (true) {
             $this->hasRole('Administrador'), $this->hasRole('Gestor') => 'eventos',
             $this->hasRole('Revisor') => 'procesar_aprobaciones',
             $this->hasRole('Colaborador') => 'asistencias',
+            $this->hasRole('Invitado'), $this->participante()->exists() => 'mis_certificados',
             default => null,
         };
     }

@@ -11,6 +11,7 @@ use App\Models\ParticipanteIndicador;
 use App\Models\PlanillaInscripcion;
 use App\Models\RequisitoDocumentacion;
 use App\Models\Rol;
+use App\Rules\LargoNombreCertificado;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -66,8 +67,8 @@ class RegistroEventoPublico extends Component
     public array $documentos = [];
 
     protected $rules = [
-        'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones
-        'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+        'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones y puntos
+        'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
         'dni' => ['required', 'digits_between:6,10', 'numeric'],
         'mail' => ['required', 'email'],
         'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
@@ -149,8 +150,8 @@ class RegistroEventoPublico extends Component
     protected function reglas()
     {
         $reglas = [
-            'apellido' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
-            'nombre' => ['required', 'regex:/^[\pL\s\-]+$/u', 'min:2', 'max:50'],
+            'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50', new LargoNombreCertificado($this->nombre)],
+            'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
             'dni' => ['required', 'digits_between:6,10', 'numeric'],
             'mail' => ['required', 'email'],
             'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],

@@ -25,11 +25,19 @@
         </script>
     @endif
 
+    <!-- Filtros -->
+    <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Nombre del Evento"
+            class="w-full p-2 border border-gray-300 rounded" />
+        <input type="text" wire:model.live.debounce.300ms="searchResponsable" placeholder="Responsable del Evento"
+            class="w-full p-2 border border-gray-300 rounded" />
+    </div>
+
     <x-table>
         <table class="w-full min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th wire:click="order('nombre')" class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                    <th wire:click="order('nombre')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
                         Nombre
                         @if ($sort === 'nombre')
                             @if ($direction === 'asc')
@@ -41,11 +49,22 @@
                             <i class="fas fa-sort float-right mt-1"></i>
                         @endif
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                    <th wire:click="order('fecha_inicio')"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
                         Fecha de Inicio
+                        @if ($sort === 'fecha_inicio')
+                            <i class="fas {{ $direction === 'asc' ? 'fa-sort-up' : 'fa-sort-down' }} float-right mt-1"></i>
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                    <th wire:click="order('revisor')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
                         Revisor
+                        @if ($sort === 'revisor')
+                            <i class="fas {{ $direction === 'asc' ? 'fa-sort-alpha-up-alt' : 'fa-sort-alpha-down-alt' }} float-right mt-1"></i>
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">
                         Periodo de Inscripción

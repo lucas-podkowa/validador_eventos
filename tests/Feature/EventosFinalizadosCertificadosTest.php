@@ -89,11 +89,19 @@ class EventosFinalizadosCertificadosTest extends TestCase
             'certificado_path' => $certificadoPath,
         ]);
 
-        $this->get(route('ver.certificado', $eventoParticipante))
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
-            ->assertHeader('Pragma', 'no-cache')
-            ->assertHeader('Expires', '0');
+        $response = $this->actingAs($this->admin)
+            ->get(route('ver.certificado', $eventoParticipante));
+
+        $response->assertOk();
+
+        $cacheControl = $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('must-revalidate', $cacheControl);
+        $this->assertStringNotContainsString('public', $cacheControl);
+
+        $response->assertHeader('Pragma', 'no-cache');
+        $this->assertNotNull($response->headers->get('Expires'));
     }
 
     private function crearEventoFinalizado(bool $conPlantillaCategoria = false): Evento

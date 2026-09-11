@@ -1,17 +1,52 @@
 <div>
-    <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar Evento"
-            class="w-full p-2 border border-gray-300 rounded" />
+    <div x-data="{ filtrosAbiertos: false }" class="mb-3">
+        <div class="flex items-center gap-2">
+            <button type="button" @click="filtrosAbiertos = !filtrosAbiertos"
+                class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
+                <i class="fa-solid fa-filter text-gray-500"></i>
+                Filtros
+                <i class="fas text-xs text-gray-500"
+                    :class="filtrosAbiertos ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
+            @if ($this->filtrosActivos > 0)
+                <span
+                    class="inline-flex items-center px-2 py-0.5 text-xs font-semibold text-blue-700 bg-blue-100 border border-blue-200 rounded-full">
+                    {{ $this->filtrosActivos }} activo{{ $this->filtrosActivos === 1 ? '' : 's' }}
+                </span>
+                <button type="button" wire:click="limpiarFiltros"
+                    class="inline-flex items-center px-2 py-0.5 text-xs text-gray-600 hover:text-red-600 transition"
+                    title="Limpiar todos los filtros">
+                    <i class="fa-solid fa-xmark mr-1"></i> Limpiar
+                </button>
+            @endIf
+        </div>
 
-        <input type="text" wire:model.live.debounce.300ms="searchParticipante" placeholder="Buscar Participante por DNI"
-            class="w-full p-2 border border-gray-300 rounded" />
+        <div x-show="filtrosAbiertos" x-cloak class="mt-3">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Nombre del Evento"
+                    class="w-full p-2 border border-gray-300 rounded" />
 
-        <select wire:model.live="searchTipoEvento" class="w-full p-2 border border-gray-300 rounded">
-            <option value="">Todos</option>
-            @foreach ($tiposEvento as $tipoEvento)
-                <option value="{{ $tipoEvento->tipo_evento_id }}">{{ $tipoEvento->nombre }}</option>
-            @endforeach
-        </select>
+                <input type="text" wire:model.live.debounce.300ms="searchResponsable" placeholder="Responsable del Evento"
+                    class="w-full p-2 border border-gray-300 rounded" />
+
+                <input type="text" wire:model.live.debounce.300ms="searchParticipante" placeholder="Buscar Participante por DNI"
+                    class="w-full p-2 border border-gray-300 rounded" />
+
+                <select wire:model.live="searchTipoEvento" class="w-full p-2 border border-gray-300 rounded">
+                    <option value="">Todos los Tipos de Evento</option>
+                    @foreach ($tiposEvento as $tipoEvento)
+                        <option value="{{ $tipoEvento->tipo_evento_id }}">{{ $tipoEvento->nombre }}</option>
+                    @endforeach
+                </select>
+
+                <select wire:model.live="searchCategoria" class="w-full p-2 border border-gray-300 rounded">
+                    <option value="">Todas las Categorías</option>
+                    @foreach ($categorias as $categoria)
+                        <option value="{{ $categoria->categoria_id }}">{{ $categoria->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
     </div>
 
     <x-table>
@@ -47,7 +82,15 @@
                             <i class="fas fa-sort float-right mt-1"></i>
                         @endif
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Categoría</th>
+                    <th wire:click="order('categoria')"
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 cursor-pointer">
+                        Categoría
+                        @if ($sort === 'categoria')
+                            <i class="fas {{ $direction === 'asc' ? 'fa-sort-alpha-up-alt' : 'fa-sort-alpha-down-alt' }} float-right mt-1"></i>
+                        @else
+                            <i class="fas fa-sort float-right mt-1"></i>
+                        @endif
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Acciones</th>
                 </tr>
             </thead>
@@ -89,11 +132,11 @@
                                         <a wire:click="emitir({{ $evento }})"
                                             class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                             <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
-                                            Emitir Certificados
+                                            {{ $modo === 'finalizados' ? 'Reemitir Certificados' : 'Emitir Certificados' }}
                                         </a>
                                         @endrole
 
-                                        @if ($evento->certificados_disponibles)
+                                        @if ($modo === 'finalizados' && $evento->certificados_disponibles)
                                             <a wire:click="abrirModalMail({{ $evento }})"
                                                 class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                                 <i class="mr-1 fa-solid fa-envelope fa-xl text-purple-600"></i>

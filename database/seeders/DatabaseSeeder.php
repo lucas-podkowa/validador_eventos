@@ -20,14 +20,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        TipoEvento::insert([
-            ['nombre' => 'Curso'],
-            ['nombre' => 'Conferencia'],
-            ['nombre' => 'Seminario'],
-            ['nombre' => 'Taller'],
-            ['nombre' => 'Charla'],
-            ['nombre' => 'Webinar'],
-        ]);
+        foreach (['Curso', 'Conferencia', 'Seminario', 'Taller', 'Charla', 'Webinar'] as $tipoNombre) {
+            TipoEvento::firstOrCreate(['nombre' => $tipoNombre]);
+        }
 
         TipoIndicador::insert([
             ['nombre' => 'Relación con la Institución'],

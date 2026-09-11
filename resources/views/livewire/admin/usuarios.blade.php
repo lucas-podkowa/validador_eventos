@@ -87,6 +87,15 @@
                 </div>
 
                 <div class="mt-4">
+                    <label>DNI</label>
+                    <input wire:model="dni" type="text" inputmode="numeric" class="w-full border p-2 rounded"
+                        placeholder="Solo números">
+                    @error('dni')
+                        <span class="text-red-500">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="mt-4">
                     <label>Nueva Contraseña (opcional)</label>
                     <input wire:model="password" type="password" autocomplete="new-password"
                         class="w-full border p-2 rounded">
@@ -107,6 +116,61 @@
                     @error('roles_selected')
                         <span class="text-red-500">{{ $message }}</span>
                     @enderror
+                </div>
+
+                <div class="mt-6 border-t pt-4">
+                    <label class="mb-2 block font-semibold text-gray-700">Participante vinculado</label>
+
+                    @if ($participante_vinculado)
+                        <div class="flex items-center justify-between rounded border bg-gray-50 p-3">
+                            <div class="text-sm">
+                                <p class="font-medium text-gray-800">
+                                    {{ $participante_vinculado['apellido'] }}, {{ $participante_vinculado['nombre'] }}
+                                </p>
+                                <p class="text-gray-500">
+                                    DNI {{ $participante_vinculado['dni'] }} &middot; {{ $participante_vinculado['mail'] }}
+                                </p>
+                            </div>
+                            <button type="button" wire:click="desvincularParticipante"
+                                class="text-sm font-medium text-red-600 underline hover:text-red-800">
+                                Desvincular
+                            </button>
+                        </div>
+                    @else
+                        <div class="flex gap-2">
+                            <input wire:model="busqueda_participante" type="text"
+                                class="w-full rounded border p-2"
+                                placeholder="Buscar por DNI, correo, nombre o apellido">
+                            <button type="button" wire:click="buscarParticipante"
+                                class="rounded border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                                Buscar
+                            </button>
+                        </div>
+                        @error('busqueda_participante')
+                            <span class="text-red-500">{{ $message }}</span>
+                        @enderror
+
+                        @if ($participante_candidato)
+                            <div class="mt-3 flex items-center justify-between rounded border bg-white p-3">
+                                <div class="text-sm">
+                                    <p class="font-medium text-gray-800">
+                                        {{ $participante_candidato['apellido'] }}, {{ $participante_candidato['nombre'] }}
+                                    </p>
+                                    <p class="text-gray-500">
+                                        DNI {{ $participante_candidato['dni'] }} &middot; {{ $participante_candidato['mail'] }}
+                                    </p>
+                                </div>
+                                <button type="button" wire:click="vincularParticipante"
+                                    class="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700">
+                                    Vincular
+                                </button>
+                            </div>
+                        @endif
+
+                        <p class="mt-2 text-xs text-gray-400">
+                            Solo se muestran participantes que todavía no tienen una cuenta vinculada.
+                        </p>
+                    @endif
                 </div>
             </x-slot>
 

@@ -15,6 +15,12 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link {{ $activeTab === 'a_certificar' ? 'active' : '' }}"
+                    wire:click="setActiveTab('a_certificar')" type="button" role="tab">
+                    Eventos a Certificar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link {{ $activeTab === 'finalizados' ? 'active' : '' }}"
                     wire:click="setActiveTab('finalizados')" type="button" role="tab">
                     Eventos Finalizados
@@ -27,8 +33,10 @@
                 @livewire('eventos-pendientes')
             @elseif ($activeTab === 'en_curso')
                 @livewire('eventos-activos')
+            @elseif ($activeTab === 'a_certificar')
+                @livewire('eventos-finalizados', ['modo' => 'a_certificar'], key('tab-a-certificar'))
             @elseif ($activeTab === 'finalizados')
-                @livewire('eventos-finalizados')
+                @livewire('eventos-finalizados', ['modo' => 'finalizados'], key('tab-finalizados'))
             @endif
         </div>
     </div>

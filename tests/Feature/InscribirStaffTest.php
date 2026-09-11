@@ -125,6 +125,46 @@ class InscribirStaffTest extends TestCase
         $this->assertSame(1, InscripcionParticipante::count());
     }
 
+    public function test_rechaza_nombres_demasiado_largos_para_el_certificado(): void
+    {
+        Mail::fake();
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanillaEnCurso();
+
+        Livewire::test(InscribirStaff::class, ['evento_id' => $evento->evento_id])
+            ->set('rol_seleccionado', 'Disertante')
+            ->set('dni', '12345678')
+            ->set('nombre', 'Angel Ezequiel Cuello Cardozo')
+            ->set('apellido', 'Cuella')
+            ->set('mail', 'largo@example.com')
+            ->set('telefono', '3764123456')
+            ->call('submit')
+            ->assertHasErrors(['apellido']);
+
+        $this->assertDatabaseMissing('participante', ['dni' => '12345678']);
+    }
+
+    public function test_acepta_nombre_con_punto(): void
+    {
+        Mail::fake();
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanillaEnCurso();
+
+        Livewire::test(InscribirStaff::class, ['evento_id' => $evento->evento_id])
+            ->set('rol_seleccionado', 'Disertante')
+            ->set('dni', '12345679')
+            ->set('nombre', 'Elena V.')
+            ->set('apellido', 'Gimenez')
+            ->set('mail', 'elena.staff@example.com')
+            ->set('telefono', '3764123457')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('participante', ['dni' => '12345679']);
+    }
+
     protected function crearEventoConPlanillaEnCurso(): Evento
     {
         $tipo = TipoEvento::firstOrFail();
