@@ -1,4 +1,4 @@
-<div class="px-4 sm:px-6 lg:px-8 py-4 space-y-6">
+<div class="px-4 sm:px-6 lg:px-8 py-4 space-y-4">
     <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Gestión de Indicadores</h2>
@@ -19,10 +19,10 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
         <aside class="xl:col-span-4">
             <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div class="flex items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5 py-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3">
                     <div>
                         <h3 class="text-base font-semibold text-gray-900">Tipos de indicador</h3>
                         <p class="text-sm text-gray-500">Selecciona un contexto de trabajo.</p>
@@ -46,11 +46,11 @@
                         </p>
                     </div>
                 @else
-                    <div class="space-y-3 p-3">
+                    <div class="space-y-2 p-2">
                         @foreach ($tiposIndicadores as $tipo)
                             @php($activo = (int) $tipoSeleccionadoId === (int) $tipo->tipo_indicador_id)
                             <button type="button" wire:click="selectTipo({{ $tipo->tipo_indicador_id }})"
-                                class="w-full rounded-2xl border px-4 py-4 text-left transition {{ $activo ? 'border-teal-500 bg-teal-50 shadow-sm' : 'border-gray-200 bg-white hover:border-teal-200 hover:bg-gray-50' }}">
+                                class="w-full rounded-xl border px-3 py-3 text-left transition {{ $activo ? 'border-teal-500 bg-teal-50 shadow-sm' : 'border-gray-200 bg-white hover:border-teal-200 hover:bg-gray-50' }}">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
                                         <p class="text-base font-semibold {{ $activo ? 'text-teal-900' : 'text-gray-900' }}">
@@ -76,10 +76,10 @@
             </div>
         </aside>
 
-        <section class="space-y-6 xl:col-span-8">
+        <section class="space-y-4 xl:col-span-8">
             @if ($tipoActivo || $modoTipo === 'create')
                 <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
-                        <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-6 py-4">
+                        <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-3">
                             <div>
                                 <h3 class="text-base font-semibold text-gray-900">Configuración del tipo</h3>
                                 <p class="text-sm text-gray-500">Nombre y selector que gobiernan el contexto activo.</p>
@@ -91,21 +91,23 @@
                             @endif
                         </div>
 
-                        <div class="p-6">
+                        <div class="p-4">
                             @if ($modoTipo === 'idle')
-                                <div class="space-y-4">
-                                    <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nombre</p>
-                                        <p class="mt-2 text-base font-semibold text-gray-900">{{ $tipoActivo?->nombre ?? 'Sin selección' }}</p>
-                                    </div>
-                                    <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tipo de selección</p>
-                                        @if ($tipoActivo)
-                                            <span
-                                                class="mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $this->selectorBadgeClass($tipoActivo->selector) }}">
-                                                {{ $tipoActivo->selector }}
-                                            </span>
-                                        @endif
+                                <div class="space-y-3">
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Nombre</p>
+                                            <p class="mt-1 text-base font-semibold text-gray-900">{{ $tipoActivo?->nombre ?? 'Sin selección' }}</p>
+                                        </div>
+                                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tipo de selección</p>
+                                            @if ($tipoActivo)
+                                                <span
+                                                    class="mt-1 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $this->selectorBadgeClass($tipoActivo->selector) }}">
+                                                    {{ $tipoActivo->selector }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
 
                                     <div class="flex flex-wrap gap-3">
@@ -164,7 +166,7 @@
 
                 @if ($tipoActivo)
                     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                        <div class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-6 py-4 md:flex-row md:items-center md:justify-between">
+                        <div class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-5 py-3 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <h3 class="text-base font-semibold text-gray-900">Indicadores del tipo</h3>
                                 <p class="text-sm text-gray-500">
@@ -184,7 +186,7 @@
                                     <thead class="bg-gray-50">
                                         <tr>
                                             <th wire:click="sortBy('nombre')"
-                                                class="cursor-pointer px-6 py-3 text-left text-xs font-medium text-gray-500">
+                                                class="cursor-pointer px-4 py-2.5 text-left text-xs font-medium text-gray-500">
                                                 Indicador
                                                 @if ($sortField === 'nombre')
                                                     <i
@@ -193,23 +195,23 @@
                                                     <i class="fas fa-sort float-right mt-1"></i>
                                                 @endif
                                             </th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Selector heredado</th>
-                                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500">Acciones</th>
+                                            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Selector heredado</th>
+                                            <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 bg-white">
                                         @foreach ($indicadores as $indicador)
                                             <tr>
-                                                <td class="px-6 py-4">
+                                                <td class="px-4 py-3">
                                                     <div class="font-medium text-gray-900 break-words">{{ $indicador->nombre }}</div>
                                                 </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                <td class="px-4 py-3 whitespace-nowrap">
                                                     <span
                                                         class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $this->selectorBadgeClass($tipoActivo->selector) }}">
                                                         {{ $tipoActivo->selector }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-4 text-right text-sm font-medium">
+                                                <td class="px-4 py-3 text-right text-sm font-medium">
                                                     <div class="flex justify-end gap-2 whitespace-nowrap">
                                                         <button type="button" wire:click="editIndicador({{ $indicador->indicador_id }})"
                                                             class="btn-action-edit" title="Editar">
@@ -229,7 +231,7 @@
                                 </table>
                             </div>
                         @else
-                            <div class="px-6 py-10 text-center">
+                            <div class="px-5 py-8 text-center">
                                 <div
                                     class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                                     <i class="fa-solid fa-sliders text-xl"></i>
@@ -243,7 +245,7 @@
                     </div>
                 @endif
             @else
-                <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center shadow-sm">
+                <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-10 text-center shadow-sm">
                     <div
                         class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                         <i class="fa-solid fa-diagram-project text-2xl"></i>

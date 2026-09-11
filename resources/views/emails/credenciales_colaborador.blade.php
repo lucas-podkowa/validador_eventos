@@ -96,7 +96,7 @@
                 <p>Puedes ingresar al sistema con tu email y contraseña habituales.</p>
             @endif
 
-            <a href="{{ url('/login') }}" class="btn">Ingresar al sistema</a>
+            <a href="{{ url('/') }}" class="btn">Ingresar al sistema</a>
 
             <p class="footer">
                 Si no esperabas este mensaje o creés que es un error, por favor comunicáte con la secretaría.<br>

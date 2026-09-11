@@ -215,7 +215,8 @@
         }
 
         .right-card input[type="email"],
-        .right-card input[type="password"] {
+        .right-card input[type="password"],
+        .right-card .password-wrapper input {
             width: 100%;
             padding: 0.7rem 0.85rem;
             border: 1px solid rgba(0, 51, 102, 0.2);
@@ -228,9 +229,38 @@
         }
 
         .right-card input[type="email"]:focus,
-        .right-card input[type="password"]:focus {
+        .right-card input[type="password"]:focus,
+        .right-card .password-wrapper input:focus {
             border-color: #003366;
             box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+        }
+
+        .right-card .password-wrapper {
+            position: relative;
+        }
+
+        .right-card .password-wrapper input {
+            padding-right: 2.75rem;
+        }
+
+        .right-card .password-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            padding: 0 0.85rem;
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            transition: color 0.2s ease;
+        }
+
+        .right-card .password-toggle:hover {
+            color: #003366;
         }
 
         .right-card .remember-row {
@@ -587,7 +617,7 @@
                         </div>
                     @endsession
 
-                    <form method="POST" action="{{ route('login') }}">
+                    <form method="POST" action="{{ route('login.store') }}">
                         @csrf
 
                         <div class="welcome-header">
@@ -605,7 +635,13 @@
 
                         <div class="form-group">
                             <label for="password">Contraseña</label>
-                            <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+                            <div class="password-wrapper">
+                                <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+                                <button type="button" id="toggle-password" class="password-toggle" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+                                    <i id="eye-closed" class="fa-solid fa-eye-slash"></i>
+                                    <i id="eye-open" class="fa-solid fa-eye" style="display: none;"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="remember-row">
@@ -698,6 +734,24 @@
                 closeEventosModal();
             }
         });
+
+        (function () {
+            var toggle = document.getElementById('toggle-password');
+            if (!toggle) return;
+
+            var input = document.getElementById('password');
+            var eyeClosed = document.getElementById('eye-closed');
+            var eyeOpen = document.getElementById('eye-open');
+
+            toggle.addEventListener('click', function () {
+                var wasHidden = input.type === 'password';
+                input.type = wasHidden ? 'text' : 'password';
+                eyeClosed.style.display = wasHidden ? 'none' : 'inline-block';
+                eyeOpen.style.display = wasHidden ? 'inline-block' : 'none';
+                toggle.setAttribute('aria-label', wasHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                toggle.setAttribute('title', wasHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            });
+        })();
     </script>
 </body>
 
