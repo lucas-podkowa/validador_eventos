@@ -418,6 +418,36 @@ class ArancelesDestinatariosTest extends TestCase
             ->assertSeeHtml('max="2026-06-20T18:00"');
     }
 
+    public function test_planilla_requiere_nro_de_expediente(): void
+    {
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanilla();
+
+        Livewire::test(HabilitarPlanilla::class, ['evento_id' => $evento->evento_id])
+            ->set('nro_expediente', '')
+            ->call('guardar_planilla')
+            ->assertHasErrors(['nro_expediente' => 'required']);
+    }
+
+    public function test_planilla_guarda_nro_de_expediente(): void
+    {
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanilla();
+        $planillaId = $evento->planillaInscripcion->planilla_inscripcion_id;
+
+        Livewire::test(HabilitarPlanilla::class, ['evento_id' => $evento->evento_id])
+            ->set('nro_expediente', 'CUDAP: FIO_EXP-S01:0000900/2026')
+            ->call('guardar_planilla')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('planilla_inscripcion', [
+            'planilla_inscripcion_id' => $planillaId,
+            'nro_expediente' => 'CUDAP: FIO_EXP-S01:0000900/2026',
+        ]);
+    }
+
     protected function crearEventoEnCurso(): Evento
     {
         $tipo = TipoEvento::first();

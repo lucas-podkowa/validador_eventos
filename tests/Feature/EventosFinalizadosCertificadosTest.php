@@ -6,7 +6,9 @@ use App\Livewire\EventosFinalizados;
 use App\Models\CategoriaEvento;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
+use App\Models\InscripcionParticipante;
 use App\Models\Participante;
+use App\Models\PlanillaInscripcion;
 use App\Models\PlantillaCertificado;
 use App\Models\Responsable;
 use App\Models\Rol;
@@ -102,6 +104,48 @@ class EventosFinalizadosCertificadosTest extends TestCase
 
         $response->assertHeader('Pragma', 'no-cache');
         $this->assertNotNull($response->headers->get('Expires'));
+    }
+
+    public function test_descarga_listado_de_inscriptos_con_detalles_del_evento(): void
+    {
+        $this->actingAs($this->admin);
+        $evento = $this->crearEventoFinalizado();
+
+        $planilla = PlanillaInscripcion::create([
+            'apertura' => now()->subDay(),
+            'cierre' => now(),
+            'evento_id' => $evento->evento_id,
+        ]);
+
+        $participante = Participante::create([
+            'nombre' => 'Juan',
+            'apellido' => 'Perez',
+            'dni' => fake()->unique()->numberBetween(10000000, 99999999),
+            'mail' => fake()->unique()->safeEmail(),
+            'telefono' => '3764000000',
+        ]);
+
+        InscripcionParticipante::create([
+            'planilla_id' => $planilla->planilla_inscripcion_id,
+            'participante_id' => $participante->participante_id,
+            'rol_id' => Rol::where('nombre', 'Participante')->value('rol_id'),
+            'fecha_inscripcion' => now(),
+        ]);
+
+        Livewire::test(EventosFinalizados::class)
+            ->call('descargarInscriptos', ['evento_id' => $evento->evento_id])
+            ->assertFileDownloaded('inscriptos_evento-de-prueba.pdf');
+    }
+
+    public function test_descargar_inscriptos_sin_planilla_notifica_error(): void
+    {
+        $this->actingAs($this->admin);
+        $evento = $this->crearEventoFinalizado();
+
+        Livewire::test(EventosFinalizados::class)
+            ->call('descargarInscriptos', ['evento_id' => $evento->evento_id])
+            ->assertNoFileDownloaded()
+            ->assertDispatched('oops');
     }
 
     private function crearEventoFinalizado(bool $conPlantillaCategoria = false): Evento

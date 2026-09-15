@@ -111,6 +111,17 @@
                 </div>
 
                 <div class="w-full">
+                    <label for="nro_expediente" class="block text-sm font-medium text-gray-700 mb-1">Nro. de
+                        Expediente</label>
+                    <input id="nro_expediente" type="text" wire:model="nro_expediente"
+                        placeholder="CUDAP: FIO_EXP-S01:0000900/2026"
+                        class="w-full border border-gray-300 rounded-md p-2 bg-white shadow-sm text-sm" />
+                    @error('nro_expediente')
+                        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="w-full">
                     <label for="disposicion" class="block text-sm font-medium text-gray-700 mb-1">Disposición
                         respaldatoria</label>
                     <div class="relative">

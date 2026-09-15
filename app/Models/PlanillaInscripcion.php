@@ -20,7 +20,7 @@ class PlanillaInscripcion extends Model
 
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
-    protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer', 'qr_formulario', 'disposicion', 'estado'];
+    protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer', 'qr_formulario', 'disposicion', 'nro_expediente', 'estado'];
 
     protected static function boot()
     {

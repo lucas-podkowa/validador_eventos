@@ -15,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -514,6 +515,45 @@ class EventosFinalizados extends Component
         }
 
         return response()->download(Storage::disk('private')->path($disposicion));
+    }
+
+    /**
+     * Descarga el listado de inscriptos del evento en PDF, con los detalles
+     * del evento (responsable, disertantes y colaboradores) en la parte superior.
+     */
+    public function descargarInscriptos($evento)
+    {
+        $eventoModel = Evento::with(['responsable', 'tipoEvento', 'categoria', 'planillaInscripcion'])
+            ->find($evento['evento_id']);
+
+        if (! $eventoModel || ! $eventoModel->planillaInscripcion) {
+            $this->dispatch('oops', message: 'No se encontró la planilla de inscripción del evento.');
+
+            return;
+        }
+
+        $planilla = $eventoModel->planillaInscripcion;
+
+        $inscriptos = $planilla->inscripcionesParticipantes()
+            ->with('participante')
+            ->get();
+
+        $disertantesYColaboradores = $planilla->inscripcionesDisertantesYColaboradores()
+            ->with(['participante', 'rol'])
+            ->get();
+
+        $pdf = Pdf::setOption(['isPhpEnabled' => true])
+            ->loadView('pdf.listado-inscriptos', [
+                'evento' => $eventoModel,
+                'inscriptos' => $inscriptos,
+                'mostrarDetalles' => true,
+                'disertantesYColaboradores' => $disertantesYColaboradores,
+            ])
+            ->setPaper('A4', 'portrait');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'inscriptos_'.Str::slug($eventoModel->nombre).'.pdf');
     }
 
     public function abrirCarpeta($path)

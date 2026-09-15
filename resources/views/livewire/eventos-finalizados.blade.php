@@ -124,14 +124,20 @@
                                         {{-- Mostrar el resto de opciones si ya fue revisado --}}
                                         <a wire:click="detail({{ $evento }})"
                                             class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                            <i class="mr-2 fa-solid fa-qrcode fa-xl"></i>
+                                            <i class="mr-2 fa-solid fa-qrcode fa-xl fa-fw"></i>
                                             Ver Códigos QR
+                                        </a>
+
+                                        <a wire:click="descargarInscriptos({{ $evento }})"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-2 fa-solid fa-users fa-xl fa-fw text-indigo-500"></i>
+                                            Lista de Inscriptos
                                         </a>
 
                                         @role('Administrador')
                                         <a wire:click="emitir({{ $evento }})"
                                             class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                            <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
+                                            <i class="mr-2 fa-solid fa-file-pdf fa-xl fa-fw text-blue-500"></i>
                                             {{ $modo === 'finalizados' ? 'Reemitir Certificados' : 'Emitir Certificados' }}
                                         </a>
                                         @endrole

@@ -25,6 +25,8 @@ class HabilitarPlanilla extends Component
 
     public $disposicion;
 
+    public $nro_expediente;
+
     public $header = null;
 
     public $footer = null;
@@ -52,11 +54,16 @@ class HabilitarPlanilla extends Component
 
     public ?string $accion_planilla_suspendida = null;
 
+    protected $validationAttributes = [
+        'nro_expediente' => 'Nro. de Expediente',
+    ];
+
     protected function rules()
     {
         $rules = [
             'apertura' => 'required|date_format:Y-m-d H:i|before:cierre',
             'cierre' => 'required|date_format:Y-m-d H:i|after:apertura',
+            'nro_expediente' => 'required|string|max:255',
         ];
 
         if ($this->modo === 'crear' || $this->disposicion instanceof \Illuminate\Http\UploadedFile) {
@@ -82,6 +89,7 @@ class HabilitarPlanilla extends Component
                 $this->header = $planilla->header;
                 $this->footer = $planilla->footer;
                 $this->disposicion = $planilla->disposicion ?? null;
+                $this->nro_expediente = $planilla->nro_expediente ?? null;
             } else {
                 $this->modo = 'editar';
                 $this->apertura = Carbon::parse($planilla->apertura)->format('Y-m-d H:i');
@@ -89,6 +97,7 @@ class HabilitarPlanilla extends Component
                 $this->header = $planilla->header;
                 $this->footer = $planilla->footer;
                 $this->disposicion = $planilla->disposicion ?? null;
+                $this->nro_expediente = $planilla->nro_expediente ?? null;
             }
         }
     }
@@ -141,7 +150,7 @@ class HabilitarPlanilla extends Component
 
         if ($accion === 'nueva') {
             // Limpiar campos para que el usuario los complete desde cero
-            $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion']);
+            $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion', 'nro_expediente']);
         }
     }
 
@@ -283,6 +292,7 @@ class HabilitarPlanilla extends Component
                     'header' => $this->header,
                     'footer' => $this->footer,
                     'disposicion' => $this->disposicion,
+                    'nro_expediente' => $this->nro_expediente,
                     'qr_formulario' => $qrSvgBase64,
                     'estado' => 'activa',
                 ]
@@ -291,7 +301,7 @@ class HabilitarPlanilla extends Component
             Evento::where('evento_id', $this->evento->evento_id)->update(['estado' => 'En Curso']);
             DB::commit();
 
-            $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion', 'evento', 'modo']);
+            $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion', 'nro_expediente', 'evento', 'modo']);
             $this->redirectToEventos('en_curso');
         } catch (\Exception $e) {
             DB::rollBack();

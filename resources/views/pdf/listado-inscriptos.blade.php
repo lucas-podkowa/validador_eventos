@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Listado de inscriptos - {{ $evento->nombre }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
         @page {
             margin: 95px 25px;
@@ -77,6 +79,11 @@
             background-color: #f2f2f2;
         }
 
+        .tabla-inscriptos th,
+        .tabla-inscriptos td {
+            font-family: 'Roboto Condensed', sans-serif;
+        }
+
         h2 {
             text-align: center;
         }
@@ -131,9 +138,49 @@
 
 
     <main>
-        <h2>Listado de inscriptos - {{ $evento->nombre }}</h2>
+        @if (!empty($mostrarDetalles))
+            <h2>Detalles del Evento</h2>
+            <div style="border:1px solid #ddd; padding:8px; margin-bottom:15px;">
+                <p style="margin:0 0 4px;"><strong>Nombre:</strong> {{ $evento->nombre }}</p>
+                <p style="margin:0 0 4px;"><strong>Fecha de Inicio:</strong> {{ $evento->fecha_inicio_formatted }}</p>
+                <p style="margin:0 0 4px;"><strong>Tipo de Evento:</strong> {{ $evento->tipoEvento->nombre ?? 'N/A' }}</p>
+                <p style="margin:0 0 4px;"><strong>Categoría:</strong> {{ $evento->categoria->nombre ?? '—' }}</p>
+                <p style="margin:0 0 4px;"><strong>Lugar:</strong> {{ $evento->lugar }}</p>
+                <p style="margin:0 0 4px;"><strong>Certificación:</strong>
+                    {{ $evento->por_aprobacion ? 'Por Aprobación' : 'Por Asistencia' }}</p>
+                <p style="margin:0;"><strong>Responsable:</strong>
+                    {{ $evento->responsable ? $evento->responsable->nombre.' '.$evento->responsable->apellido : 'Sin asignar' }}
+                </p>
+            </div>
 
-        <table>
+            @if (!empty($disertantesYColaboradores) && $disertantesYColaboradores->isNotEmpty())
+                <h3>Disertantes y Colaboradores</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rol</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>DNI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($disertantesYColaboradores as $persona)
+                            <tr>
+                                <td>{{ $persona->rol->nombre ?? '—' }}</td>
+                                <td>{{ $persona->participante->nombre ?? '' }}</td>
+                                <td>{{ $persona->participante->apellido ?? '' }}</td>
+                                <td>{{ $persona->participante->dni ?? '' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        @endif
+
+        <h2>{{ !empty($mostrarDetalles) ? 'Listado de Inscriptos' : 'Listado de inscriptos - '.$evento->nombre }}</h2>
+
+        <table class="tabla-inscriptos">
             <thead>
                 <tr>
                     <th>Nombre</th>
