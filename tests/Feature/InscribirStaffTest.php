@@ -165,6 +165,41 @@ class InscribirStaffTest extends TestCase
         $this->assertDatabaseHas('participante', ['dni' => '12345679']);
     }
 
+    public function test_detecta_posible_duplicado_y_vincula_al_existente(): void
+    {
+        Mail::fake();
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanillaEnCurso();
+
+        $existente = Participante::create([
+            'nombre' => 'Santiago Luis Daniel',
+            'apellido' => 'Becker',
+            'dni' => '47889627',
+            'mail' => 'existente@example.com',
+            'telefono' => '3755719156',
+        ]);
+
+        Livewire::test(InscribirStaff::class, ['evento_id' => $evento->evento_id])
+            ->set('rol_seleccionado', 'Disertante')
+            ->set('dni', '47889628')
+            ->set('nombre', 'Santiago Luis Daniel')
+            ->set('apellido', 'Becker')
+            ->set('mail', 'nuevo@example.com')
+            ->set('telefono', '3755719156')
+            ->call('submit')
+            ->assertDispatched('oops')
+            ->assertSet('similar.participante_id', $existente->participante_id)
+            ->call('usarSimilar')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseMissing('participante', ['dni' => '47889628']);
+        $this->assertDatabaseHas('inscripcion_participante', [
+            'participante_id' => $existente->participante_id,
+        ]);
+    }
+
     protected function crearEventoConPlanillaEnCurso(): Evento
     {
         $tipo = TipoEvento::firstOrFail();

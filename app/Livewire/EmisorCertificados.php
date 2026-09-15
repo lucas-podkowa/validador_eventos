@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Actions\BuscarParticipanteSimilar;
+use App\Models\DuplicadoRevision;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
@@ -9,6 +11,7 @@ use App\Models\PlantillaCertificado;
 use App\Models\Rol;
 use App\Rules\LargoNombreCertificado;
 use App\Support\CertificadoPdfAssets;
+use App\Support\NormalizadorIdentidad;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -43,6 +46,10 @@ class EmisorCertificados extends Component
     public $mail;
 
     public ?array $participanteExistente = null;
+
+    public ?array $similar = null;
+
+    public ?string $decision_similar = null;
 
     public $reemision = false;
 
@@ -94,7 +101,7 @@ class EmisorCertificados extends Component
 
     public function abrirModal()
     {
-        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'rol_id', 'background_image', 'plantilla_id', 'plantillas_disponibles', 'certificado_tipo', 'plantillas_por_tipo', 'reemision', 'reemision_rol']);
+        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'rol_id', 'background_image', 'plantilla_id', 'plantillas_disponibles', 'certificado_tipo', 'plantillas_por_tipo', 'reemision', 'reemision_rol', 'similar', 'decision_similar']);
         $this->modal_abierto = true;
     }
 
@@ -207,6 +214,41 @@ class EmisorCertificados extends Component
         $this->refreshEstadoReemision();
     }
 
+    public function detectarSimilar(): void
+    {
+        $this->similar = null;
+        $this->decision_similar = null;
+
+        $candidato = app(BuscarParticipanteSimilar::class)->buscar(
+            apellido: (string) $this->apellido,
+            nombre: (string) $this->nombre,
+            telefono: (string) $this->telefono,
+            mail: (string) $this->mail,
+            dniExcluir: $this->dni !== null && $this->dni !== '' ? (int) $this->dni : null,
+        );
+
+        if ($candidato) {
+            $this->similar = [
+                'participante_id' => $candidato->participante_id,
+                'nombre' => $candidato->nombre,
+                'apellido' => $candidato->apellido,
+                'dni' => $candidato->dni,
+                'mail' => $candidato->mail,
+                'telefono' => $candidato->telefono,
+            ];
+        }
+    }
+
+    public function usarSimilar(): void
+    {
+        $this->decision_similar = 'usar';
+    }
+
+    public function crearNuevo(): void
+    {
+        $this->decision_similar = 'nuevo';
+    }
+
     private function refreshEstadoReemision(): void
     {
         $this->reemision = false;
@@ -244,6 +286,16 @@ class EmisorCertificados extends Component
             'apellido' => array_merge((array) $this->rules['apellido'], [new LargoNombreCertificado($this->nombre)]),
         ]));
 
+        if ($this->similar === null) {
+            $this->detectarSimilar();
+        }
+
+        if ($this->similar && $this->decision_similar === null) {
+            $this->dispatch('oops', message: 'Encontramos un participante con datos muy similares. Confirmá si es la misma persona para continuar.');
+
+            return;
+        }
+
         $backgroundPath = null;
         if (! empty($plantillasForTipo) && $this->plantilla_id) {
             $plantilla = PlantillaCertificado::find($this->plantilla_id);
@@ -262,19 +314,54 @@ class EmisorCertificados extends Component
         DB::beginTransaction();
         try {
             // Normalizar campos
-            $this->nombre = ucfirst(mb_strtolower(trim($this->nombre)));
-            $this->apellido = ucfirst(mb_strtolower(trim($this->apellido)));
+            $this->nombre = NormalizadorIdentidad::titulo($this->nombre);
+            $this->apellido = NormalizadorIdentidad::titulo($this->apellido);
 
-            $participante = Participante::where('dni', $this->dni)->first();
+            $participante = null;
 
-            if (! $participante) {
-                $participante = Participante::create([
+            if ($this->similar && $this->decision_similar === 'usar') {
+                $participante = Participante::find($this->similar['participante_id']);
+
+                if (! $participante) {
+                    DB::rollBack();
+                    $this->dispatch('oops', message: 'El participante similar ya no está disponible. Volvé a intentar.');
+
+                    return;
+                }
+
+                $participante->update([
                     'nombre' => $this->nombre,
                     'apellido' => $this->apellido,
-                    'dni' => $this->dni,
                     'telefono' => $this->telefono,
-                    'mail' => $this->mail,
                 ]);
+
+                DuplicadoRevision::create([
+                    'participante_id' => $participante->participante_id,
+                    'candidato_id' => $participante->participante_id,
+                    'origen' => 'emision',
+                    'decision' => 'misma_persona',
+                ]);
+            } else {
+                $participante = Participante::where('dni', $this->dni)->first();
+
+                if (! $participante) {
+                    $participante = Participante::create([
+                        'nombre' => $this->nombre,
+                        'apellido' => $this->apellido,
+                        'dni' => $this->dni,
+                        'telefono' => $this->telefono,
+                        'mail' => $this->mail,
+                    ]);
+
+                    if ($this->similar && $this->decision_similar === 'nuevo') {
+                        DuplicadoRevision::create([
+                            'participante_id' => $participante->participante_id,
+                            'candidato_id' => $this->similar['participante_id'],
+                            'origen' => 'emision',
+                            'decision' => 'otra_persona',
+                        ]);
+                    }
+                }
             }
 
             // Evitar duplicados y, si ya existe, tratar como re-emisión

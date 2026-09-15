@@ -4,6 +4,7 @@ use App\Http\Controllers\CertificadoDescargaController;
 use App\Http\Controllers\ComprobantePagoController;
 use App\Http\Controllers\DocumentoRequisitoController;
 use App\Http\Controllers\QRController;
+use App\Http\Controllers\SolicitudDniController;
 use App\Http\Controllers\WelcomeController;
 use App\Livewire\Academica\EmisionesRealizadas;
 use App\Livewire\Academica\EmisionTitulo;
@@ -11,6 +12,7 @@ use App\Livewire\Academica\Plantillas;
 use App\Livewire\Academica\TitulosIntermedios;
 use App\Livewire\Admin\Categorias;
 use App\Livewire\Admin\Destinatarios;
+use App\Livewire\Admin\SolicitudesDni;
 use App\Livewire\Admin\TiposEvento;
 use App\Livewire\Admin\Usuarios;
 use App\Livewire\AsignarGestores;
@@ -24,6 +26,7 @@ use App\Livewire\Indicadores;
 use App\Livewire\Informes;
 use App\Livewire\InscribirStaff;
 use App\Livewire\MisCertificados;
+use App\Livewire\MisDatos;
 use App\Livewire\Participantes;
 use App\Livewire\ProcesarAprobaciones;
 use App\Livewire\RegistroEventoPublico;
@@ -48,6 +51,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/admin/destinatarios', Destinatarios::class)->name('admin.destinatarios');
         Route::get('/informes', Informes::class)->name('informes');
         Route::get('/emision', EmisorCertificados::class)->name('emisor_certificados');
+        Route::get('/admin/solicitudes-dni', SolicitudesDni::class)->name('admin.solicitudes_dni');
+        Route::get('/admin/solicitudes-dni/{solicitud}/imagen', [SolicitudDniController::class, 'imagen'])->name('admin.solicitudes_dni.imagen');
     });
 
     // Rutas compartidas entre administrador y gestor
@@ -87,6 +92,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Portal del participante: cualquier usuario autenticado (incluye rol Invitado)
     Route::get('/mis-certificados', MisCertificados::class)->name('mis_certificados');
+    Route::get('/mis-datos', MisDatos::class)->name('mis_datos');
     Route::get('/mis-certificados/certificado/{eventoParticipante}', [CertificadoDescargaController::class, 'evento'])
         ->name('mis_certificados.evento');
     Route::get('/mis-certificados/titulo/{certificadoEmitido}', [CertificadoDescargaController::class, 'titulo'])

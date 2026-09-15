@@ -14,6 +14,10 @@
                 <i class="fa-solid fa-certificate w-5 text-center"></i>
                 <span>Mis Certificados</span>
             </a>
+            <a href="{{ route('mis_datos') }}" class="{{ request()->routeIs('mis_datos') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-pen w-5 text-center"></i>
+                <span>Mis Datos</span>
+            </a>
         @endif
 
         @role('Administrador|Gestor')
@@ -123,6 +127,11 @@
         <a href="{{ route('usuarios') }}" class="{{ request()->routeIs('usuarios') ? 'active' : '' }}">
             <i class="fa-solid fa-user-shield w-5 text-center"></i>
             <span>Usuarios</span>
+        </a>
+
+        <a href="{{ route('admin.solicitudes_dni') }}" class="{{ request()->routeIs('admin.solicitudes_dni') ? 'active' : '' }}">
+            <i class="fa-solid fa-id-card w-5 text-center"></i>
+            <span>Solicitudes DNI</span>
         </a>
         </div>
         @endrole

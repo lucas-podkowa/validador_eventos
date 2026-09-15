@@ -67,13 +67,41 @@
                         <!-- Campo: Teléfono -->
                         <div class="flex flex-col">
                             <label for="telefono" class="mb-1 lg:mb-0 font-medium">Teléfono:</label>
-                            <input type="number" id="telefono" wire:model="telefono"
-                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
+                            <input type="number" id="telefono" wire:model="telefono" wire:blur="detectarSimilar"
+                                class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300" />
                             @error('telefono')
                                 <span class="text-sm text-red-600">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
+
+                    @if ($similar)
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                            <p class="font-semibold">Encontramos un participante con datos muy similares:</p>
+                            <p class="mt-1">
+                                <strong>{{ $similar['apellido'] }}, {{ $similar['nombre'] }}</strong>
+                                — DNI {{ $similar['dni'] }} — {{ $similar['mail'] }} — Tel. {{ $similar['telefono'] }}
+                            </p>
+
+                            @if ($decision_similar === 'usar')
+                                <p class="mt-2 text-green-700">Se usará ese registro y se actualizarán tu nombre, apellido y teléfono.</p>
+                            @elseif ($decision_similar === 'nuevo')
+                                <p class="mt-2 text-gray-700">Se creará un participante nuevo con estos datos.</p>
+                            @else
+                                <p class="mt-2">¿Es la misma persona?</p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <button type="button" wire:click="usarSimilar"
+                                        class="rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-white">
+                                        Sí, es la misma persona
+                                    </button>
+                                    <button type="button" wire:click="crearNuevo"
+                                        class="rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700">
+                                        No, es otra persona
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
 
                     <!-- Destinatario y documentación -->
                     @if ($evento->destinatarios->isNotEmpty())

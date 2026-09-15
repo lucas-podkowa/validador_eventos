@@ -2,12 +2,15 @@
 
 namespace App\Livewire;
 
+use App\Actions\BuscarParticipanteSimilar;
+use App\Models\DuplicadoRevision;
 use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\PlanillaInscripcion;
 use App\Models\Rol;
 use App\Support\NombreCertificado;
+use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -180,16 +183,44 @@ class ImportarParticipantes extends Component
                         continue;
                     }
 
-                    // Buscar o crear participante
-                    $participante = Participante::firstOrCreate(
-                        ['dni' => $fila['dni']],
-                        [
-                            'nombre' => mb_convert_case(mb_strtolower(trim($fila['nombre'])), MB_CASE_TITLE, 'UTF-8'),
-                            'apellido' => mb_convert_case(mb_strtolower(trim($fila['apellido'])), MB_CASE_TITLE, 'UTF-8'),
+                    // Buscar o crear participante (evitando crear posibles duplicados)
+                    $participante = Participante::where('dni', $fila['dni'])->first();
+
+                    if (! $participante) {
+                        $similar = app(BuscarParticipanteSimilar::class)->buscar(
+                            apellido: $fila['apellido'],
+                            nombre: $fila['nombre'],
+                            telefono: $fila['telefono'] ?? '',
+                            mail: $fila['mail'] ?? '',
+                            dniExcluir: (int) $fila['dni'],
+                        );
+
+                        if ($similar) {
+                            $this->errores++;
+                            $this->resultados[] = [
+                                'dni' => $fila['dni'],
+                                'estado' => 'Posible duplicado de DNI '.$similar->dni.' (mismo nombre y teléfono)',
+                            ];
+
+                            DuplicadoRevision::create([
+                                'participante_id' => $similar->participante_id,
+                                'candidato_id' => $similar->participante_id,
+                                'origen' => 'importacion',
+                                'decision' => 'otra_persona',
+                                'detalle' => 'Fila con DNI '.$fila['dni'].' omitida por posible duplicado.',
+                            ]);
+
+                            continue;
+                        }
+
+                        $participante = Participante::create([
+                            'nombre' => NormalizadorIdentidad::titulo($fila['nombre']),
+                            'apellido' => NormalizadorIdentidad::titulo($fila['apellido']),
                             'mail' => $fila['mail'],
                             'telefono' => $fila['telefono'] ?? '',
-                        ]
-                    );
+                            'dni' => $fila['dni'],
+                        ]);
+                    }
 
                     // Verificar si ya está inscripto
                     $yaInscripto = InscripcionParticipante::where('planilla_id', $this->planilla->planilla_inscripcion_id)

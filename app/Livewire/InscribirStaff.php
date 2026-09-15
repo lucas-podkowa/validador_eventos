@@ -2,14 +2,17 @@
 
 namespace App\Livewire;
 
+use App\Actions\BuscarParticipanteSimilar;
 use App\Mail\ConfirmacionInscripcion;
 use App\Mail\CredencialesColaborador;
+use App\Models\DuplicadoRevision;
 use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\User;
 use App\Rules\LargoNombreCertificado;
+use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -38,6 +41,10 @@ class InscribirStaff extends Component
     public $rol_seleccionado = '';
 
     public ?array $participante = null;
+
+    public ?array $similar = null;
+
+    public ?string $decision_similar = null;
 
     protected function redirectToStaffList(?string $message = null, array $warnings = [])
     {
@@ -136,6 +143,41 @@ class InscribirStaff extends Component
         }
     }
 
+    public function detectarSimilar(): void
+    {
+        $this->similar = null;
+        $this->decision_similar = null;
+
+        $candidato = app(BuscarParticipanteSimilar::class)->buscar(
+            apellido: (string) $this->apellido,
+            nombre: (string) $this->nombre,
+            telefono: (string) $this->telefono,
+            mail: (string) $this->mail,
+            dniExcluir: $this->dni !== null && $this->dni !== '' ? (int) $this->dni : null,
+        );
+
+        if ($candidato) {
+            $this->similar = [
+                'participante_id' => $candidato->participante_id,
+                'nombre' => $candidato->nombre,
+                'apellido' => $candidato->apellido,
+                'dni' => $candidato->dni,
+                'mail' => $candidato->mail,
+                'telefono' => $candidato->telefono,
+            ];
+        }
+    }
+
+    public function usarSimilar(): void
+    {
+        $this->decision_similar = 'usar';
+    }
+
+    public function crearNuevo(): void
+    {
+        $this->decision_similar = 'nuevo';
+    }
+
     public function submit()
     {
         $this->validate(array_merge($this->rules, [
@@ -143,8 +185,18 @@ class InscribirStaff extends Component
         ]));
 
         // Normalizar nombre y apellido
-        $this->nombre = mb_convert_case(mb_strtolower(trim($this->nombre)), MB_CASE_TITLE, 'UTF-8');
-        $this->apellido = mb_convert_case(mb_strtolower(trim($this->apellido)), MB_CASE_TITLE, 'UTF-8');
+        $this->nombre = NormalizadorIdentidad::titulo($this->nombre);
+        $this->apellido = NormalizadorIdentidad::titulo($this->apellido);
+
+        if ($this->similar === null) {
+            $this->detectarSimilar();
+        }
+
+        if ($this->similar && $this->decision_similar === null) {
+            $this->dispatch('oops', message: 'Encontramos un participante con datos muy similares. Confirmá si es la misma persona para continuar.');
+
+            return;
+        }
 
         DB::beginTransaction();
         try {
@@ -158,61 +210,102 @@ class InscribirStaff extends Component
                 return;
             }
 
-            // Buscar o crear participante
-            $participante = Participante::where('dni', $this->dni)->first();
+            // Usar existente similar, o buscar/crear por DNI
+            if ($this->similar && $this->decision_similar === 'usar') {
+                $participante = Participante::find($this->similar['participante_id']);
 
-            if (! $participante) {
-                // Verificar que el email no exista
-                $mailExistente = Participante::where('mail', $this->mail)->exists();
-
-                if ($mailExistente) {
+                if (! $participante) {
                     DB::rollBack();
-                    $this->dispatch('oops', message: 'El correo electrónico ingresado ya está registrado para otro participante.');
+                    $this->dispatch('oops', message: 'El participante similar ya no está disponible. Volvé a intentar.');
 
                     return;
                 }
 
-                // Crear nuevo participante
-                $participante = Participante::create([
-                    'nombre' => $this->nombre,
-                    'apellido' => $this->apellido,
-                    'dni' => $this->dni,
-                    'mail' => $this->mail,
-                    'telefono' => $this->telefono,
-                ]);
-            } else {
-                // Actualizar datos si cambiaron
                 $datosActualizados = [];
-
                 if ($participante->nombre !== $this->nombre) {
                     $datosActualizados['nombre'] = $this->nombre;
                 }
-
                 if ($participante->apellido !== $this->apellido) {
                     $datosActualizados['apellido'] = $this->apellido;
                 }
+                if ($participante->telefono !== $this->telefono) {
+                    $datosActualizados['telefono'] = $this->telefono;
+                }
+                if (! empty($datosActualizados)) {
+                    $participante->update($datosActualizados);
+                }
 
-                if ($participante->mail !== $this->mail) {
-                    $mailUsadoPorOtro = Participante::where('mail', $this->mail)
-                        ->where('participante_id', '!=', $participante->participante_id)
-                        ->exists();
+                DuplicadoRevision::create([
+                    'participante_id' => $participante->participante_id,
+                    'candidato_id' => $participante->participante_id,
+                    'origen' => 'staff',
+                    'decision' => 'misma_persona',
+                ]);
+            } else {
+                $participante = Participante::where('dni', $this->dni)->first();
 
-                    if ($mailUsadoPorOtro) {
+                if (! $participante) {
+                    // Verificar que el email no exista
+                    $mailExistente = Participante::where('mail', $this->mail)->exists();
+
+                    if ($mailExistente) {
                         DB::rollBack();
-                        $this->dispatch('oops', message: 'El correo ingresado ya está siendo utilizado por otro participante.');
+                        $this->dispatch('oops', message: 'El correo electrónico ingresado ya está registrado para otro participante.');
 
                         return;
                     }
 
-                    $datosActualizados['mail'] = $this->mail;
-                }
+                    // Crear nuevo participante
+                    $participante = Participante::create([
+                        'nombre' => $this->nombre,
+                        'apellido' => $this->apellido,
+                        'dni' => $this->dni,
+                        'mail' => $this->mail,
+                        'telefono' => $this->telefono,
+                    ]);
 
-                if ($participante->telefono !== $this->telefono) {
-                    $datosActualizados['telefono'] = $this->telefono;
-                }
+                    if ($this->similar && $this->decision_similar === 'nuevo') {
+                        DuplicadoRevision::create([
+                            'participante_id' => $participante->participante_id,
+                            'candidato_id' => $this->similar['participante_id'],
+                            'origen' => 'staff',
+                            'decision' => 'otra_persona',
+                        ]);
+                    }
+                } else {
+                    // Actualizar datos si cambiaron
+                    $datosActualizados = [];
 
-                if (! empty($datosActualizados)) {
-                    $participante->update($datosActualizados);
+                    if ($participante->nombre !== $this->nombre) {
+                        $datosActualizados['nombre'] = $this->nombre;
+                    }
+
+                    if ($participante->apellido !== $this->apellido) {
+                        $datosActualizados['apellido'] = $this->apellido;
+                    }
+
+                    if ($participante->mail !== $this->mail) {
+                        $mailUsadoPorOtro = Participante::where('mail', $this->mail)
+                            ->where('participante_id', '!=', $participante->participante_id)
+                            ->exists();
+
+                        if ($mailUsadoPorOtro) {
+                            DB::rollBack();
+                            $this->dispatch('oops', message: 'El correo ingresado ya está siendo utilizado por otro participante.');
+
+                            return;
+                        }
+
+                        $datosActualizados['mail'] = $this->mail;
+                    }
+
+                    if ($participante->telefono !== $this->telefono) {
+                        $datosActualizados['telefono'] = $this->telefono;
+                    }
+
+                    if (! empty($datosActualizados)) {
+                        $participante->update($datosActualizados);
+                    }
                 }
             }
 

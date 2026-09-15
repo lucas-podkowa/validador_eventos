@@ -150,6 +150,21 @@ class LargoNombreCertificadoFormulariosTest extends TestCase
         $this->assertSame('Elena V.', $participante->fresh()->nombre);
     }
 
+    public function test_edicion_admin_guarda_en_title_case(): void
+    {
+        $participante = $this->crearParticipante('GOMEZ', 'ELENA', '30111226', 'tc2@example.com');
+
+        Livewire::test(Participantes::class)
+            ->call('edit', $participante->participante_id)
+            ->set('nombre', 'ELENA DEL CARMEN')
+            ->set('apellido', 'GOMEZ')
+            ->call('update')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Elena Del Carmen', $participante->fresh()->getRawOriginal('nombre'));
+        $this->assertSame('Gomez', $participante->fresh()->getRawOriginal('apellido'));
+    }
+
     protected function crearEventoConPlanilla(): Evento
     {
         $tipo = TipoEvento::create(['nombre' => 'Curso']);

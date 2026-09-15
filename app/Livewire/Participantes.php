@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Participante;
 use App\Rules\LargoNombreCertificado;
+use App\Support\NormalizadorIdentidad;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -69,8 +70,8 @@ class Participantes extends Component
         ]);
 
         // Normalizar nombre y apellido antes de guardar o actualizar
-        $this->nombre = ucfirst(mb_strtolower(trim($this->nombre)));
-        $this->apellido = ucfirst(mb_strtolower(trim($this->apellido)));
+        $this->nombre = NormalizadorIdentidad::titulo($this->nombre);
+        $this->apellido = NormalizadorIdentidad::titulo($this->apellido);
 
         $participante = Participante::findOrFail($this->participante_id);
         $participante->update([

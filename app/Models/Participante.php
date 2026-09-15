@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\NormalizadorIdentidad;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,25 +32,33 @@ class Participante extends Model
                 $model->participante_id = (string) Str::uuid();
             }
         });
+        static::saving(function ($model) {
+            $model->nombre_norm = NormalizadorIdentidad::nombre($model->nombre);
+            $model->apellido_norm = NormalizadorIdentidad::nombre($model->apellido);
+            $model->telefono_norm = NormalizadorIdentidad::telefono($model->telefono);
+            $model->mail_norm = NormalizadorIdentidad::mail($model->mail);
+        });
     }
 
     /**
-     * Obtiene el nombre del participante formateado.
+     * Nombre del participante: se guarda y se muestra en Title Case ("López Ricci").
      */
     protected function nombre(): Attribute
     {
         return Attribute::make(
-            get: fn ($value) => mb_convert_case(mb_strtolower(trim($value)), MB_CASE_TITLE, 'UTF-8')
+            get: fn ($value) => NormalizadorIdentidad::titulo($value),
+            set: fn ($value) => NormalizadorIdentidad::titulo($value),
         );
     }
 
     /**
-     * Obtiene el apellido del participante formateado.
+     * Apellido del participante: se guarda y se muestra en Title Case ("López Ricci").
      */
     protected function apellido(): Attribute
     {
         return Attribute::make(
-            get: fn ($value) => mb_convert_case(mb_strtolower(trim($value)), MB_CASE_TITLE, 'UTF-8')
+            get: fn ($value) => NormalizadorIdentidad::titulo($value),
+            set: fn ($value) => NormalizadorIdentidad::titulo($value),
         );
     }
 
@@ -78,6 +87,16 @@ class Participante extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function duplicadosRevision()
+    {
+        return $this->hasMany(DuplicadoRevision::class, 'participante_id', 'participante_id');
+    }
+
+    public function solicitudesCorreccionDni()
+    {
+        return $this->hasMany(SolicitudCorreccionDni::class, 'participante_id', 'participante_id');
     }
 
     public function inscripciones()
