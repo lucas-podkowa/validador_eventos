@@ -69,6 +69,73 @@ class MisDatosTest extends TestCase
         $this->assertSame(0, SolicitudCorreccionDni::count());
     }
 
+    public function test_un_usuario_sin_vinculo_puede_vincularse_con_dni_y_correo(): void
+    {
+        $user = User::factory()->create(['email' => 'pepito@example.com', 'dni' => null]);
+
+        $participante = Participante::create([
+            'nombre' => 'Pepito',
+            'apellido' => 'Perez',
+            'dni' => '30111222',
+            'mail' => 'pepito@example.com',
+            'telefono' => '3764000000',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MisDatos::class)
+            ->set('vincular_dni', '30111222')
+            ->call('vincularCuenta')
+            ->assertHasNoErrors();
+
+        $this->assertSame($user->id, $participante->fresh()->user_id);
+        $this->assertSame('30111222', (string) $user->fresh()->dni);
+    }
+
+    public function test_no_vincula_si_el_correo_no_coincide(): void
+    {
+        $user = User::factory()->create(['email' => 'otro@example.com', 'dni' => null]);
+
+        $participante = Participante::create([
+            'nombre' => 'Pepito',
+            'apellido' => 'Perez',
+            'dni' => '30111222',
+            'mail' => 'pepito@example.com',
+            'telefono' => '3764000000',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MisDatos::class)
+            ->set('vincular_dni', '30111222')
+            ->call('vincularCuenta')
+            ->assertHasErrors('vincular_dni');
+
+        $this->assertNull($participante->fresh()->user_id);
+    }
+
+    public function test_no_roba_un_vinculo_existente(): void
+    {
+        $duenio = User::factory()->create(['email' => 'duenio@example.com']);
+
+        $participante = Participante::create([
+            'nombre' => 'Pepito',
+            'apellido' => 'Perez',
+            'dni' => '30111222',
+            'mail' => 'pepito@example.com',
+            'telefono' => '3764000000',
+            'user_id' => $duenio->id,
+        ]);
+
+        $otro = User::factory()->create(['email' => 'pepito@example.com', 'dni' => null]);
+
+        Livewire::actingAs($otro)
+            ->test(MisDatos::class)
+            ->set('vincular_dni', '30111222')
+            ->call('vincularCuenta')
+            ->assertHasErrors('vincular_dni');
+
+        $this->assertSame($duenio->id, $participante->fresh()->user_id);
+    }
+
     protected function crearParticipanteVinculado(): array
     {
         $user = User::factory()->create(['email' => 'pepito@example.com', 'dni' => '47889628']);

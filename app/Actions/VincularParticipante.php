@@ -8,12 +8,20 @@ use App\Models\User;
 class VincularParticipante
 {
     /**
-     * Vincula la cuenta con un participante existente solo si coinciden el DNI
-     * y el correo electrónico, y el participante todavía no tiene cuenta.
+     * Vincula la cuenta con un participante existente usando el DNI propio de la cuenta.
      */
     public function vincular(User $user): ?Participante
     {
-        $dni = trim((string) $user->dni);
+        return $this->vincularConDni($user, (string) $user->dni);
+    }
+
+    /**
+     * Vincula la cuenta con un participante existente si coinciden el DNI y el correo,
+     * y el participante todavía no tiene cuenta.
+     */
+    public function vincularConDni(User $user, string $dni): ?Participante
+    {
+        $dni = trim($dni);
         $email = $this->normalizar($user->email);
 
         if ($dni === '' || $email === '') {
@@ -31,6 +39,11 @@ class VincularParticipante
 
         $participante->user_id = $user->id;
         $participante->save();
+
+        if (empty($user->dni)) {
+            $user->dni = $participante->dni;
+            $user->save();
+        }
 
         return $participante;
     }

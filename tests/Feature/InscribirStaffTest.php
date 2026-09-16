@@ -30,6 +30,7 @@ class InscribirStaffTest extends TestCase
         parent::setUp();
 
         $roleAdmin = SpatieRole::create(['name' => 'Administrador', 'guard_name' => 'web']);
+        SpatieRole::create(['name' => 'Colaborador', 'guard_name' => 'web']);
         $permissionEventos = Permission::create(['name' => 'eventos', 'guard_name' => 'web']);
         $roleAdmin->syncPermissions([$permissionEventos]);
 
@@ -198,6 +199,29 @@ class InscribirStaffTest extends TestCase
         $this->assertDatabaseHas('inscripcion_participante', [
             'participante_id' => $existente->participante_id,
         ]);
+    }
+
+    public function test_alta_de_colaborador_vincula_la_cuenta_con_el_participante(): void
+    {
+        Mail::fake();
+        $this->actingAs($this->admin);
+
+        $evento = $this->crearEventoConPlanillaEnCurso();
+
+        Livewire::test(InscribirStaff::class, ['evento_id' => $evento->evento_id])
+            ->set('rol_seleccionado', 'Colaborador')
+            ->set('dni', '22333444')
+            ->set('nombre', 'Carlos')
+            ->set('apellido', 'Gomez')
+            ->set('mail', 'carlos.colab@example.com')
+            ->set('telefono', '3764123456')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $participante = Participante::where('dni', '22333444')->firstOrFail();
+        $user = User::where('email', 'carlos.colab@example.com')->firstOrFail();
+
+        $this->assertSame($user->id, $participante->user_id);
     }
 
     protected function crearEventoConPlanillaEnCurso(): Evento

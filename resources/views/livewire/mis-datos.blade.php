@@ -8,9 +8,22 @@
         <div class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-800">
             <p class="font-semibold">Tu cuenta todavía no está vinculada a un participante.</p>
             <p class="mt-1 text-sm">
-                Para editar tus datos, el DNI y el correo de tu cuenta deben coincidir con los de tu inscripción.
-                Si el problema persiste, comunicate con la organización.
+                Para ver tus certificados y editar tus datos, el DNI y el correo de tu cuenta deben coincidir con los
+                de tu inscripción. Si usaste el mismo correo, podés vincularte ahora ingresando tu DNI.
             </p>
+
+            <form wire:submit.prevent="vincularCuenta" class="mt-4 max-w-md space-y-3">
+                <div>
+                    <x-label for="vincular_dni" value="DNI con el que te inscribiste" />
+                    <x-input id="vincular_dni" class="mt-1 block w-full" type="text" inputmode="numeric"
+                        wire:model="vincular_dni" placeholder="Sin puntos" />
+                    @error('vincular_dni')
+                        <span class="text-sm text-red-600">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <x-button type="submit">Vincular mi cuenta</x-button>
+            </form>
         </div>
     @else
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">

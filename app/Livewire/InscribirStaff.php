@@ -350,6 +350,17 @@ class InscribirStaff extends Component
 
                 // Asignar rol Spatie "Colaborador" (si ya lo tiene, Spatie lo ignora)
                 $user->assignRole('Colaborador');
+
+                // Vincular la cuenta con el participante para que vea sus certificados
+                if (! $participante->user_id) {
+                    $participante->user_id = $user->id;
+                    $participante->save();
+                }
+
+                if (empty($user->dni)) {
+                    $user->dni = $this->dni;
+                    $user->save();
+                }
             }
 
             DB::commit();

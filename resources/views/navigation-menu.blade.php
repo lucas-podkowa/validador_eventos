@@ -1,4 +1,37 @@
-<div class="flex flex-col h-full" x-data="{ adminOpen: true, academicaOpen: true }">
+@php
+    $esAdmin = auth()->user()?->hasRole('Administrador');
+    $navPrefix = 'nav.'.(auth()->id() ?? 'guest').'.';
+    $defaults = [
+        'eventosOpen' => true,
+        'adminOpen' => ! $esAdmin,
+        'configOpen' => ! $esAdmin,
+        'participantesOpen' => ! $esAdmin,
+    ];
+@endphp
+<div class="flex flex-col h-full" x-data="(function () {
+    const prefix = '{{ $navPrefix }}';
+    const isReload = ((performance.getEntriesByType('navigation')[0] || {}).type) === 'reload';
+    const read = (key, def) => {
+        if (isReload) {
+            try { sessionStorage.removeItem(prefix + key); } catch (e) {}
+            return def;
+        }
+        let raw = null;
+        try { raw = sessionStorage.getItem(prefix + key); } catch (e) {}
+        return raw === null ? def : JSON.parse(raw);
+    };
+    return {
+        eventosOpen: read('eventosOpen', @js($defaults['eventosOpen'])),
+        adminOpen: read('adminOpen', @js($defaults['adminOpen'])),
+        configOpen: read('configOpen', @js($defaults['configOpen'])),
+        participantesOpen: read('participantesOpen', @js($defaults['participantesOpen'])),
+        academicaOpen: true,
+        toggle(section) {
+            this[section] = ! this[section];
+            try { sessionStorage.setItem(prefix + section, JSON.stringify(this[section])); } catch (e) {}
+        }
+    };
+})()">
     <!-- Sidebar Header -->
     <div class="sidebar-header">
         <a href="{{ route('welcome') }}" class="flex items-center gap-1">
@@ -9,132 +42,181 @@
 
     <!-- Navigation Items -->
     <nav class="sidebar-nav flex-1 py-4">
-        @if (auth()->user()?->hasRole('Invitado') || auth()->user()?->participante)
-            <a href="{{ route('mis_certificados') }}" class="{{ request()->routeIs('mis_certificados') ? 'active' : '' }}">
-                <i class="fa-solid fa-certificate w-5 text-center"></i>
-                <span>Mis Certificados</span>
-            </a>
-            <a href="{{ route('mis_datos') }}" class="{{ request()->routeIs('mis_datos') ? 'active' : '' }}">
-                <i class="fa-solid fa-user-pen w-5 text-center"></i>
-                <span>Mis Datos</span>
-            </a>
-        @endif
-
-        @role('Administrador|Gestor')
-        <a href="{{ route('eventos') }}" class="{{ request()->routeIs('eventos') ? 'active' : '' }}">
-            <i class="fa-solid fa-calendar-days w-5 text-center"></i>
+        {{-- EVENTOS --}}
+        @role('Administrador|Gestor|Colaborador|Revisor')
+        <button @click="toggle('eventosOpen')"
+            class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
             <span>Eventos</span>
-        </a>
-        @endrole
+            <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': eventosOpen }"></i>
+        </button>
 
-        @role('Administrador')
-        <a href="{{ route('registrar_evento') }}" class="{{ request()->routeIs('registrar_evento') ? 'active' : '' }}">
-            <i class="fa-solid fa-plus w-5 text-center"></i>
-            <span>Registrar Evento</span>
-        </a>
-        @endrole
-
-        @role('Administrador|Colaborador|Gestor')
-        <a href="{{ route('asistencias') }}" class="{{ request()->routeIs('asistencias') ? 'active' : '' }}">
-            <i class="fa-solid fa-clipboard-check w-5 text-center"></i>
-            <span>Asistencias</span>
-        </a>
-        @endrole
-
-        @role('Administrador|Revisor|Gestor')
-        <a href="{{ route('procesar_aprobaciones') }}" class="{{ request()->routeIs('procesar_aprobaciones') ? 'active' : '' }}">
-            <i class="fa-solid fa-check-double w-5 text-center"></i>
-            <span>Aprobaciones</span>
-        </a>
-        @endrole
-
-        @role('Administrador|Gestor')
-        <a href="{{ route('participantes') }}" class="{{ request()->routeIs('participantes') ? 'active' : '' }}">
-            <i class="fa-solid fa-users w-5 text-center"></i>
-            <span>Participantes</span>
-        </a>
-        @endrole
-
-        {{-- Académica temporalmente oculto hasta que la funcionalidad esté lista para producción. --}}
-        @role('Administrador|Académica')
-        <div class="hidden">
-            <button @click="academicaOpen = !academicaOpen" class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
-                <span>Académica</span>
-                <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': academicaOpen }"></i>
-            </button>
-
-            <div x-show="academicaOpen" class="collapse-content">
-            <a href="{{ route('academica.plantillas') }}" class="{{ request()->routeIs('academica.plantillas') ? 'active' : '' }}">
-                <i class="fa-solid fa-image w-5 text-center"></i>
-                <span>Plantillas</span>
+        <div x-show="eventosOpen" class="collapse-content">
+            @role('Administrador|Revisor|Gestor')
+            <a href="{{ route('procesar_aprobaciones') }}"
+                class="{{ request()->routeIs('procesar_aprobaciones') ? 'active' : '' }}">
+                <i class="fa-solid fa-check-double w-5 text-center"></i>
+                <span>Aprobaciones</span>
             </a>
+            @endrole
 
-            <a href="{{ route('academica.emision') }}" class="{{ request()->routeIs('academica.emision') ? 'active' : '' }}">
-                <i class="fa-solid fa-certificate w-5 text-center"></i>
-                <span>Emisión</span>
+            @role('Administrador|Colaborador|Gestor')
+            <a href="{{ route('asistencias') }}" class="{{ request()->routeIs('asistencias') ? 'active' : '' }}">
+                <i class="fa-solid fa-clipboard-check w-5 text-center"></i>
+                <span>Asistencias</span>
             </a>
+            @endrole
 
-            <a href="{{ route('academica.emisiones') }}" class="{{ request()->routeIs('academica.emisiones') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-lines w-5 text-center"></i>
-                <span>Emisiones Realizadas</span>
+            @role('Administrador|Gestor')
+            <a href="{{ route('eventos') }}" class="{{ request()->routeIs('eventos') ? 'active' : '' }}">
+                <i class="fa-solid fa-calendar-days w-5 text-center"></i>
+                <span>Eventos</span>
             </a>
+            @endrole
 
-            <a href="{{ route('academica.titulos_intermedios') }}" class="{{ request()->routeIs('academica.titulos_intermedios') ? 'active' : '' }}">
-                <i class="fa-solid fa-graduation-cap w-5 text-center"></i>
-                <span>Títulos Intermedios</span>
+            @role('Administrador')
+            <a href="{{ route('registrar_evento') }}"
+                class="{{ request()->routeIs('registrar_evento') ? 'active' : '' }}">
+                <i class="fa-solid fa-plus w-5 text-center"></i>
+                <span>Registrar Evento</span>
             </a>
-            </div>
+            @endrole
         </div>
         @endrole
 
-        @role('Administrador')
-        <button @click="adminOpen = !adminOpen" class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
+        {{-- ADMINISTRACIÓN --}}
+        @role('Administrador|Gestor')
+        <button @click="toggle('adminOpen')"
+            class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
             <span>Administración</span>
             <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': adminOpen }"></i>
         </button>
 
         <div x-show="adminOpen" class="collapse-content">
-        <a href="{{ route('admin.categorias') }}" class="{{ request()->routeIs('admin.categorias') ? 'active' : '' }}">
-            <i class="fa-solid fa-folder-open w-5 text-center"></i>
-            <span>Categorías</span>
-        </a>
+            @role('Administrador')
+            <a href="{{ route('emisor_certificados') }}"
+                class="{{ request()->routeIs('emisor_certificados') ? 'active' : '' }}">
+                <i class="fa-solid fa-certificate w-5 text-center"></i>
+                <span>Emisión</span>
+            </a>
 
-        <a href="{{ route('admin.destinatarios') }}" class="{{ request()->routeIs('admin.destinatarios') ? 'active' : '' }}">
-            <i class="fa-solid fa-user-tag w-5 text-center"></i>
-            <span>Destinatarios</span>
-        </a>
+            <a href="{{ route('informes') }}" class="{{ request()->routeIs('informes') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-lines w-5 text-center"></i>
+                <span>Informes</span>
+            </a>
+            @endrole
 
-        <a href="{{ route('emisor_certificados') }}" class="{{ request()->routeIs('emisor_certificados') ? 'active' : '' }}">
-            <i class="fa-solid fa-certificate w-5 text-center"></i>
-            <span>Emisión</span>
-        </a>
+            @role('Administrador|Gestor')
+            <a href="{{ route('participantes') }}" class="{{ request()->routeIs('participantes') ? 'active' : '' }}">
+                <i class="fa-solid fa-users w-5 text-center"></i>
+                <span>Participantes</span>
+            </a>
+            @endrole
 
-        <a href="{{ route('indicadores') }}" class="{{ request()->routeIs('indicadores') ? 'active' : '' }}">
-            <i class="fa-solid fa-chart-line w-5 text-center"></i>
-            <span>Indicadores</span>
-        </a>
+            @role('Administrador')
+            <a href="{{ route('admin.solicitudes_dni') }}"
+                class="{{ request()->routeIs('admin.solicitudes_dni') ? 'active' : '' }}">
+                <i class="fa-solid fa-id-card w-5 text-center"></i>
+                <span>Solicitudes DNI</span>
+            </a>
 
-        <a href="{{ route('informes') }}" class="{{ request()->routeIs('informes') ? 'active' : '' }}">
-            <i class="fa-solid fa-file-lines w-5 text-center"></i>
-            <span>Informes</span>
-        </a>
-
-        <a href="{{ route('admin.tipos_evento') }}" class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
-            <i class="fa-solid fa-list w-5 text-center"></i>
-            <span>Tipos de Evento</span>
-        </a>
-
-        <a href="{{ route('usuarios') }}" class="{{ request()->routeIs('usuarios') ? 'active' : '' }}">
-            <i class="fa-solid fa-user-shield w-5 text-center"></i>
-            <span>Usuarios</span>
-        </a>
-
-        <a href="{{ route('admin.solicitudes_dni') }}" class="{{ request()->routeIs('admin.solicitudes_dni') ? 'active' : '' }}">
-            <i class="fa-solid fa-id-card w-5 text-center"></i>
-            <span>Solicitudes DNI</span>
-        </a>
+            <a href="{{ route('usuarios') }}" class="{{ request()->routeIs('usuarios') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-shield w-5 text-center"></i>
+                <span>Usuarios</span>
+            </a>
+            @endrole
         </div>
         @endrole
+
+        {{-- CONFIGURACIÓN --}}
+        @role('Administrador')
+        <button @click="toggle('configOpen')"
+            class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
+            <span>Configuración</span>
+            <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': configOpen }"></i>
+        </button>
+
+        <div x-show="configOpen" class="collapse-content">
+            <a href="{{ route('admin.categorias') }}" class="{{ request()->routeIs('admin.categorias') ? 'active' : '' }}">
+                <i class="fa-solid fa-folder-open w-5 text-center"></i>
+                <span>Categorías</span>
+            </a>
+
+            <a href="{{ route('admin.destinatarios') }}"
+                class="{{ request()->routeIs('admin.destinatarios') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-tag w-5 text-center"></i>
+                <span>Destinatarios</span>
+            </a>
+
+            <a href="{{ route('indicadores') }}" class="{{ request()->routeIs('indicadores') ? 'active' : '' }}">
+                <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                <span>Indicadores</span>
+            </a>
+
+            <a href="{{ route('admin.tipos_evento') }}"
+                class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
+                <i class="fa-solid fa-list w-5 text-center"></i>
+                <span>Tipos de Evento</span>
+            </a>
+        </div>
+        @endrole
+
+        {{-- Académica temporalmente oculto hasta que la funcionalidad esté lista para producción. --}}
+        @role('Administrador|Académica')
+        <div class="hidden">
+            <button @click="academicaOpen = !academicaOpen"
+                class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
+                <span>Académica</span>
+                <i class="fa-solid fa-chevron-down text-xs transition-transform"
+                    :class="{ 'rotate-180': academicaOpen }"></i>
+            </button>
+
+            <div x-show="academicaOpen" class="collapse-content">
+                <a href="{{ route('academica.plantillas') }}"
+                    class="{{ request()->routeIs('academica.plantillas') ? 'active' : '' }}">
+                    <i class="fa-solid fa-image w-5 text-center"></i>
+                    <span>Plantillas</span>
+                </a>
+
+                <a href="{{ route('academica.emision') }}"
+                    class="{{ request()->routeIs('academica.emision') ? 'active' : '' }}">
+                    <i class="fa-solid fa-certificate w-5 text-center"></i>
+                    <span>Emisión</span>
+                </a>
+
+                <a href="{{ route('academica.emisiones') }}"
+                    class="{{ request()->routeIs('academica.emisiones') ? 'active' : '' }}">
+                    <i class="fa-solid fa-file-lines w-5 text-center"></i>
+                    <span>Emisiones Realizadas</span>
+                </a>
+
+                <a href="{{ route('academica.titulos_intermedios') }}"
+                    class="{{ request()->routeIs('academica.titulos_intermedios') ? 'active' : '' }}">
+                    <i class="fa-solid fa-graduation-cap w-5 text-center"></i>
+                    <span>Títulos Intermedios</span>
+                </a>
+            </div>
+        </div>
+        @endrole
+
+        {{-- PARTICIPANTES --}}
+        <button @click="toggle('participantesOpen')"
+            class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
+            <span>Participantes</span>
+            <i class="fa-solid fa-chevron-down text-xs transition-transform"
+                :class="{ 'rotate-180': participantesOpen }"></i>
+        </button>
+
+        <div x-show="participantesOpen" class="collapse-content">
+            <a href="{{ route('mis_certificados') }}" class="{{ request()->routeIs('mis_certificados') ? 'active' : '' }}">
+                <i class="fa-solid fa-certificate w-5 text-center"></i>
+                <span>Mis Certificados</span>
+            </a>
+
+            <a href="{{ route('mis_datos') }}" class="{{ request()->routeIs('mis_datos') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-pen w-5 text-center"></i>
+                <span>Mis Datos</span>
+            </a>
+        </div>
     </nav>
 
     <!-- Sidebar Footer -->
@@ -155,14 +237,17 @@
         </div>
 
         <div class="flex flex-col gap-1">
-            <a href="{{ route('profile.show') }}" class="flex items-center gap-2 text-sm text-white/70 hover:text-white py-1 px-2 rounded hover:bg-white/10 transition">
+            <a href="{{ route('profile.show') }}"
+                class="flex items-center gap-2 text-sm text-white/70 hover:text-white py-1 px-2 rounded hover:bg-white/10 transition">
                 <i class="fa-solid fa-user w-4 text-center text-xs"></i>
                 <span>Perfil</span>
             </a>
 
-            <form method="POST" action="{{ route('logout') }}" class="w-full">
+            <form method="POST" action="{{ route('logout') }}" class="w-full"
+                onsubmit="try { Object.keys(sessionStorage).filter(function (k) { return k.indexOf('nav.') === 0; }).forEach(function (k) { sessionStorage.removeItem(k); }); } catch (e) {}">
                 @csrf
-                <button type="submit" class="w-full flex items-center gap-2 text-sm text-red-300 hover:text-red-200 py-1 px-2 rounded hover:bg-white/10 transition text-left">
+                <button type="submit"
+                    class="w-full flex items-center gap-2 text-sm text-red-300 hover:text-red-200 py-1 px-2 rounded hover:bg-white/10 transition text-left">
                     <i class="fa-solid fa-right-from-bracket w-4 text-center text-xs"></i>
                     <span>Cerrar sesión</span>
                 </button>

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Actions\VincularParticipante;
 use App\Models\Participante;
 use App\Models\SolicitudCorreccionDni;
 use App\Rules\LargoNombreCertificado;
@@ -27,6 +28,8 @@ class MisDatos extends Component
 
     public $imagen;
 
+    public $vincular_dni;
+
     public function mount(): void
     {
         $participante = $this->participante();
@@ -42,6 +45,33 @@ class MisDatos extends Component
     protected function participante(): ?Participante
     {
         return auth()->user()?->participante;
+    }
+
+    public function vincularCuenta(): void
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return;
+        }
+
+        $this->validate([
+            'vincular_dni' => ['required', 'digits_between:6,10'],
+        ], [], [
+            'vincular_dni' => 'DNI',
+        ]);
+
+        $participante = app(VincularParticipante::class)->vincularConDni($user, (string) $this->vincular_dni);
+
+        if (! $participante) {
+            $this->addError('vincular_dni', 'No encontramos una inscripción con ese DNI y el correo de tu cuenta. Si usaste otro correo, contactá con la organización.');
+
+            return;
+        }
+
+        $this->reset('vincular_dni');
+        $this->dispatch('refresh-navigation-menu');
+        $this->dispatch('alert', message: 'Cuenta vinculada. Ya podés ver tus certificados.');
     }
 
     public function guardarDatos(): void
