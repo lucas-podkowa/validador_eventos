@@ -114,6 +114,22 @@ class EventosFinalizadosGestionTest extends TestCase
         $this->assertFalse((bool) $evento->revisado);
     }
 
+    public function test_guardar_revisor_rechaza_usuario_sin_rol_revisor(): void
+    {
+        $this->actingAs($this->gestor);
+
+        $evento = $this->crearEventoFinalizado(porAprobacion: true, revisorId: $this->revisor->id);
+        $sinRol = User::factory()->create();
+
+        Livewire::test(EventosFinalizados::class, ['modo' => 'a_certificar'])
+            ->call('modalRevisor', $evento->evento_id)
+            ->call('seleccionarRevisor', $sinRol->id)
+            ->call('guardarRevisor')
+            ->assertDispatched('oops');
+
+        $this->assertSame($this->revisor->id, $evento->fresh()->revisor_id);
+    }
+
     public function test_aprobar_instantaneamente_aprueba_solo_participantes(): void
     {
         $this->actingAs($this->admin);

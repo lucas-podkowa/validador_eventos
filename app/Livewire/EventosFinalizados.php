@@ -904,6 +904,13 @@ class EventosFinalizados extends Component
             return;
         }
 
+        // Validación server-side: el usuario elegido debe tener el rol Revisor.
+        if (! User::role('Revisor')->whereKey($this->usuario_seleccionado_id)->exists()) {
+            $this->dispatch('oops', message: 'El usuario seleccionado no tiene el rol Revisor.');
+
+            return;
+        }
+
         $cambioRevisor = (int) $this->evento_selected->revisor_id !== (int) $this->usuario_seleccionado_id;
 
         $this->evento_selected->update([
