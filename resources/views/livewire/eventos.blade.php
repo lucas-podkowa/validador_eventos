@@ -110,6 +110,66 @@
             })
         }
 
+        //script para devolver un evento a "Eventos en Curso" desde la pestaña a certificar
+        function confirmDevolverEvento(evento_id) {
+            Swal.fire({
+                title: '¿Devolver el evento a "En Curso"?',
+                text: 'Se eliminarán los códigos QR generados y las aprobaciones parciales. El evento volverá a la pestaña Eventos en Curso para poder registrar nuevas sesiones.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, devolver',
+                cancelButtonText: 'Volver'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.Livewire.dispatch('devolverAEnCurso', {
+                        evento_id
+                    });
+                }
+            })
+        }
+
+        //script para la acción Aprobación Instantánea (solo Administrador)
+        function confirmAprobacionInstantanea(evento_id) {
+            Swal.fire({
+                title: '¿Aplicar aprobación instantánea?',
+                text: 'Todos los asistentes con asistencia registrada se marcarán como aprobados y la revisión quedará cerrada.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, aprobar a todos',
+                cancelButtonText: 'Volver'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.Livewire.dispatch('aprobarInstantaneamente', {
+                        evento_id
+                    });
+                }
+            })
+        }
+
+        //script para la acción Quitar Aprobación (solo Administrador)
+        function confirmQuitarAprobacion(evento_id) {
+            Swal.fire({
+                title: '¿Quitar la aprobación del evento?',
+                text: 'El evento quedará como certificación por asistencia. Se descartarán el revisor asignado y las revisiones parciales.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, quitar aprobación',
+                cancelButtonText: 'Volver'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.Livewire.dispatch('quitarAprobacion', {
+                        evento_id
+                    });
+                }
+            })
+        }
+
         // Función para copiar enlace del formulario
         function fallbackCopyFormularioLink(url) {
             const textArea = document.createElement('textarea');

@@ -114,52 +114,80 @@
                                     style="z-index: 9999;">
 
                                     @if ($evento->por_aprobacion && !$evento->revisado)
-                                        {{-- Mostrar solo alerta si requiere revisión --}}
-                                        <div class="flex items-center justify-center text-yellow-600 py-2 px-4">
+                                        {{-- Aviso informativo: no bloquea la gestión del evento --}}
+                                        <div class="flex items-center justify-center text-yellow-600 py-2 px-4 border-b border-gray-100">
                                             <i class="fa-solid fa-triangle-exclamation fa-xl mr-2"
                                                 title="Requiere revisar Aprobaciones"></i>
                                             Requiere aprobación
                                         </div>
-                                    @else
-                                        {{-- Mostrar el resto de opciones si ya fue revisado --}}
-                                        <a wire:click="detail({{ $evento }})"
-                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                            <i class="mr-2 fa-solid fa-qrcode fa-xl fa-fw"></i>
-                                            Ver Códigos QR
-                                        </a>
+                                    @endif
 
-                                        <a wire:click="descargarInscriptos({{ $evento }})"
-                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                            <i class="mr-2 fa-solid fa-users fa-xl fa-fw text-indigo-500"></i>
-                                            Lista de Inscriptos
-                                        </a>
+                                    <a wire:click="detail({{ $evento }})"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                        <i class="mr-2 fa-solid fa-qrcode fa-xl fa-fw"></i>
+                                        Ver Códigos QR
+                                    </a>
 
-                                        @role('Administrador')
+                                    <a wire:click="descargarInscriptos({{ $evento }})"
+                                        class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                        <i class="mr-2 fa-solid fa-users fa-xl fa-fw text-indigo-500"></i>
+                                        Lista de Inscriptos
+                                    </a>
+
+                                    @role('Administrador')
+                                    @if (!$evento->por_aprobacion || $evento->revisado)
                                         <a wire:click="emitir({{ $evento }})"
                                             class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                             <i class="mr-2 fa-solid fa-file-pdf fa-xl fa-fw text-blue-500"></i>
                                             {{ $modo === 'finalizados' ? 'Reemitir Certificados' : 'Emitir Certificados' }}
                                         </a>
-                                        @endrole
+                                    @endif
+                                    @endrole
 
-                                        @if ($modo === 'finalizados' && $evento->certificados_disponibles)
-                                            <a wire:click="abrirModalMail({{ $evento }})"
-                                                class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                                <i class="mr-1 fa-solid fa-envelope fa-xl text-purple-600"></i>
-                                                Enviar por Mail
-                                            </a>
-                                            <a wire:click="abrirCarpeta('{{ $evento->certificado_path }}')"
-                                                class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-                                                <i class="mr-1 fa-solid fa-folder-open fa-xl"></i>
-                                                Descargar Certificados
-                                            </a>
-                                        @endif
-
-                                        {{-- <a wire:click="abrirCarpeta('{{ $evento->certificado_path }}')"
+                                    @if ($modo === 'finalizados' && $evento->certificados_disponibles)
+                                        <a wire:click="abrirModalMail({{ $evento }})"
+                                            class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="mr-1 fa-solid fa-envelope fa-xl text-purple-600"></i>
+                                            Enviar por Mail
+                                        </a>
+                                        <a wire:click="abrirCarpeta('{{ $evento->certificado_path }}')"
                                             class="block px-4 py-1 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
                                             <i class="mr-1 fa-solid fa-folder-open fa-xl"></i>
                                             Descargar Certificados
-                                        </a> --}}
+                                        </a>
+                                    @endif
+
+                                    @if ($modo === 'a_certificar')
+                                        <hr class="border-gray-200">
+
+                                        <a onclick="confirmDevolverEvento('{{ addslashes($evento->evento_id) }}')"
+                                            class="block px-4 py-1 text-orange-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                            <i class="fa-solid fa-rotate-left fa-xl"></i>
+                                            Devolver a Eventos en Curso
+                                        </a>
+
+                                        @if ($evento->por_aprobacion)
+                                            <a wire:click="modalRevisor('{{ addslashes($evento->evento_id) }}')"
+                                                class="block px-4 py-1 text-blue-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                                <i class="fas fa-user-check fa-xl"></i>
+                                                Editar Revisor
+                                            </a>
+                                        @endif
+
+                                        @role('Administrador')
+                                        @if ($evento->por_aprobacion)
+                                            <a onclick="confirmAprobacionInstantanea('{{ addslashes($evento->evento_id) }}')"
+                                                class="block px-4 py-1 text-green-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                                <i class="fa-solid fa-circle-check fa-xl"></i>
+                                                Aprobación Instantánea
+                                            </a>
+                                            <a onclick="confirmQuitarAprobacion('{{ addslashes($evento->evento_id) }}')"
+                                                class="block px-4 py-1 text-red-600 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
+                                                <i class="fa-solid fa-ban fa-xl"></i>
+                                                Quitar Aprobación
+                                            </a>
+                                        @endif
+                                        @endrole
                                     @endif
                                 </div>
                             </div>
@@ -208,6 +236,56 @@
             <x-secondary-button class="mr-2" wire:click="$set('open_detail', false)">
                 Volver
             </x-secondary-button>
+        </x-slot>
+    </x-dialog-modal>
+
+    {{-- ------------------------ DIALOG MODAL editar revisor--------------------------- --}}
+
+    <x-dialog-modal wire:model="open_modal_revisor">
+        <x-slot name="title">
+            Editar Revisor del Evento
+        </x-slot>
+
+        <x-slot name="content">
+            @if ($evento_selected)
+                <p class="mb-3 text-sm text-gray-600">
+                    Revisor actual:
+                    <span class="font-semibold text-gray-800">
+                        {{ $evento_selected->revisor->name ?? 'No asignado' }}
+                    </span>
+                </p>
+            @endif
+
+            <div>
+                <input type="text" wire:model.live="busqueda_usuario" class="w-full rounded border-gray-300"
+                    placeholder="Buscar por nombre o email...">
+            </div>
+
+            <div class="mt-4 max-h-64 overflow-y-auto">
+                @forelse ($usuarios_filtrados as $usuario)
+                    <button type="button" wire:key="revisor-{{ $usuario->id }}"
+                        wire:click="seleccionarRevisor({{ $usuario->id }})"
+                        class="w-full flex items-center gap-2 mb-2 p-2 text-left rounded border transition {{ (int) $usuario_seleccionado_id === (int) $usuario->id ? 'bg-blue-50 border-blue-400' : 'border-gray-200 hover:bg-gray-100' }}">
+                        <i
+                            class="fa-solid {{ (int) $usuario_seleccionado_id === (int) $usuario->id ? 'fa-circle-check text-green-600' : 'fa-circle text-gray-300' }}"></i>
+                        <span>{{ $usuario->name }} - {{ $usuario->email }}</span>
+                    </button>
+                @empty
+                    <p class="text-sm text-gray-500">Sin resultados. Busque un usuario con rol Revisor.</p>
+                @endforelse
+            </div>
+        </x-slot>
+
+        <x-slot name="footer">
+            <div class="flex">
+                <x-secondary-button wire:click="$set('open_modal_revisor', false)">
+                    Volver
+                </x-secondary-button>
+                <button type="button" wire:click="guardarRevisor" style="font-size: 0.75rem; font-weight: 600"
+                    class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
+                    Guardar
+                </button>
+            </div>
         </x-slot>
     </x-dialog-modal>
 

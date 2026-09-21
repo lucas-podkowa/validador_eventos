@@ -9,9 +9,11 @@ use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\TipoEvento;
+use App\Models\User;
 use App\Support\CertificadoPdfAssets;
 use App\Support\Texto;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -97,6 +99,21 @@ class EventosFinalizados extends Component
     public $plantillas_por_tipo = [];
 
     public $usar_plantilla_categoria = [];
+
+    // Gestión de eventos en la etapa "a certificar"
+    public $open_modal_revisor = false;
+
+    public $busqueda_usuario = '';
+
+    public $usuarios_filtrados = [];
+
+    public $usuario_seleccionado_id = null;
+
+    protected $listeners = [
+        'devolverAEnCurso',
+        'aprobarInstantaneamente',
+        'quitarAprobacion',
+    ];
 
     protected $paginationTheme = 'tailwind';
 
@@ -794,5 +811,187 @@ class EventosFinalizados extends Component
             });
 
         $this->open_detail = true;
+    }
+
+    // ----------------------------------------------------------------------------
+    // ------ Gestión de eventos en la etapa "a certificar" -----------------------
+    // ----------------------------------------------------------------------------
+
+    private function redirectToEventos(string $tab)
+    {
+        $this->redirectRoute('eventos', ['tab' => $tab]);
+    }
+
+    /**
+     * Devuelve un evento "a certificar" al listado de Eventos en Curso.
+     *
+     * Limpia los QR y las aprobaciones parciales generadas al finalizar, para
+     * permitir registrar nuevas sesiones/asistencias y volver a finalizar.
+     * Conserva el revisor asignado para poder editarlo.
+     */
+    public function devolverAEnCurso($evento_id)
+    {
+        DB::beginTransaction();
+
+        try {
+            $evento = Evento::findOrFail($evento_id);
+
+            if (! is_null($evento->certificado_path)) {
+                throw new \Exception('El evento ya tiene certificados emitidos; no es posible devolverlo a "En Curso".');
+            }
+
+            // Limpiar los registros creados al finalizar (QR + aprobaciones parciales).
+            EventoParticipante::where('evento_id', $evento_id)->delete();
+
+            // 'estado' no es fillable: se actualiza con el query builder.
+            Evento::where('evento_id', $evento_id)->update([
+                'estado' => 'En Curso',
+                'revisado' => false,
+            ]);
+
+            DB::commit();
+
+            $this->dispatch('alert', message: 'El evento volvió a "Eventos en Curso". Se limpiaron los QR y las aprobaciones parciales.');
+
+            $this->redirectToEventos('en_curso');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'No se pudo devolver el evento: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Abre el modal para asignar o editar el revisor de un evento.
+     */
+    public function modalRevisor($evento_id)
+    {
+        $evento = Evento::findOrFail($evento_id);
+
+        if (! $evento->por_aprobacion) {
+            $this->dispatch('oops', message: 'Este evento no requiere aprobación.');
+
+            return;
+        }
+
+        $this->evento_selected = $evento;
+        $this->open_modal_revisor = true;
+        $this->busqueda_usuario = '';
+        $this->usuarios_filtrados = $evento->revisor ? collect([$evento->revisor]) : [];
+        $this->usuario_seleccionado_id = $evento->revisor_id;
+    }
+
+    public function updatedBusquedaUsuario()
+    {
+        $this->usuarios_filtrados = User::role('Revisor')
+            ->where(function ($query) {
+                $query->where('name', 'like', '%'.$this->busqueda_usuario.'%')
+                    ->orWhere('email', 'like', '%'.$this->busqueda_usuario.'%');
+            })
+            ->limit(10)
+            ->get();
+    }
+
+    public function seleccionarRevisor($userId)
+    {
+        $this->usuario_seleccionado_id = $userId;
+    }
+
+    public function guardarRevisor()
+    {
+        if (! $this->evento_selected || ! $this->usuario_seleccionado_id) {
+            $this->reset(['open_modal_revisor', 'evento_selected', 'busqueda_usuario', 'usuarios_filtrados', 'usuario_seleccionado_id']);
+
+            return;
+        }
+
+        $cambioRevisor = (int) $this->evento_selected->revisor_id !== (int) $this->usuario_seleccionado_id;
+
+        $this->evento_selected->update([
+            'revisor_id' => $this->usuario_seleccionado_id,
+            // Si se reasigna a otro revisor, debe volver a emitir su dictamen.
+            'revisado' => $cambioRevisor ? false : $this->evento_selected->revisado,
+        ]);
+
+        $this->dispatch('alert', message: 'Revisor actualizado correctamente.');
+
+        $this->reset(['open_modal_revisor', 'evento_selected', 'busqueda_usuario', 'usuarios_filtrados', 'usuario_seleccionado_id']);
+    }
+
+    /**
+     * Aprueba a todos los participantes con asistencia registrada y cierra la revisión.
+     */
+    public function aprobarInstantaneamente($evento_id)
+    {
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede aprobar instantáneamente.');
+
+        DB::beginTransaction();
+
+        try {
+            $evento = Evento::findOrFail($evento_id);
+
+            if (! is_null($evento->certificado_path)) {
+                throw new \Exception('El evento ya tiene certificados emitidos.');
+            }
+
+            if (! $evento->por_aprobacion) {
+                throw new \Exception('Este evento no requiere aprobación.');
+            }
+
+            $rolParticipanteId = Rol::where('nombre', 'Participante')->value('rol_id');
+
+            EventoParticipante::where('evento_id', $evento_id)
+                ->where('rol_id', $rolParticipanteId)
+                ->update(['aprobado' => true]);
+
+            $evento->update(['revisado' => true]);
+
+            DB::commit();
+
+            $this->dispatch('alert', message: 'Aprobación instantánea aplicada: todos los asistentes quedaron aprobados.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'No se pudo aplicar la aprobación instantánea: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Quita la aprobación del evento, descartando revisor y revisiones parciales.
+     */
+    public function quitarAprobacion($evento_id)
+    {
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede quitar la aprobación.');
+
+        DB::beginTransaction();
+
+        try {
+            $evento = Evento::findOrFail($evento_id);
+
+            if (! is_null($evento->certificado_path)) {
+                throw new \Exception('El evento ya tiene certificados emitidos.');
+            }
+
+            if (! $evento->por_aprobacion) {
+                throw new \Exception('Este evento no requiere aprobación.');
+            }
+
+            $rolParticipanteId = Rol::where('nombre', 'Participante')->value('rol_id');
+
+            EventoParticipante::where('evento_id', $evento_id)
+                ->where('rol_id', $rolParticipanteId)
+                ->update(['aprobado' => null]);
+
+            $evento->update([
+                'por_aprobacion' => false,
+                'revisor_id' => null,
+                'revisado' => false,
+            ]);
+
+            DB::commit();
+
+            $this->dispatch('alert', message: 'Se quitó la aprobación. El evento ahora certifica por asistencia.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('oops', message: 'No se pudo quitar la aprobación: '.$e->getMessage());
+        }
     }
 }
