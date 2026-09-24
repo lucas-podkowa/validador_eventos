@@ -48,6 +48,44 @@ class VincularParticipante
         return $participante;
     }
 
+    /**
+     * Vincula un participante sin cuenta con su usuario existente, exigiendo que
+     * coincidan el correo del participante con el de la cuenta y el DNI de ambos.
+     * Se usa al emitir certificados de sistemas externos para que el usuario vea
+     * el certificado al iniciar sesión. No hace nada si ya está vinculado.
+     */
+    public function vincularParticipanteExistente(Participante $participante): ?User
+    {
+        if ($participante->user_id) {
+            return $participante->user;
+        }
+
+        $dni = trim((string) $participante->dni);
+        $email = $this->normalizar($participante->mail);
+
+        if ($dni === '' || $email === '') {
+            return null;
+        }
+
+        $user = User::query()
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
+            ->get()
+            ->first(fn (User $candidato) => trim((string) $candidato->dni) === $dni);
+
+        if (! $user) {
+            return null;
+        }
+
+        if (Participante::where('user_id', $user->id)->exists()) {
+            return null;
+        }
+
+        $participante->user_id = $user->id;
+        $participante->save();
+
+        return $user;
+    }
+
     protected function normalizar(?string $valor): string
     {
         return mb_strtolower(trim((string) $valor));

@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\CategoriaEvento;
+use App\Models\Contexto;
 use App\Models\Destinatario;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
@@ -26,6 +27,8 @@ class CrearEvento extends Component
 
     public $categoria_id = null;
 
+    public $contexto_id = null;
+
     public $tipo_evento_id = null;
 
     public bool $por_aprobacion = false;
@@ -45,6 +48,8 @@ class CrearEvento extends Component
     public $estado_evento = null;
 
     public $categorias = [];
+
+    public $contextos = [];
 
     public $tiposEventos = [];
 
@@ -116,6 +121,7 @@ class CrearEvento extends Component
 
             if ($evento) {
                 $this->categoria_id = $evento->categoria_id;
+                $this->contexto_id = $evento->contexto_id;
                 $this->tipo_evento_id = $evento->tipo_evento_id;
                 $this->nombre_evento = $evento->nombre;
                 $this->fecha_inicio = $evento->fecha_inicio;
@@ -165,6 +171,35 @@ class CrearEvento extends Component
                 }
             }
         }
+
+        $this->cargarContextos();
+    }
+
+    private function cargarContextos(): void
+    {
+        if (! $this->categoria_id) {
+            $this->contextos = collect();
+
+            return;
+        }
+
+        $this->contextos = Contexto::query()
+            ->where('categoria_id', $this->categoria_id)
+            ->where(function ($query) {
+                $query->where('activo', true);
+
+                if ($this->contexto_id) {
+                    $query->orWhere('contexto_id', $this->contexto_id);
+                }
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    public function updatedCategoriaId(): void
+    {
+        $this->contexto_id = null;
+        $this->cargarContextos();
     }
 
     // ----------------------------------------------------------------
@@ -175,6 +210,7 @@ class CrearEvento extends Component
     {
         $reglas = [
             'categoria_id' => 'required|exists:categoria_evento,categoria_id',
+            'contexto_id' => 'nullable|exists:contexto,contexto_id',
             'tipo_evento_id' => 'required|exists:tipo_evento,tipo_evento_id',
             'nombre_evento' => 'required|string|min:3|max:255',
             'lugar_evento' => 'required|string|min:2|max:255',
@@ -307,6 +343,7 @@ class CrearEvento extends Component
         try {
             $datosEvento = [
                 'categoria_id' => $this->categoria_id,
+                'contexto_id' => $this->contexto_id ?: null,
                 'tipo_evento_id' => $this->tipo_evento_id,
                 'nombre' => $this->nombre_evento,
                 'lugar' => $this->lugar_evento,
@@ -409,6 +446,7 @@ class CrearEvento extends Component
             $this->reset([
                 'evento_id',
                 'categoria_id',
+                'contexto_id',
                 'tipo_evento_id',
                 'nombre_evento',
                 'fecha_inicio',

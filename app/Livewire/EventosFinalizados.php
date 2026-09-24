@@ -7,9 +7,11 @@ use App\Models\CategoriaEvento;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
+use App\Models\PlantillaCertificado;
 use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Models\User;
+use App\Services\GenerarCertificadoEvento;
 use App\Support\CertificadoPdfAssets;
 use App\Support\Texto;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -180,6 +182,19 @@ class EventosFinalizados extends Component
                 foreach (array_keys($this->plantillas_por_tipo) as $tipo) {
                     $this->usar_plantilla_categoria[$tipo] = true;
                 }
+            }
+        }
+
+        // Plantillas dinámicas del contexto: no requieren subir imagen manualmente.
+        if ($this->evento_selected && $this->evento_selected->contexto_id) {
+            $tiposDinamicos = PlantillaCertificado::where('contexto_id', $this->evento_selected->contexto_id)
+                ->whereNotNull('layout')
+                ->pluck('tipo')
+                ->unique()
+                ->all();
+
+            foreach ($tiposDinamicos as $tipo) {
+                $this->usar_plantilla_categoria[$tipo ?: 'asistencia'] = true;
             }
         }
 
@@ -409,18 +424,40 @@ class EventosFinalizados extends Component
             $privateDisk = Storage::disk('private');
 
             $preparedPaths = [];
-            foreach ($paths as $pathKey => $pathValue) {
-                $preparedPaths[$pathValue] = CertificadoPdfAssets::prepareBackgroundForPdf($pathValue);
+            foreach ($paths as $pathValue) {
+                if (empty($pathValue)) {
+                    continue;
+                }
 
-                if (! $preparedPaths[$pathValue]) {
+                $prepared = CertificadoPdfAssets::prepareBackgroundForPdf($pathValue);
+
+                if (! $prepared) {
                     throw new \RuntimeException('No se pudo preparar una de las plantillas para la emision PDF.');
                 }
+
+                $preparedPaths[$pathValue] = $prepared;
             }
 
             $this->purgeExistingEmission($folderPath);
 
+            $servicio = app(GenerarCertificadoEvento::class);
+
             // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
             foreach ($participantes as $participante) {
+                $relacion = EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
+                    ->where('participante_id', $participante->participante_id)
+                    ->first();
+
+                if ($relacion) {
+                    $plantillaDinamica = $servicio->plantillaPara($this->evento_selected, $relacion);
+
+                    if ($plantillaDinamica?->esDinamica()) {
+                        $servicio->generar($relacion, $plantillaDinamica);
+
+                        continue;
+                    }
+                }
+
                 $rolParticipanteId = $participante->pivot->rol_id;
                 $background = null;
 

@@ -15,7 +15,7 @@ class TipoEvento extends Model
 
     protected $primaryKey = 'tipo_evento_id';
 
-    protected $fillable = ['nombre'];
+    protected $fillable = ['nombre', 'formula'];
 
     public function eventos()
     {

@@ -17,6 +17,8 @@ class TiposEvento extends Component
 
     public $nombre = '';
 
+    public $formula = '';
+
     public $search = '';
 
     public function updatingSearch(): void
@@ -26,7 +28,7 @@ class TiposEvento extends Component
 
     public function abrirCrear(): void
     {
-        $this->reset(['editando_id', 'nombre']);
+        $this->reset(['editando_id', 'nombre', 'formula']);
         $this->resetValidation();
         $this->open_modal = true;
     }
@@ -36,6 +38,7 @@ class TiposEvento extends Component
         $tipo = TipoEvento::findOrFail($id);
         $this->editando_id = $tipo->tipo_evento_id;
         $this->nombre = $tipo->nombre;
+        $this->formula = $tipo->formula ?? '';
         $this->resetValidation();
         $this->open_modal = true;
     }
@@ -51,18 +54,21 @@ class TiposEvento extends Component
                     ? Rule::unique('tipo_evento', 'nombre')->ignore($this->editando_id, 'tipo_evento_id')
                     : Rule::unique('tipo_evento', 'nombre'),
             ],
+            'formula' => 'nullable|string|max:30',
         ]);
 
+        $datos = ['nombre' => $this->nombre, 'formula' => $this->formula ?: null];
+
         if ($this->editando_id) {
-            TipoEvento::findOrFail($this->editando_id)->update(['nombre' => $this->nombre]);
+            TipoEvento::findOrFail($this->editando_id)->update($datos);
             $this->dispatch('alert', message: 'Tipo de evento actualizado correctamente.');
         } else {
-            TipoEvento::create(['nombre' => $this->nombre]);
+            TipoEvento::create($datos);
             $this->dispatch('alert', message: 'Tipo de evento creado correctamente.');
         }
 
         $this->open_modal = false;
-        $this->reset(['editando_id', 'nombre']);
+        $this->reset(['editando_id', 'nombre', 'formula']);
     }
 
     public function eliminar(int $id): void

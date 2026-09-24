@@ -7,6 +7,11 @@
 
     @php
         $fontPath = \App\Support\CertificadoPdfAssets::fontPath();
+        $layout = $layout ?? null;
+        $texto = $texto ?? '';
+        $variables = $variables ?? [];
+        $firmas = $firmas ?? [];
+        $esDinamica = ! empty($layout);
     @endphp
 
     <style>
@@ -84,6 +89,14 @@
             left: 77%;
             font-size: 44px;
         }
+
+        .bloque {
+            position: absolute;
+            box-sizing: border-box;
+            font-family: 'Roboto Condensed Local', sans-serif;
+            line-height: 1.3;
+            overflow: visible;
+        }
     </style>
 </head>
 
@@ -92,11 +105,37 @@
         <img src="{{ $background }}" class="background">
     @endif
 
-    <div class="ape_nom">{{ \App\Support\NombreCertificado::paraCertificado($apellido, $nombre) }}</div>
-    <div class="dni">{{ $dni }}</div>
-    <div class="qr">
-        <img src="{{ $qr }}" width="145" height="145" alt="QR Code" />
-    </div>
+    @if ($esDinamica)
+        @foreach ($layout as $bloque)
+            @php
+                $campo = $bloque['campo'] ?? 'literal';
+                $esImagen = \App\Support\CertificadoLayout::esImagen($campo);
+                $style = \App\Support\CertificadoLayout::estilo($bloque);
+            @endphp
+
+            @if ($esImagen)
+                @php
+                    if ($campo === 'qr') {
+                        $src = $qr;
+                    } else {
+                        $slot = \App\Support\CertificadoLayout::slotFirma($campo);
+                        $src = $slot ? ($firmas[$slot - 1]['imagen'] ?? null) : null;
+                    }
+                @endphp
+                @if ($src)
+                    <img src="{{ $src }}" class="bloque" style="{{ $style }}">
+                @endif
+            @else
+                <div class="bloque" style="{{ $style }}">{!! \App\Support\CertificadoLayout::textoBloque($bloque, $texto, $variables) !!}</div>
+            @endif
+        @endforeach
+    @else
+        <div class="ape_nom">{{ \App\Support\NombreCertificado::paraCertificado($apellido, $nombre) }}</div>
+        <div class="dni">{{ $dni }}</div>
+        <div class="qr">
+            <img src="{{ $qr }}" width="145" height="145" alt="QR Code" />
+        </div>
+    @endif
 </body>
 
 </html>

@@ -27,7 +27,7 @@
             </div>
         </div>
 
-        @if ($certificadosEventos->isEmpty() && $certificadosTitulos->isEmpty())
+        @if ($certificadosEventos->isEmpty() && $certificadosTitulos->isEmpty() && $certificadosExternos->isEmpty())
             <div class="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-500">
                 <i class="fa-solid fa-certificate mb-2 text-3xl text-gray-300"></i>
                 <p>Todavía no tenés certificados emitidos.</p>
@@ -77,6 +77,35 @@
                             </p>
                         </div>
                         <a href="{{ route('mis_certificados.titulo', $certificado) }}" target="_blank"
+                            class="ms-3 inline-flex shrink-0 items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                            <i class="fa-solid fa-file-pdf"></i> Descargar
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        @if ($certificadosExternos->isNotEmpty())
+            <h3 class="mb-3 mt-8 text-lg font-semibold text-gray-700">Tutorías y prácticas profesionales</h3>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                @foreach ($certificadosExternos as $certificado)
+                    @php
+                        $practica = $certificado->datos['practica'] ?? [];
+                    @endphp
+                    <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                        <div class="min-w-0">
+                            <p class="truncate font-semibold text-gray-800">Tutoría Académica</p>
+                            <p class="text-xs text-gray-500">
+                                {{ $practica['carrera'] ?? '' }}
+                                @if (! empty($practica['periodo_inicio']))
+                                    &middot; {{ $practica['periodo_inicio'] }} - {{ $practica['periodo_fin'] ?? '' }}
+                                @endif
+                                @if ($certificado->created_at)
+                                    &middot; {{ $certificado->created_at->format('d/m/Y') }}
+                                @endif
+                            </p>
+                        </div>
+                        <a href="{{ route('mis_certificados.externo', $certificado) }}" target="_blank"
                             class="ms-3 inline-flex shrink-0 items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
                             <i class="fa-solid fa-file-pdf"></i> Descargar
                         </a>

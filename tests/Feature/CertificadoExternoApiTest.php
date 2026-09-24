@@ -1,0 +1,297 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Mail\CertificadoTutorMail;
+use App\Models\ApiCliente;
+use App\Models\CategoriaEvento;
+use App\Models\CertificadoExterno;
+use App\Models\Contexto;
+use App\Models\Participante;
+use App\Models\PlantillaCertificado;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class CertificadoExternoApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('private');
+        Storage::fake('public');
+        Mail::fake();
+    }
+
+    public function test_requiere_autenticacion(): void
+    {
+        $this->postJson(route('api.certificados.store'), $this->payload())
+            ->assertUnauthorized();
+    }
+
+    public function test_requiere_ability_de_emision(): void
+    {
+        [$cliente, $token] = $this->clienteConToken(['certificados:leer']);
+        $this->crearPlantilla();
+
+        $this->withToken($token)
+            ->postJson(route('api.certificados.store'), $this->payload())
+            ->assertForbidden();
+    }
+
+    public function test_emite_certificado_guarda_pdf_y_encola_mail(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $response = $this->withToken($token)
+            ->postJson(route('api.certificados.store'), $this->payload());
+
+        $response->assertCreated()
+            ->assertHeader('Idempotent-Replay', 'false')
+            ->assertJsonPath('data.external_ref', 'PPS-TUT-1')
+            ->assertJsonPath('data.estado', CertificadoExterno::ESTADO_EMITIDO)
+            ->assertJsonPath('data.match_estado', CertificadoExterno::MATCH_AUTO)
+            ->assertJsonStructure(['data' => ['id', 'verificacion_url', 'receptor' => ['nombre', 'dni']]]);
+
+        $certificado = CertificadoExterno::first();
+        $this->assertNotNull($certificado);
+        $this->assertNotNull($certificado->certificado_path);
+        Storage::disk('private')->assertExists($certificado->certificado_path);
+
+        $this->assertDatabaseHas('participante', [
+            'dni' => 30111222,
+            'mail' => 'juan@example.test',
+        ]);
+
+        Mail::assertQueued(CertificadoTutorMail::class);
+    }
+
+    public function test_idempotencia_por_referencia_externa(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $primera = $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload());
+        $primera->assertCreated();
+
+        $segunda = $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload());
+        $segunda->assertOk()->assertHeader('Idempotent-Replay', 'true');
+
+        $this->assertSame(1, CertificadoExterno::count());
+        Mail::assertQueuedCount(1);
+    }
+
+    public function test_tier_1_reutiliza_participante_y_vincula_cuenta(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $user = User::factory()->create([
+            'email' => 'juan@example.test',
+            'dni' => '30111222',
+        ]);
+
+        $participante = Participante::create([
+            'nombre' => 'Juan',
+            'apellido' => 'Perez',
+            'dni' => '30111222',
+            'mail' => 'juan@example.test',
+            'telefono' => '3764123456',
+        ]);
+
+        $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.match_estado', 'auto');
+
+        $certificado = CertificadoExterno::first();
+        $this->assertSame($participante->participante_id, $certificado->participante_id);
+        $this->assertSame((int) $user->id, (int) $participante->fresh()->user_id);
+        $this->assertSame(1, Participante::count());
+    }
+
+    public function test_tier_4_marca_revision_cuando_solo_coincide_dni(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $participante = Participante::create([
+            'nombre' => 'Juan',
+            'apellido' => 'Perez',
+            'dni' => '30111222',
+            'mail' => 'otro@example.test',
+            'telefono' => '3764999999',
+        ]);
+
+        $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.match_estado', 'revisar');
+
+        $certificado = CertificadoExterno::first();
+        $this->assertSame($participante->participante_id, $certificado->participante_id);
+        $this->assertSame(1, Participante::count());
+    }
+
+    public function test_tier_7_crea_participante_nuevo(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.match_estado', 'auto');
+
+        $this->assertSame(1, Participante::count());
+        $this->assertDatabaseHas('participante', ['dni' => 30111222]);
+    }
+
+    public function test_consulta_solo_del_propio_cliente(): void
+    {
+        [$cliente, $token] = $this->clienteConToken(['certificados:emitir', 'certificados:leer']);
+        $this->crearPlantilla();
+
+        $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())->assertCreated();
+        $certificado = CertificadoExterno::first();
+
+        $this->withToken($token)
+            ->getJson(route('api.certificados.show', $certificado))
+            ->assertOk()
+            ->assertJsonPath('data.external_ref', 'PPS-TUT-1');
+
+        [, $otroToken] = $this->clienteConToken(['certificados:leer']);
+
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($otroToken)
+            ->getJson(route('api.certificados.show', $certificado))
+            ->assertNotFound();
+    }
+
+    public function test_validacion_publica_por_codigo(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())->assertCreated();
+        $certificado = CertificadoExterno::first();
+
+        $this->get(route('verificar.externo', ['codigo' => $certificado->codigo_verificacion]))
+            ->assertOk()
+            ->assertSee('Perez');
+
+        $this->get(route('verificar.externo', ['codigo' => 'inexistente']))
+            ->assertOk()
+            ->assertSee('no válido');
+    }
+
+    public function test_el_tutor_ve_y_descarga_su_certificado(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $user = User::factory()->create([
+            'email' => 'juan@example.test',
+            'dni' => '30111222',
+        ]);
+
+        $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())->assertCreated();
+        $certificado = CertificadoExterno::first();
+
+        $this->actingAs($user)
+            ->get(route('mis_certificados'))
+            ->assertOk()
+            ->assertSee('Tutoría Académica');
+
+        $this->actingAs($user)
+            ->get(route('mis_certificados.externo', $certificado))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_rate_limit_por_cliente(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        for ($i = 0; $i < 60; $i++) {
+            $this->withToken($token)
+                ->postJson(route('api.certificados.store'), ['external_ref' => 'x'])
+                ->assertStatus(422);
+        }
+
+        $this->withToken($token)
+            ->postJson(route('api.certificados.store'), ['external_ref' => 'x'])
+            ->assertStatus(429);
+    }
+
+    /**
+     * @return array{0: ApiCliente, 1: string}
+     */
+    private function clienteConToken(array $abilities = ['certificados:emitir']): array
+    {
+        $cliente = ApiCliente::create(['nombre' => 'PPS', 'activo' => true]);
+
+        return [$cliente, $cliente->createToken('test', $abilities)->plainTextToken];
+    }
+
+    private function crearPlantilla(): PlantillaCertificado
+    {
+        $categoria = CategoriaEvento::create(['nombre' => 'Prácticas']);
+        $contexto = Contexto::create([
+            'categoria_id' => $categoria->categoria_id,
+            'nombre' => 'Prácticas Profesionales Supervisadas',
+            'institucion' => 'Facultad de Ingeniería UNaM',
+            'activo' => true,
+        ]);
+
+        return PlantillaCertificado::create([
+            'categoria_id' => $categoria->categoria_id,
+            'contexto_id' => $contexto->contexto_id,
+            'nombre' => 'tutor_academico_default',
+            'imagen_path' => 'plantillas/contexto/tutor.png',
+            'tipo' => 'tutor_academico',
+            'por_defecto' => true,
+            'texto' => 'ha cumplido la función de Tutor Académico en {carrera}.',
+            'layout' => [
+                ['campo' => 'apellido_nombres', 'x' => 20, 'y' => 38, 'w' => 52, 'size' => 40, 'align' => 'center', 'color' => '#0A1B3A', 'bold' => true, 'italic' => false],
+                ['campo' => 'texto_cuerpo', 'x' => 8, 'y' => 47, 'w' => 84, 'size' => 16, 'align' => 'left', 'color' => '#0A1B3A', 'bold' => false, 'italic' => false],
+                ['campo' => 'qr', 'x' => 44, 'y' => 74, 'w' => 12, 'h' => 16, 'size' => 0, 'align' => 'center', 'color' => '#000', 'bold' => false, 'italic' => false],
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(array $overrides = []): array
+    {
+        return array_merge([
+            'external_ref' => 'PPS-TUT-1',
+            'tipo' => 'tutor_academico',
+            'plantilla_codigo' => 'tutor_academico_default',
+            'tutor' => [
+                'apellido' => 'Perez',
+                'nombres' => 'Juan Carlos',
+                'dni' => '30111222',
+                'email' => 'juan@example.test',
+                'telefono' => '3764123456',
+                'cargo' => 'Tutor Académico',
+            ],
+            'practica' => [
+                'carrera' => 'Ingeniería Civil',
+                'estudiante_apellido_nombres' => 'Gomez, Ana',
+                'estudiante_dni' => '40123456',
+                'institucion' => 'FIO - UNaM',
+                'periodo_inicio' => '2026-03-01',
+                'periodo_fin' => '2026-06-30',
+                'horas' => 120,
+                'resolucion' => 'Res. 123/2026',
+            ],
+        ], $overrides);
+    }
+}

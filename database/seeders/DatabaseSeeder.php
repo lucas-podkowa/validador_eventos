@@ -65,6 +65,7 @@ class DatabaseSeeder extends Seeder
         Permission::create(['name' => 'ver_participantes'])->syncRoles(['Administrador', 'Gestor']);
         Permission::create(['name' => 'procesar_aprobaciones'])->syncRoles(['Administrador', 'Gestor', 'Revisor']);
         Permission::create(['name' => 'asistencias'])->syncRoles(['Administrador', 'Gestor', 'Colaborador']);
+        Permission::create(['name' => 'administrar_api'])->syncRoles(['Administrador']);
 
         // Crear usuarios de ejemplo
         // User::factory()->create([

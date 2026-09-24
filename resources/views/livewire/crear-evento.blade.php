@@ -37,6 +37,27 @@
                     </div>
                 </div>
 
+                <!-- Contexto de certificados (opcional) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 px-6">
+                    <div>
+                        <label for="contexto_id" class="block text-sm font-medium text-gray-700">Contexto de certificados</label>
+                        <select id="contexto_id" wire:model="contexto_id"
+                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            @disabled(!$categoria_id)>
+                            <option value="">Sin contexto (plantilla de categoría)</option>
+                            @foreach ($contextos as $contexto)
+                                <option value="{{ $contexto->contexto_id }}">
+                                    {{ $contexto->nombre }}@if($contexto->anio) ({{ $contexto->anio }})@endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Habilita la emisión dinámica con los datos y firmas del contexto.</p>
+                        @error('contexto_id')
+                            <span class="text-sm text-red-500">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 px-6">
                     <div>
                         <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre del Evento <span class="text-red-500">*</span></label>

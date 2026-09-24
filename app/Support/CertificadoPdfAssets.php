@@ -37,6 +37,35 @@ class CertificadoPdfAssets
         return null;
     }
 
+    /**
+     * Resuelve la ruta absoluta de un archivo almacenado (sin optimizarlo), preservando
+     * formatos con transparencia como las firmas PNG. Busca primero en el disco privado.
+     */
+    public static function resolvePrivatePath(?string $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        if (self::isAbsolutePath($path)) {
+            return is_readable($path) ? $path : null;
+        }
+
+        if (Storage::disk('private')->exists($path)) {
+            return Storage::disk('private')->path($path);
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->path($path);
+        }
+
+        if (Storage::exists($path)) {
+            return Storage::path($path);
+        }
+
+        return null;
+    }
+
     public static function prepareBackgroundForPdf(?string $background): ?string
     {
         $resolvedPath = self::resolveBackgroundPath($background);

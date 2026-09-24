@@ -3,17 +3,17 @@
 namespace App\Services;
 
 use App\Models\CertificadoEmitido;
-use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
-use App\Models\PlantillaCertificado;
-use App\Support\CertificadoPdfAssets;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ReemitirCertificadosParticipante
 {
+    public function __construct(
+        private readonly GenerarCertificadoEvento $generador,
+    ) {}
+
     /**
      * Re-emite todos los certificados de eventos y títulos de un participante.
      * Se usa cuando cambia su DNI, porque el DNI va impreso y en el nombre del archivo.
@@ -50,46 +50,7 @@ class ReemitirCertificadosParticipante
 
     public function reemitirEvento(EventoParticipante $relacion): bool
     {
-        $evento = $relacion->evento;
-        $participante = $relacion->participante;
-
-        if (! $evento || ! $participante) {
-            return false;
-        }
-
-        $plantilla = $this->plantillaPara($evento, $relacion);
-
-        if (! $plantilla?->imagen_path) {
-            return false;
-        }
-
-        $background = CertificadoPdfAssets::prepareBackgroundForPdf($plantilla->imagen_path);
-
-        if (! $background) {
-            Log::warning('No se pudo preparar la plantilla al re-emitir un certificado.', [
-                'evento_id' => $evento->evento_id,
-                'participante_id' => $participante->participante_id,
-                'plantilla_id' => $plantilla->plantilla_id,
-            ]);
-
-            return false;
-        }
-
-        $pdf = Pdf::loadView('certificado', [
-            'nombre' => $participante->nombre,
-            'apellido' => $participante->apellido,
-            'dni' => $participante->dni,
-            'qr' => $relacion->qrcode ? 'data:image/svg+xml;base64,'.base64_encode($relacion->qrcode) : '',
-            'background' => $background,
-        ])->setPaper('a4', 'landscape');
-
-        $folder = 'certificados/'.now()->year."/{$evento->tipoEvento->nombre}/{$evento->nombre}";
-        $filename = "{$folder}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-
-        $this->reemplazarArchivo($relacion->certificado_path, $filename, $pdf->output());
-        $relacion->update(['certificado_path' => $filename]);
-
-        return true;
+        return $this->generador->generar($relacion) !== null;
     }
 
     protected function reemitirTitulo(CertificadoEmitido $certificado): bool
@@ -125,24 +86,6 @@ class ReemitirCertificadosParticipante
         $certificado->update(['certificado_path' => $filename]);
 
         return true;
-    }
-
-    protected function plantillaPara(Evento $evento, EventoParticipante $relacion): ?PlantillaCertificado
-    {
-        $rol = mb_strtolower((string) $relacion->rol?->nombre);
-
-        $tipo = match (true) {
-            str_contains($rol, 'disertante') => 'disertante',
-            str_contains($rol, 'colaborador') => 'colaborador',
-            $evento->por_aprobacion && $relacion->aprobado => 'aprobacion',
-            default => 'asistencia',
-        };
-
-        return PlantillaCertificado::query()
-            ->where('categoria_id', $evento->categoria_id)
-            ->where('tipo', $tipo)
-            ->orderByDesc('por_defecto')
-            ->first();
     }
 
     protected function reemplazarArchivo(?string $anterior, string $nuevo, string $contenido): void

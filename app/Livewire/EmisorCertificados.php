@@ -10,16 +10,14 @@ use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\Rol;
 use App\Rules\LargoNombreCertificado;
+use App\Services\GenerarCertificadoEvento;
 use App\Support\CertificadoPdfAssets;
 use App\Support\NormalizadorIdentidad;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -113,9 +111,12 @@ class EmisorCertificados extends Component
         $this->plantillas_por_tipo = [];
 
         if ($this->evento_id) {
-            $evento = Evento::with('categoria.plantillas')->find($this->evento_id);
-            if ($evento && $evento->categoria) {
-                $plantillas = $evento->categoria->plantillas;
+            $evento = Evento::with(['categoria.plantillas', 'contexto.plantillas'])->find($this->evento_id);
+            if ($evento) {
+                $plantillas = ($evento->contexto_id && $evento->contexto)
+                    ? $evento->contexto->plantillas
+                    : ($evento->categoria?->plantillas ?? collect());
+
                 if ($plantillas && $plantillas->count() > 0) {
                     $grouped = $plantillas->groupBy(function ($p) {
                         return $p->tipo ?: 'asistencia';
@@ -432,80 +433,26 @@ class EmisorCertificados extends Component
 
     private function generarCertificadoIndividual(Participante $participante, Evento $evento, ?string $backgroundPath)
     {
-        $year = now()->year;
-        $tipoEvento = $evento->tipoEvento->nombre;
-        $nombreEvento = $evento->nombre;
+        $relacion = EventoParticipante::where('evento_id', $evento->evento_id)
+            ->where('participante_id', $participante->participante_id)
+            ->first();
 
-        $pivot = $evento->participantes()
-            ->where('evento_participantes.participante_id', $participante->participante_id)
-            ->first()
-            ?->pivot;
-
-        if (! $pivot) {
+        if (! $relacion) {
             throw new \Exception('No se encontró el vínculo entre evento y participante.');
         }
 
-        $fontPath = CertificadoPdfAssets::fontPath();
-        $fontCacheDirectory = CertificadoPdfAssets::fontCacheDirectory();
+        $plantilla = $this->plantilla_id ? PlantillaCertificado::find($this->plantilla_id) : null;
 
-        if (! is_readable($fontPath)) {
-            Log::error('No se encontró la fuente base para emisión directa.', [
-                'font_path' => $fontPath,
-                'evento_id' => $evento->evento_id,
-            ]);
-
-            throw new \RuntimeException('No se encontró la fuente requerida para generar el certificado.');
+        $override = null;
+        if (! $plantilla && $backgroundPath) {
+            $override = CertificadoPdfAssets::prepareBackgroundForPdf($backgroundPath);
         }
 
-        if (! CertificadoPdfAssets::fontCacheIsWritable()) {
-            Log::error('El directorio de cache de fuentes de Dompdf no es escribible en emisión directa.', [
-                'font_cache_directory' => $fontCacheDirectory,
-                'evento_id' => $evento->evento_id,
-            ]);
+        $filename = app(GenerarCertificadoEvento::class)->generar($relacion, $plantilla, $override);
 
-            throw new \RuntimeException('El servidor no tiene permisos para generar las fuentes del certificado. Revise storage/fonts.');
+        if ($filename) {
+            $evento->update(['certificado_path' => dirname($filename)]);
         }
-
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(180);
-        }
-
-        $backgroundAbsPath = CertificadoPdfAssets::prepareBackgroundForPdf($backgroundPath);
-
-        if ($backgroundPath && ! $backgroundAbsPath) {
-            Log::error('No se pudo resolver la plantilla del certificado para emisión directa.', [
-                'background' => $backgroundPath,
-                'evento_id' => $evento->evento_id,
-                'participante_id' => $participante->participante_id,
-            ]);
-
-            throw new \RuntimeException('No se pudo resolver la plantilla seleccionada para el certificado.');
-        }
-
-        $pdf = Pdf::loadView('certificado', [
-            'nombre' => $participante->nombre,
-            'apellido' => $participante->apellido,
-            'dni' => $participante->dni,
-            'qr' => 'data:image/svg+xml;base64,'.base64_encode($pivot->qrcode),
-            'background' => $backgroundAbsPath,
-        ])->setPaper('a4', 'landscape');
-
-        $folderPath = "certificados/{$year}/{$tipoEvento}/{$nombreEvento}";
-        $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-
-        // Re-emisión: eliminar el certificado anterior si cambió el nombre del archivo (ej. DNI corregido)
-        if ($pivot->certificado_path && $pivot->certificado_path !== $filename && Storage::disk('private')->exists($pivot->certificado_path)) {
-            Storage::disk('private')->delete($pivot->certificado_path);
-        }
-
-        Storage::disk('private')->put($filename, $pdf->output());
-        EventoParticipante::where('evento_id', $evento->evento_id)
-            ->where('participante_id', $participante->participante_id)
-            ->update(['certificado_path' => $filename]);
-
-        // (opcionalmente también podés guardar esa ruta en el modelo Evento si querés mantenerlo como está)
-
-        $evento->update(['certificado_path' => $folderPath]);
     }
 
     public function render()

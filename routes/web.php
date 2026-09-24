@@ -3,15 +3,21 @@
 use App\Http\Controllers\CertificadoDescargaController;
 use App\Http\Controllers\ComprobantePagoController;
 use App\Http\Controllers\DocumentoRequisitoController;
+use App\Http\Controllers\FirmanteController;
 use App\Http\Controllers\QRController;
 use App\Http\Controllers\SolicitudDniController;
+use App\Http\Controllers\VerificacionExternaController;
 use App\Http\Controllers\WelcomeController;
 use App\Livewire\Academica\EmisionesRealizadas;
 use App\Livewire\Academica\EmisionTitulo;
 use App\Livewire\Academica\Plantillas;
 use App\Livewire\Academica\TitulosIntermedios;
+use App\Livewire\Admin\ApiClientes;
 use App\Livewire\Admin\Categorias;
+use App\Livewire\Admin\CertificadosExternos;
+use App\Livewire\Admin\Contextos;
 use App\Livewire\Admin\Destinatarios;
+use App\Livewire\Admin\Firmantes;
 use App\Livewire\Admin\SolicitudesDni;
 use App\Livewire\Admin\TiposEvento;
 use App\Livewire\Admin\Usuarios;
@@ -36,6 +42,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 Route::get('/inscripcion/{tipoEvento}/{eventoId}', RegistroEventoPublico::class)->name('inscripcion.evento');
 Route::get('/validar-participante/{evento_id}/{participante_id}', [QRController::class, 'show'])->name('validar.participante');
+Route::get('/verificar/{codigo}', [VerificacionExternaController::class, 'show'])->name('verificar.externo');
 
 // Protegidas
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
@@ -47,6 +54,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/indicadores', Indicadores::class)->name('indicadores');
         Route::get('/admin/usuarios', Usuarios::class)->name('usuarios');
         Route::get('/admin/categorias', Categorias::class)->name('admin.categorias');
+        Route::get('/admin/contextos', Contextos::class)->name('admin.contextos');
+        Route::get('/admin/firmantes', Firmantes::class)->name('admin.firmantes');
+        Route::get('/admin/firmantes/{firmante}/imagen', [FirmanteController::class, 'imagen'])->name('admin.firmantes.imagen');
         Route::get('/admin/tipos-evento', TiposEvento::class)->name('admin.tipos_evento');
         Route::get('/admin/destinatarios', Destinatarios::class)->name('admin.destinatarios');
         Route::get('/informes', Informes::class)->name('informes');
@@ -90,6 +100,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/academica/titulos-intermedios', TitulosIntermedios::class)->name('academica.titulos_intermedios');
     });
 
+    // API de certificados externos: administradores
+    Route::middleware('can:administrar_api')->group(function () {
+        Route::get('/admin/api-clientes', ApiClientes::class)->name('admin.api_clientes');
+        Route::get('/admin/certificados-externos', CertificadosExternos::class)->name('admin.certificados_externos');
+    });
+
     // Portal del participante: cualquier usuario autenticado (incluye rol Invitado)
     Route::get('/mis-certificados', MisCertificados::class)->name('mis_certificados');
     Route::get('/mis-datos', MisDatos::class)->name('mis_datos');
@@ -97,6 +113,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         ->name('mis_certificados.evento');
     Route::get('/mis-certificados/titulo/{certificadoEmitido}', [CertificadoDescargaController::class, 'titulo'])
         ->name('mis_certificados.titulo');
+    Route::get('/mis-certificados/externo/{certificadoExterno}', [CertificadoDescargaController::class, 'externo'])
+        ->name('mis_certificados.externo');
 
     // Visor de certificados (dueño del certificado, administrador o gestor)
     Route::get('/ver-certificado/{eventoParticipante}', [CertificadoDescargaController::class, 'evento'])

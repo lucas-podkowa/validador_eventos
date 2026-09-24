@@ -141,6 +141,16 @@
                 <span>Categorías</span>
             </a>
 
+            <a href="{{ route('admin.contextos') }}" class="{{ request()->routeIs('admin.contextos') ? 'active' : '' }}">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                <span>Contextos</span>
+            </a>
+
+            <a href="{{ route('admin.firmantes') }}" class="{{ request()->routeIs('admin.firmantes') ? 'active' : '' }}">
+                <i class="fa-solid fa-signature w-5 text-center"></i>
+                <span>Firmantes</span>
+            </a>
+
             <a href="{{ route('admin.destinatarios') }}"
                 class="{{ request()->routeIs('admin.destinatarios') ? 'active' : '' }}">
                 <i class="fa-solid fa-user-tag w-5 text-center"></i>
@@ -156,6 +166,18 @@
                 class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
                 <i class="fa-solid fa-list w-5 text-center"></i>
                 <span>Tipos de Evento</span>
+            </a>
+
+            <a href="{{ route('admin.api_clientes') }}"
+                class="{{ request()->routeIs('admin.api_clientes') ? 'active' : '' }}">
+                <i class="fa-solid fa-key w-5 text-center"></i>
+                <span>Clientes de API</span>
+            </a>
+
+            <a href="{{ route('admin.certificados_externos') }}"
+                class="{{ request()->routeIs('admin.certificados_externos') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                <span>Certificados externos</span>
             </a>
         </div>
         @endrole

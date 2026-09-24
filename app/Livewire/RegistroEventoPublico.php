@@ -17,6 +17,7 @@ use App\Rules\LargoNombreCertificado;
 use App\Support\NormalizadorIdentidad;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -410,17 +411,30 @@ class RegistroEventoPublico extends Component
             }
             DB::commit();
 
-            // Enviar correo de confirmación al participante
-            Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento, $this->asunto));
+            // El envío del correo no debe romper una inscripción ya confirmada
+            try {
+                Mail::to($this->mail)->send(new ConfirmacionInscripcion($this->nombre, $this->apellido, $this->evento, $this->asunto));
+            } catch (\Throwable $e) {
+                Log::error('No se pudo enviar el correo de confirmación de inscripción', [
+                    'evento_id' => $this->evento_id,
+                    'mail' => $this->mail,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             $this->dispatch('alert', message: '¡Inscripción completada con éxito!');
 
             $this->reset(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'indicadoresMultiples', 'indicadoresUnicos', 'destinatario_id', 'comprobante', 'montoDestinatario', 'requisitosActivos', 'documentos', 'similar', 'decision_similar']);
             $this->verificarInscripcionActiva(); // <-- Refresca el estado del formulario
 
             // return redirect()->route('inscripcion.publica', ['planilla' => $this->planillaId]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            $this->dispatch('oops', message: 'Hubo un error al procesar los datos: '.$e->getMessage());
+            Log::error('Error al procesar la inscripción pública', [
+                'evento_id' => $this->evento_id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->dispatch('oops', message: 'Hubo un error al procesar los datos. Por favor, intentá nuevamente o contactá al administrador.');
 
             return;
         }

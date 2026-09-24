@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CertificadoEmitido;
+use App\Models\CertificadoExterno;
 use App\Models\EventoParticipante;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,6 +14,19 @@ class CertificadoDescargaController extends Controller
         $this->autorizarEvento($eventoParticipante);
 
         $path = $eventoParticipante->certificado_path;
+
+        if (! $path || ! Storage::disk('private')->exists($path)) {
+            abort(404, 'Certificado no encontrado.');
+        }
+
+        return $this->servir($path);
+    }
+
+    public function externo(CertificadoExterno $certificadoExterno)
+    {
+        $this->autorizarExterno($certificadoExterno);
+
+        $path = $certificadoExterno->certificado_path;
 
         if (! $path || ! Storage::disk('private')->exists($path)) {
             abort(404, 'Certificado no encontrado.');
@@ -65,6 +79,24 @@ class CertificadoDescargaController extends Controller
 
         abort_unless(
             $esDuenio || $user->hasAnyRole(['Administrador', 'Académica']),
+            403,
+            'No autorizado para ver este certificado.'
+        );
+    }
+
+    protected function autorizarExterno(CertificadoExterno $certificadoExterno): void
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
+        $esDuenio = $certificadoExterno->participante
+            && (int) $certificadoExterno->participante->user_id === (int) $user->id;
+
+        abort_unless(
+            $esDuenio || $user->hasAnyRole(['Administrador', 'Gestor']),
             403,
             'No autorizado para ver este certificado.'
         );

@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\CertificadoEmitido;
+use App\Models\CertificadoExterno;
 use App\Models\EventoParticipante;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -16,6 +17,7 @@ class MisCertificados extends Component
 
         $certificadosEventos = collect();
         $certificadosTitulos = collect();
+        $certificadosExternos = collect();
 
         if ($participante) {
             $certificadosEventos = EventoParticipante::query()
@@ -34,12 +36,21 @@ class MisCertificados extends Component
                 ->get()
                 ->filter(fn (CertificadoEmitido $certificado) => $certificado->certificado_path
                     && Storage::disk('private')->exists($certificado->certificado_path));
+
+            $certificadosExternos = CertificadoExterno::query()
+                ->where('participante_id', $participante->participante_id)
+                ->where('estado', CertificadoExterno::ESTADO_EMITIDO)
+                ->orderByDesc('created_at')
+                ->get()
+                ->filter(fn (CertificadoExterno $certificado) => $certificado->certificado_path
+                    && Storage::disk('private')->exists($certificado->certificado_path));
         }
 
         return view('livewire.mis-certificados', [
             'participante' => $participante,
             'certificadosEventos' => $certificadosEventos,
             'certificadosTitulos' => $certificadosTitulos,
+            'certificadosExternos' => $certificadosExternos,
         ]);
     }
 }

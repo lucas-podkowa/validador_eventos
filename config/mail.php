@@ -44,7 +44,7 @@ return [
             'encryption' => env('MAIL_ENCRYPTION'),  // Debe quedar en null
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => env('MAIL_TIMEOUT', 30),
             'auth_mode' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', 'localhost'),
             'verify_peer' => env('MAIL_VERIFY_PEER', false),
