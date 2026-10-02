@@ -3,6 +3,7 @@
     $navPrefix = 'nav.'.(auth()->id() ?? 'guest').'.';
     $defaults = [
         'eventosOpen' => true,
+        'ajustesOpen' => true,
         'adminOpen' => ! $esAdmin,
         'configOpen' => ! $esAdmin,
         'participantesOpen' => ! $esAdmin,
@@ -22,10 +23,10 @@
     };
     return {
         eventosOpen: read('eventosOpen', @js($defaults['eventosOpen'])),
+        ajustesOpen: read('ajustesOpen', @js($defaults['ajustesOpen'])),
         adminOpen: read('adminOpen', @js($defaults['adminOpen'])),
         configOpen: read('configOpen', @js($defaults['configOpen'])),
         participantesOpen: read('participantesOpen', @js($defaults['participantesOpen'])),
-        academicaOpen: true,
         toggle(section) {
             this[section] = ! this[section];
             try { sessionStorage.setItem(prefix + section, JSON.stringify(this[section])); } catch (e) {}
@@ -79,6 +80,33 @@
                 <i class="fa-solid fa-plus w-5 text-center"></i>
                 <span>Registrar Evento</span>
             </a>
+
+            <div class="mt-1">
+                <button @click="toggle('ajustesOpen')"
+                    class="sidebar-section-label sidebar-subsection w-full text-left flex items-center justify-between">
+                    <span>Ajustes</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform" :class="{ 'rotate-180': ajustesOpen }"></i>
+                </button>
+
+                <div x-show="ajustesOpen" class="collapse-content">
+                    <a href="{{ route('admin.tipos_evento') }}"
+                        class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
+                        <i class="fa-solid fa-list w-5 text-center"></i>
+                        <span>Tipos de Evento</span>
+                    </a>
+
+                    <a href="{{ route('admin.destinatarios') }}"
+                        class="{{ request()->routeIs('admin.destinatarios') ? 'active' : '' }}">
+                        <i class="fa-solid fa-user-tag w-5 text-center"></i>
+                        <span>Destinatarios</span>
+                    </a>
+
+                    <a href="{{ route('indicadores') }}" class="{{ request()->routeIs('indicadores') ? 'active' : '' }}">
+                        <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                        <span>Indicadores</span>
+                    </a>
+                </div>
+            </div>
             @endrole
         </div>
         @endrole
@@ -97,6 +125,12 @@
                 class="{{ request()->routeIs('emisor_certificados') ? 'active' : '' }}">
                 <i class="fa-solid fa-certificate w-5 text-center"></i>
                 <span>Emisión</span>
+            </a>
+
+            <a href="{{ route('emision_masiva') }}"
+                class="{{ request()->routeIs('emision_masiva') ? 'active' : '' }}">
+                <i class="fa-solid fa-layer-group w-5 text-center"></i>
+                <span>Emisión masiva</span>
             </a>
 
             <a href="{{ route('informes') }}" class="{{ request()->routeIs('informes') ? 'active' : '' }}">
@@ -151,21 +185,10 @@
                 <span>Firmantes</span>
             </a>
 
-            <a href="{{ route('admin.destinatarios') }}"
-                class="{{ request()->routeIs('admin.destinatarios') ? 'active' : '' }}">
-                <i class="fa-solid fa-user-tag w-5 text-center"></i>
-                <span>Destinatarios</span>
-            </a>
-
-            <a href="{{ route('indicadores') }}" class="{{ request()->routeIs('indicadores') ? 'active' : '' }}">
-                <i class="fa-solid fa-chart-line w-5 text-center"></i>
-                <span>Indicadores</span>
-            </a>
-
-            <a href="{{ route('admin.tipos_evento') }}"
-                class="{{ request()->routeIs('admin.tipos_evento') ? 'active' : '' }}">
-                <i class="fa-solid fa-list w-5 text-center"></i>
-                <span>Tipos de Evento</span>
+            <a href="{{ route('admin.tipos_reconocimiento') }}"
+                class="{{ request()->routeIs('admin.tipos_reconocimiento') ? 'active' : '' }}">
+                <i class="fa-solid fa-award w-5 text-center"></i>
+                <span>Tipos de Reconocimiento</span>
             </a>
 
             <a href="{{ route('admin.api_clientes') }}"
@@ -179,44 +202,6 @@
                 <i class="fa-solid fa-file-shield w-5 text-center"></i>
                 <span>Certificados externos</span>
             </a>
-        </div>
-        @endrole
-
-        {{-- Académica temporalmente oculto hasta que la funcionalidad esté lista para producción. --}}
-        @role('Administrador|Académica')
-        <div class="hidden">
-            <button @click="academicaOpen = !academicaOpen"
-                class="sidebar-section-label mt-2 w-full text-left flex items-center justify-between">
-                <span>Académica</span>
-                <i class="fa-solid fa-chevron-down text-xs transition-transform"
-                    :class="{ 'rotate-180': academicaOpen }"></i>
-            </button>
-
-            <div x-show="academicaOpen" class="collapse-content">
-                <a href="{{ route('academica.plantillas') }}"
-                    class="{{ request()->routeIs('academica.plantillas') ? 'active' : '' }}">
-                    <i class="fa-solid fa-image w-5 text-center"></i>
-                    <span>Plantillas</span>
-                </a>
-
-                <a href="{{ route('academica.emision') }}"
-                    class="{{ request()->routeIs('academica.emision') ? 'active' : '' }}">
-                    <i class="fa-solid fa-certificate w-5 text-center"></i>
-                    <span>Emisión</span>
-                </a>
-
-                <a href="{{ route('academica.emisiones') }}"
-                    class="{{ request()->routeIs('academica.emisiones') ? 'active' : '' }}">
-                    <i class="fa-solid fa-file-lines w-5 text-center"></i>
-                    <span>Emisiones Realizadas</span>
-                </a>
-
-                <a href="{{ route('academica.titulos_intermedios') }}"
-                    class="{{ request()->routeIs('academica.titulos_intermedios') ? 'active' : '' }}">
-                    <i class="fa-solid fa-graduation-cap w-5 text-center"></i>
-                    <span>Títulos Intermedios</span>
-                </a>
-            </div>
         </div>
         @endrole
 

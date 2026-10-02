@@ -144,7 +144,7 @@ class ApiClientes extends Component
     public function render()
     {
         $clientes = ApiCliente::query()
-            ->withCount('certificadosExternos')
+            ->withCount('emisiones')
             ->when($this->search, fn ($query) => $query->where('nombre', 'like', "%{$this->search}%"))
             ->orderBy('nombre')
             ->paginate(10);

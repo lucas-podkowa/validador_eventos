@@ -130,6 +130,7 @@
                 <select wire:model.live="modo" class="w-full rounded-md border border-gray-300 px-3 py-2">
                     <option value="general">General</option>
                     <option value="curso">Por curso</option>
+                    <option value="emisiones">Certificados emitidos</option>
                 </select>
             </div>
 
@@ -192,7 +193,82 @@
         <span class="font-semibold">Filtros aplicados:</span> {{ $filtrosActivos }}
     </div>
 
-    @if ($modo === 'general' && $reporteGeneral)
+    @if ($modo === 'emisiones' && $reporteEmisiones)
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="rounded-lg border bg-white p-4 shadow-sm">
+                    <p class="text-xs uppercase text-gray-400">Total de emisiones</p>
+                    <p class="text-2xl font-bold">{{ $reporteEmisiones['resumen']['total'] }}</p>
+                </div>
+                <div class="rounded-lg border bg-white p-4 shadow-sm">
+                    <p class="text-xs uppercase text-gray-400">Vigentes</p>
+                    <p class="text-2xl font-bold text-green-700">{{ $reporteEmisiones['resumen']['emitidas'] }}</p>
+                </div>
+                <div class="rounded-lg border bg-white p-4 shadow-sm">
+                    <p class="text-xs uppercase text-gray-400">Anuladas</p>
+                    <p class="text-2xl font-bold text-red-700">{{ $reporteEmisiones['resumen']['anuladas'] }}</p>
+                </div>
+            </div>
+
+            <div class="rounded-lg border bg-white p-4 shadow-sm">
+                <h3 class="mb-3 text-lg font-semibold">Por tipo de reconocimiento</h3>
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100 text-left text-xs uppercase text-gray-500">
+                        <tr><th class="px-3 py-2">Tipo</th><th class="px-3 py-2 text-right">Certificados</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($reporteEmisiones['por_tipo'] as $fila)
+                            <tr><td class="px-3 py-2">{{ $fila->tipo }}</td><td class="px-3 py-2 text-right">{{ $fila->total }}</td></tr>
+                        @empty
+                            <tr><td colspan="2" class="px-3 py-4 text-center text-gray-400">Sin datos.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="rounded-lg border bg-white p-4 shadow-sm">
+                <h3 class="mb-3 text-lg font-semibold">Por familia y edición</h3>
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100 text-left text-xs uppercase text-gray-500">
+                        <tr>
+                            <th class="px-3 py-2">Familia</th>
+                            <th class="px-3 py-2">Edición / Actividad</th>
+                            <th class="px-3 py-2">Año</th>
+                            <th class="px-3 py-2 text-right">Certificados</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($reporteEmisiones['origenes'] as $fila)
+                            <tr>
+                                <td class="px-3 py-2">{{ $fila->familia ?? 'Sin familia' }}</td>
+                                <td class="px-3 py-2">{{ $fila->edicion }}</td>
+                                <td class="px-3 py-2 text-gray-500">{{ $fila->anio ?: '—' }}</td>
+                                <td class="px-3 py-2 text-right">{{ $fila->total }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="px-3 py-4 text-center text-gray-400">Sin datos.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="rounded-lg border bg-white p-4 shadow-sm">
+                <h3 class="mb-3 text-lg font-semibold">Por año</h3>
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100 text-left text-xs uppercase text-gray-500">
+                        <tr><th class="px-3 py-2">Año</th><th class="px-3 py-2 text-right">Certificados</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($reporteEmisiones['por_anio'] as $fila)
+                            <tr><td class="px-3 py-2">{{ $fila->anio }}</td><td class="px-3 py-2 text-right">{{ $fila->total }}</td></tr>
+                        @empty
+                            <tr><td colspan="2" class="px-3 py-4 text-center text-gray-400">Sin datos.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @elseif ($modo === 'general' && $reporteGeneral)
         @php
             $eventosPorAnioChart = $reporteGeneral['eventos_por_tipo_y_anio']
                 ->groupBy('anio')

@@ -28,7 +28,7 @@ class SolicitudesDniAdminTest extends TestCase
         $this->admin->assignRole('Administrador');
 
         $this->mock(ReemitirCertificadosParticipante::class, function ($mock) {
-            $mock->shouldReceive('participante')->andReturn(['eventos' => 0, 'titulos' => 0, 'omitidos' => 0]);
+            $mock->shouldReceive('participante')->andReturn(['eventos' => 0, 'emisiones' => 0, 'omitidos' => 0]);
         });
     }
 

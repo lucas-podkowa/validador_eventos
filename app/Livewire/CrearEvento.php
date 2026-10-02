@@ -100,7 +100,7 @@ class CrearEvento extends Component
             abort(403, 'No tenés permiso para crear eventos.');
         }
 
-        $this->categorias = CategoriaEvento::orderBy('nombre')->get();
+        $this->categorias = CategoriaEvento::disponiblesParaEventos()->orderBy('nombre')->get();
         $this->tiposEventos = TipoEvento::orderBy('nombre')->get();
         $this->tiposIndicadores = TipoIndicador::all();
 
@@ -210,7 +210,7 @@ class CrearEvento extends Component
     {
         $reglas = [
             'categoria_id' => 'required|exists:categoria_evento,categoria_id',
-            'contexto_id' => 'nullable|exists:contexto,contexto_id',
+            'contexto_id' => 'required|exists:contexto,contexto_id',
             'tipo_evento_id' => 'required|exists:tipo_evento,tipo_evento_id',
             'nombre_evento' => 'required|string|min:3|max:255',
             'lugar_evento' => 'required|string|min:2|max:255',

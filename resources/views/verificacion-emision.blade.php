@@ -58,6 +58,11 @@
             color: #17663a;
         }
 
+        .estado.anulado {
+            background: #fff4e0;
+            color: #8a5a1f;
+        }
+
         .estado.invalido {
             background: #fbe4e4;
             color: #8a1f1f;
@@ -83,10 +88,16 @@
 </head>
 
 @php
-    $datos = $certificado->datos ?? [];
-    $tutor = $datos['tutor'] ?? [];
-    $practica = $datos['practica'] ?? [];
-    $nombre = trim(($tutor['nombres'] ?? ($tutor['nombre'] ?? '')).' '.($tutor['apellido'] ?? ''));
+    $persona = $emision?->participante;
+    $snapshot = $emision?->origen_snapshot ?? [];
+    $tipo = $emision?->tipoReconocimiento?->nombre;
+
+    $origenPrincipal = $snapshot['nombre'] ?? null;
+    $detalleOrigen = array_filter([
+        $snapshot['contexto_nombre'] ?? null,
+        $snapshot['denominacion'] ?? null,
+        $snapshot['tipo_evento'] ?? null,
+    ]);
 @endphp
 
 <body>
@@ -94,35 +105,45 @@
         <div class="tarjeta">
             @if ($valido)
                 <span class="estado valido">Certificado válido</span>
-                <h1>Certificado de Tutoría Académica</h1>
+                <h1>{{ $tipo ? 'Certificado de '.$tipo : 'Certificado' }}</h1>
 
                 <dl>
-                    <dt>Tutor</dt>
-                    <dd>{{ $nombre }}</dd>
+                    <dt>Otorgado a</dt>
+                    <dd>{{ trim(($persona?->nombre ?? '').' '.($persona?->apellido ?? '')) }}</dd>
 
                     <dt>DNI</dt>
-                    <dd>{{ $tutor['dni'] ?? '' }}</dd>
+                    <dd>{{ $persona?->dni ?? '' }}</dd>
 
-                    @if (! empty($tutor['cargo']))
-                        <dt>Cargo</dt>
-                        <dd>{{ $tutor['cargo'] }}</dd>
+                    @if ($origenPrincipal)
+                        <dt>Actividad</dt>
+                        <dd>{{ $origenPrincipal }}</dd>
                     @endif
 
-                    @if (! empty($practica['carrera']))
-                        <dt>Carrera</dt>
-                        <dd>{{ $practica['carrera'] }}</dd>
+                    @if (! empty($detalleOrigen))
+                        <dt>Detalle</dt>
+                        <dd>{{ implode(' · ', $detalleOrigen) }}</dd>
                     @endif
 
-                    @if (! empty($practica['periodo_inicio']))
-                        <dt>Período</dt>
-                        <dd>{{ $practica['periodo_inicio'] }} - {{ $practica['periodo_fin'] ?? '' }}</dd>
-                    @endif
-
-                    @if (! empty($practica['institucion']))
+                    @if (! empty($snapshot['institucion']))
                         <dt>Institución</dt>
-                        <dd>{{ $practica['institucion'] }}</dd>
+                        <dd>{{ $snapshot['institucion'] }}</dd>
+                    @endif
+
+                    @if (! empty($snapshot['resolucion']))
+                        <dt>Resolución</dt>
+                        <dd>{{ $snapshot['resolucion'] }}</dd>
+                    @endif
+
+                    @if ($emision?->emitida_en)
+                        <dt>Fecha de emisión</dt>
+                        <dd>{{ $emision->emitida_en->format('d/m/Y') }}</dd>
                     @endif
                 </dl>
+            @elseif ($anulado)
+                <span class="estado anulado">Certificado anulado</span>
+                <h1>Este certificado fue anulado</h1>
+                <p>El documento existió pero su emisión fue dejada sin efecto por la organización. Si creés que es un
+                    error, comunicate con la organización.</p>
             @else
                 <span class="estado invalido">Certificado no válido</span>
                 <h1>No encontramos este certificado</h1>

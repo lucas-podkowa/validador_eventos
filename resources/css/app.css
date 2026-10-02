@@ -227,6 +227,10 @@ body.theme-b {
     color: rgba(255, 255, 255, 0.6);
 }
 
+.theme-b .sidebar-nav .sidebar-section-label.sidebar-subsection {
+    padding-left: 1.75rem;
+}
+
 .theme-b .sidebar-nav .collapse-content {
     overflow: hidden;
     transition: all 0.2s ease;
@@ -239,7 +243,7 @@ body.theme-b {
 
 .theme-b .sidebar-nav .collapse-content[style*="display: block"],
 .theme-b .sidebar-nav .collapse-content.x-bound {
-    max-height: 500px;
+    max-height: 1200px;
     opacity: 1;
 }
 

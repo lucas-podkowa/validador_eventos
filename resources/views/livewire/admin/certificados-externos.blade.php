@@ -32,12 +32,12 @@
                     @foreach ($certificados as $certificado)
                         <tr>
                             <td class="px-4 py-2">
-                                <p class="font-medium">{{ $certificado->receptor_nombre }}</p>
-                                <p class="text-xs text-gray-500">DNI {{ $certificado->receptor_dni }}</p>
+                                <p class="font-medium">{{ $certificado->participante?->apellido }}, {{ $certificado->participante?->nombre }}</p>
+                                <p class="text-xs text-gray-500">DNI {{ $certificado->participante?->dni }}</p>
                             </td>
                             <td class="px-4 py-2 text-sm text-gray-500">{{ $certificado->external_ref }}</td>
                             <td class="px-4 py-2 text-center">
-                                @if ($certificado->match_estado === \App\Models\CertificadoExterno::MATCH_REVISAR)
+                                @if ($certificado->match_estado === \App\Models\Emision::MATCH_REVISAR)
                                     <span class="inline-block bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">Revisar</span>
                                 @else
                                     <span class="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">Auto</span>
@@ -55,12 +55,12 @@
                             </td>
                             <td class="px-4 py-2 text-center whitespace-nowrap">
                                 @if ($certificado->certificado_path)
-                                    <a href="{{ route('mis_certificados.externo', $certificado) }}" target="_blank"
+                                    <a href="{{ route('ver.emision', $certificado) }}" target="_blank"
                                         class="btn-action-edit" title="Descargar">
                                         <i class="fas fa-file-pdf"></i>
                                     </a>
                                 @endif
-                                <button wire:click="abrirVincular({{ $certificado->certificado_externo_id }})"
+                                <button wire:click="abrirVincular('{{ $certificado->emision_id }}')"
                                     class="btn-action-edit" title="Vincular a cuenta">
                                     <i class="fas fa-link"></i>
                                 </button>

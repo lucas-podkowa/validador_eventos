@@ -3,16 +3,13 @@
 namespace Tests\Feature;
 
 use App\Livewire\MisCertificados;
-use App\Models\Carrera;
 use App\Models\CategoriaEvento;
-use App\Models\CertificadoEmitido;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\Responsable;
 use App\Models\Rol;
 use App\Models\TipoEvento;
-use App\Models\TituloIntermedio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -42,23 +39,10 @@ class MisCertificadosTest extends TestCase
 
         $this->crearEventoParticipante($participante, $pathEvento, 'Evento de Prueba');
 
-        $carrera = Carrera::create(['nombre' => 'Ingeniería', 'codigo' => 'ING', 'activa' => true]);
-        $titulo = TituloIntermedio::create(['carrera_id' => $carrera->id, 'nombre' => 'Título Intermedio', 'activo' => true]);
-        $pathTitulo = 'certificados_titulos/2026/ING/1/pepito.pdf';
-        Storage::disk('private')->put($pathTitulo, 'PDF-TITULO');
-
-        CertificadoEmitido::create([
-            'participante_id' => $participante->participante_id,
-            'titulo_intermedio_id' => $titulo->id,
-            'certificado_path' => $pathTitulo,
-            'anulado' => false,
-        ]);
-
         $this->actingAs($user);
 
         Livewire::test(MisCertificados::class)
             ->assertSee('Evento de Prueba')
-            ->assertSee('Título Intermedio')
             ->assertDontSee('no está vinculada');
     }
 

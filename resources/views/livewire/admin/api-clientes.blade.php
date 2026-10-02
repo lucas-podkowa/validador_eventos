@@ -35,7 +35,7 @@
                         <tr>
                             <td class="px-4 py-2 font-medium">{{ $cliente->nombre }}</td>
                             <td class="px-4 py-2 text-sm text-gray-500">{{ $cliente->descripcion ?? '—' }}</td>
-                            <td class="px-4 py-2 text-center text-sm">{{ $cliente->certificados_externos_count }}</td>
+                            <td class="px-4 py-2 text-center text-sm">{{ $cliente->emisiones_count }}</td>
                             <td class="px-4 py-2 text-center">
                                 @if ($cliente->activo)
                                     <span class="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">Activo</span>

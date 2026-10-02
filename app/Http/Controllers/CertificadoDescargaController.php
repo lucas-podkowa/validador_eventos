@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CertificadoEmitido;
-use App\Models\CertificadoExterno;
+use App\Models\Emision;
 use App\Models\EventoParticipante;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,24 +21,11 @@ class CertificadoDescargaController extends Controller
         return $this->servir($path);
     }
 
-    public function externo(CertificadoExterno $certificadoExterno)
+    public function emision(Emision $emision)
     {
-        $this->autorizarExterno($certificadoExterno);
+        $this->autorizarEmision($emision);
 
-        $path = $certificadoExterno->certificado_path;
-
-        if (! $path || ! Storage::disk('private')->exists($path)) {
-            abort(404, 'Certificado no encontrado.');
-        }
-
-        return $this->servir($path);
-    }
-
-    public function titulo(CertificadoEmitido $certificadoEmitido)
-    {
-        $this->autorizarTitulo($certificadoEmitido);
-
-        $path = $certificadoEmitido->certificado_path;
+        $path = $emision->certificado_path;
 
         if (! $path || ! Storage::disk('private')->exists($path)) {
             abort(404, 'Certificado no encontrado.');
@@ -66,7 +52,7 @@ class CertificadoDescargaController extends Controller
         );
     }
 
-    protected function autorizarTitulo(CertificadoEmitido $certificadoEmitido): void
+    protected function autorizarEmision(Emision $emision): void
     {
         $user = auth()->user();
 
@@ -74,26 +60,8 @@ class CertificadoDescargaController extends Controller
             abort(403);
         }
 
-        $esDuenio = $certificadoEmitido->participante
-            && (int) $certificadoEmitido->participante->user_id === (int) $user->id;
-
-        abort_unless(
-            $esDuenio || $user->hasAnyRole(['Administrador', 'Académica']),
-            403,
-            'No autorizado para ver este certificado.'
-        );
-    }
-
-    protected function autorizarExterno(CertificadoExterno $certificadoExterno): void
-    {
-        $user = auth()->user();
-
-        if (! $user) {
-            abort(403);
-        }
-
-        $esDuenio = $certificadoExterno->participante
-            && (int) $certificadoExterno->participante->user_id === (int) $user->id;
+        $esDuenio = $emision->participante
+            && (int) $emision->participante->user_id === (int) $user->id;
 
         abort_unless(
             $esDuenio || $user->hasAnyRole(['Administrador', 'Gestor']),

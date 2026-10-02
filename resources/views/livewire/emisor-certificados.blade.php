@@ -1,271 +1,187 @@
-<div class="px-4 sm:px-6 lg:px-8 py-4">
-
-
-    <div class="py-2 flex justify-between items-center">
-        <h2 class="text-xl font-bold mb-4">Inscripción a Eventos y emisión directa de Certificados</h2>
-        <button wire:click="abrirModal" style="font-size: 0.75rem; font-weight: 600"
-            class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-            Nueva Emisión
-        </button>
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Emisión de certificados</h2>
+        <p class="text-sm text-gray-500">Emití un certificado para una persona en un evento o en un contexto/programa.</p>
     </div>
-    <div>
-        <x-table>
-            <table class="w-full min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Participante</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Curso</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Certificado</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
 
-                    @foreach ($eventoParticipantes as $ep)
-                        <tr>
-                            <td class="px-6 py-3">{{ $ep->participante->nombre }}</td>
-                            <td class="px-6 py-3">{{ $ep->evento->nombre ?? 'Evento sin nombre' }}</td>
-                            <td class="px-6 py-3">
-                                @if ($ep->certificado_path)
-                                    <a href="{{ route('ver.certificado', $ep) }}" target="_blank"
-                                        title="Ver Certificado" class="text-red-600 hover:text-red-800">
-                                        <i class="mr-2 fa-solid fa-file-pdf fa-xl text-blue-500"></i>
-                                    </a>
-                                @else
-                                    <span class="text-gray-400" title="Certificado no disponible">
-                                        <i class="fa-solid fa-file-pdf fa-xl"></i>
-                                    </span>
-                                @endif
+    <form wire:submit.prevent="emitir" class="mb-8 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Origen</label>
+                <select wire:model.live="origen_tipo" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                    <option value="evento">Evento</option>
+                    <option value="contexto">Contexto / Programa</option>
+                </select>
+            </div>
 
-                            </td>
+            @if ($origen_tipo === 'evento')
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <select wire:model.live="categoria_id" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Seleccionar --</option>
+                        @foreach ($categorias as $categoria)
+                            <option value="{{ $categoria->categoria_id }}">{{ $categoria->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('categoria_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
 
-                        </tr>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contexto / Edición</label>
+                    <select wire:model.live="contexto_id" class="w-full border-gray-300 rounded-md shadow-sm text-sm" @disabled(empty($contextos))>
+                        <option value="">-- Seleccionar --</option>
+                        @foreach ($contextos as $contexto)
+                            <option value="{{ $contexto->contexto_id }}">{{ $contexto->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @if (! $categoria_id)
+                        <p class="mt-1 text-xs text-gray-400">Elegí una categoría para ver sus contextos.</p>
+                    @endif
+                    @error('contexto_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Evento</label>
+                    <select wire:model.live="evento_id" class="w-full border-gray-300 rounded-md shadow-sm text-sm" @disabled(empty($eventos))>
+                        <option value="">-- Seleccionar --</option>
+                        @foreach ($eventos as $evento)
+                            <option value="{{ $evento->evento_id }}">{{ $evento->nombre }}@if($evento->fecha_inicio) — {{ \Illuminate\Support\Carbon::parse($evento->fecha_inicio)->format('d/m/Y') }}@endif</option>
+                        @endforeach
+                    </select>
+                    @if ($contexto_id && empty($eventos))
+                        <p class="mt-1 text-xs text-amber-600">Este contexto no tiene eventos finalizados.</p>
+                    @endif
+                    @error('evento_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+            @else
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contexto / Programa</label>
+                    <select wire:model.live="contexto_id" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Seleccionar --</option>
+                        @foreach ($contextos as $contexto)
+                            <option value="{{ $contexto->contexto_id }}">{{ $contexto->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('contexto_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+            @endif
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de reconocimiento</label>
+                <select wire:model.live="tipo_reconocimiento_id" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                    <option value="">-- Seleccionar --</option>
+                    @foreach ($tipos as $tipo)
+                        <option value="{{ $tipo['tipo_reconocimiento_id'] }}">{{ $tipo['nombre'] }}</option>
                     @endforeach
-                </tbody>
-            </table>
-        </x-table>
-        <!-- Paginación -->
-        {{-- <div class="mt-4">
-            {{ $eventoParticipantes->links() }}
-        </div> --}}
+                </select>
+                @error('tipo_reconocimiento_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
 
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Plantilla</label>
+                <select wire:model="plantilla_id" class="w-full border-gray-300 rounded-md shadow-sm text-sm" @disabled(empty($plantillas))>
+                    <option value="">-- Seleccionar --</option>
+                    @foreach ($plantillas as $plantilla)
+                        <option value="{{ $plantilla['plantilla_id'] }}">{{ $plantilla['nombre'] }}</option>
+                    @endforeach
+                </select>
+                @error('plantilla_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
+        </div>
 
+        <hr class="my-5">
 
-
-
-        <x-dialog-modal wire:model="modal_abierto">
-            <x-slot name="title">Emisor de Certificados</x-slot>
-
-            <x-slot name="content">
-
-                {{-- SECCIÓN 1: DATOS DEL EVENTO --}}
-                <div class="border border-gray-300 rounded-md p-4 mb-6 bg-gray-50">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-700">🗓️ Información del Evento</h2>
-
-                    <div class="mb-4">
-                        {{-- <label class="block font-medium text-sm text-gray-700">Evento</label> --}}
-                        <select wire:model="evento_id" class="form-select w-full mt-1">
-                            <option value="">-- Seleccionar --</option>
-                            @foreach ($eventos as $evento)
-                                <option value="{{ $evento->evento_id }}">{{ $evento->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('evento_id')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="mb-4">
-                        <label class="block font-medium text-sm text-gray-700">🏆 Rol del Participante</label>
-                        <select wire:model="rol_id" class="form-select w-full mt-1">
-                            <option value="">-- Seleccionar Rol --</option>
-                            {{-- $roles fue cargado en el mount() del componente --}}
-                            @foreach ($roles as $rol)
-                                <option value="{{ $rol->rol_id }}">{{ $rol->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('rol_id')
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="mb-2">
-                        @php
-                            $tiposDisponibles = array_keys($plantillas_por_tipo ?? []);
-                            $labelForTipo = function ($t) {
-                                return $t === 'aprobacion' ? 'Aprobación' : ucfirst($t);
-                            };
-                        @endphp
-
-                        @if (!empty($tiposDisponibles))
-                            <label class="block font-medium text-sm text-gray-700 mb-2">🖼️ Plantilla del certificado</label>
-
-                            @if (count($tiposDisponibles) > 1)
-                                <div class="mb-3">
-                                    <label class="block text-xs text-gray-500">Tipo de certificado</label>
-                                    <select wire:model="certificado_tipo" class="form-select w-full mt-1">
-                                        @foreach ($tiposDisponibles as $t)
-                                            <option value="{{ $t }}">{{ $labelForTipo($t) }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            @endif
-
-                            @if ($certificado_tipo && isset($plantillas_por_tipo[$certificado_tipo]) && count($plantillas_por_tipo[$certificado_tipo]) > 0)
-                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    @foreach ($plantillas_por_tipo[$certificado_tipo] as $plt)
-                                        <label class="cursor-pointer">
-                                            <input type="radio" wire:model="plantilla_id" value="{{ $plt['plantilla_id'] }}" class="sr-only peer">
-                                            <div class="border-2 rounded-lg overflow-hidden transition-all
-                                                    peer-checked:border-indigo-500 peer-checked:ring-2 peer-checked:ring-indigo-300
-                                                    hover:border-gray-400">
-                                                <img src="{{ asset('storage/' . $plt['imagen_path']) }}" alt="{{ $plt['nombre'] }}" class="w-full h-24 object-cover">
-                                                <p class="text-xs text-center py-1 font-medium text-gray-700">{{ $plt['nombre'] }}</p>
-                                            </div>
-                                        </label>
-                                    @endforeach
-                                </div>
-                                @error('plantilla_id')
-                                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                                @enderror
-                            @else
-                                {{-- Fallback: carga manual si no hay plantillas para el tipo seleccionado --}}
-                                <label for="background_image" class="block text-sm font-medium text-gray-700">
-                                    🖼️ Plantilla para el certificado
-                                    @if ($evento_id)
-                                        <span class="text-xs text-gray-400 ml-1">(la categoría del evento no tiene plantillas para este tipo)</span>
-                                    @endif
-                                </label>
-                                <input type="file" id="background_image" wire:model="background_image" accept="image/png, image/jpeg, image/jpg" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                @error('background_image')
-                                    <span class="text-red-500 text-sm">{{ $message }}</span>
-                                @enderror
-                            @endif
-
-                        @else
-                            {{-- Fallback global: cargar imagen si la categoría no tiene plantillas --}}
-                            <label for="background_image" class="block text-sm font-medium text-gray-700">
-                                🖼️ Plantilla para el certificado
-                                @if ($evento_id)
-                                    <span class="text-xs text-gray-400 ml-1">(la categoría del evento no tiene plantillas)</span>
-                                @endif
-                            </label>
-                            <input type="file" id="background_image" wire:model="background_image" accept="image/png, image/jpeg, image/jpg" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            @error('background_image')
-                                <span class="text-red-500 text-sm">{{ $message }}</span>
-                            @enderror
-                        @endif
-                    </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+                <div class="flex gap-2">
+                    <input wire:model="dni" type="text" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                    <button type="button" wire:click="buscarParticipante"
+                        class="shrink-0 rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Buscar</button>
                 </div>
+                @error('dni') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input wire:model="nombre" type="text" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                @error('nombre') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+                <input wire:model="apellido" type="text" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                @error('apellido') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Correo</label>
+                <input wire:model="mail" type="email" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                @error('mail') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                <input wire:model="telefono" type="text" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                @error('telefono') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            </div>
+        </div>
 
-                {{-- SECCIÓN 2: DATOS DEL PARTICIPANTE --}}
-                <div class="border border-gray-300 rounded-md p-4 bg-white">
-                    <h2 class="text-lg font-semibold mb-4 text-gray-700">👤 Información del Participante</h2>
+        @if ($similar && $decision_similar === null)
+            <div class="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+                <p class="font-semibold">Ya existe un participante con datos similares:</p>
+                <p>{{ $similar['apellido'] }}, {{ $similar['nombre'] }} — DNI {{ $similar['dni'] }}</p>
+                <div class="mt-3 flex gap-2">
+                    <button type="button" wire:click="usarSimilar"
+                        class="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white">Es la misma persona</button>
+                    <button type="button" wire:click="crearNuevo"
+                        class="rounded-md bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white">Es otra persona</button>
+                </div>
+            </div>
+        @endif
 
-                    {{-- Línea: DNI --}}
-                    <div class="flex flex-col">
-                        <label for="dni" class="mb-1 lg:mb-0 font-medium">Número
-                            DNI:</label>
+        <div class="mt-5 flex justify-end">
+            <button type="submit"
+                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                Emitir certificado
+            </button>
+        </div>
+    </form>
 
-                        <input type="text" wire:model.defer="dni" wire:keydown.enter="buscarParticipante"
-                            wire:keydown.tab="buscarParticipante" wire:blur="buscarParticipante"
-                            class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300" />
-
-                        @error('dni')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <!-- Campo: Nombre -->
-                    <div class="flex flex-col mt-2">
-                        <label for="nombre" class="mb-1 lg:mb-0 font-medium">Nombre
-                            Completo:</label>
-                        <input type="text" id="nombre" wire:model="nombre"
-                            class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
-                        @error('nombre')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <!-- Campo: Apellido -->
-                    <div class="flex flex-col mt-2">
-                        <label for="apellido" class="mb-1 lg:mb-0 font-medium">Apellido:</label>
-                        <input type="text" id="apellido" wire:model="apellido"
-                            class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
-                        @error('apellido')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <!-- Campo: Correo Electrónico -->
-                    <div class="flex flex-col mt-2">
-                        <label for="mail" class="mb-1 lg:mb-0 font-medium">Email:</label>
-                        <input type="email" id="mail" wire:model="mail"
-                            class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
-                        @error('mail')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <!-- Campo: Teléfono -->
-                    <div class="flex flex-col mt-2">
-                        <label for="telefono" class="mb-1 lg:mb-0 font-medium">Teléfono:</label>
-                        <input type="number" id="telefono" wire:model="telefono" wire:blur="detectarSimilar"
-                            class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
-                        @error('telefono')
-                            <span class="text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    @if ($similar)
-                        <div class="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                            <p class="font-semibold">Participante con datos muy similares:</p>
-                            <p class="mt-1">
-                                <strong>{{ $similar['apellido'] }}, {{ $similar['nombre'] }}</strong>
-                                — DNI {{ $similar['dni'] }} — {{ $similar['mail'] }} — Tel. {{ $similar['telefono'] }}
-                            </p>
-
-                            @if ($decision_similar === 'usar')
-                                <p class="mt-2 text-green-700">Se usará ese registro y se actualizarán nombre, apellido y teléfono.</p>
-                            @elseif ($decision_similar === 'nuevo')
-                                <p class="mt-2 text-gray-700">Se creará un participante nuevo con estos datos.</p>
-                            @else
-                                <p class="mt-2">¿Es la misma persona?</p>
-                                <div class="mt-2 flex flex-wrap gap-2">
-                                    <button type="button" wire:click="usarSimilar"
-                                        class="rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-white">
-                                        Sí, es la misma persona
-                                    </button>
-                                    <button type="button" wire:click="crearNuevo"
-                                        class="rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700">
-                                        No, es otra persona
-                                    </button>
-                                </div>
+    <h3 class="mb-3 text-lg font-semibold text-gray-700">Emisiones recientes</h3>
+    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 text-left text-xs uppercase text-gray-500">
+                <tr>
+                    <th class="px-4 py-3">Persona</th>
+                    <th class="px-4 py-3">Tipo</th>
+                    <th class="px-4 py-3">Origen</th>
+                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3">Fecha</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse ($emisiones as $emision)
+                    <tr>
+                        <td class="px-4 py-2">{{ $emision->participante?->apellido }}, {{ $emision->participante?->nombre }}</td>
+                        <td class="px-4 py-2">{{ $emision->tipoReconocimiento?->nombre }}</td>
+                        <td class="px-4 py-2">{{ $emision->origen_snapshot['nombre'] ?? '—' }}</td>
+                        <td class="px-4 py-2">
+                            <span class="rounded-full px-2 py-0.5 text-xs {{ $emision->estaAnulada() ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
+                                {{ $emision->estaAnulada() ? 'Anulado' : 'Emitido' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 text-gray-500">{{ $emision->emitida_en?->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2 text-right">
+                            @if ($emision->certificado_path)
+                                <a href="{{ route('ver.emision', $emision) }}" target="_blank" class="text-red-600 hover:text-red-800">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </a>
                             @endif
-                        </div>
-                    @endif
-
-                    @if ($reemision)
-                        <div class="mt-4 p-3 border border-amber-300 bg-amber-50 rounded-md text-sm text-amber-800">
-                            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                            Este participante ya está registrado en el evento. Se reemitirá únicamente su certificado con los datos actualizados, sin afectar al resto.
-                        </div>
-                    @endif
-                </div>
-
-            </x-slot>
-
-            <x-slot name="footer">
-                <div class="py-2 flex justify-end items-center">
-                    <!-- Botones de Guardar y Volver (Derecha) -->
-                    <div class="flex space-x-4">
-                        <x-secondary-button wire:click="$set('modal_abierto', false)">
-                            Volver
-                        </x-secondary-button>
-
-                        <button wire:click="guardar" style="font-size: 0.75rem; font-weight: 600"
-                            class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                            {{ $reemision ? 'Reemitir' : 'Guardar' }}
-                        </button>
-                    </div>
-                </div>
-            </x-slot>
-        </x-dialog-modal>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">Todavía no hay emisiones.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
+    <div class="py-4">{{ $emisiones->links() }}</div>
 </div>

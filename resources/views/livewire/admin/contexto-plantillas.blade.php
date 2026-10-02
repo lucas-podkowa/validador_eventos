@@ -14,6 +14,11 @@
             @foreach ($plantillas as $plantilla)
                 <div class="relative border border-gray-200 rounded-2xl overflow-hidden bg-white">
                     <div class="absolute inset-x-0 top-0 z-10 flex items-center justify-end gap-2 p-2">
+                        <button type="button" wire:click="clonar({{ $plantilla['plantilla_id'] }})"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:text-indigo-600"
+                            title="Clonar plantilla">
+                            <i class="fas fa-copy text-xs"></i>
+                        </button>
                         <button type="button" wire:click="abrirEditar({{ $plantilla['plantilla_id'] }})"
                             class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:text-indigo-600"
                             title="Editar plantilla">
@@ -32,7 +37,7 @@
                     <div class="p-4 bg-white">
                         <p class="text-sm font-semibold text-gray-800 truncate">{{ $plantilla['nombre'] }}</p>
                         <div class="mt-3 flex flex-wrap items-center gap-2">
-                            <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{{ strtoupper($plantilla['tipo'] ?? 'ASISTENCIA') }}</span>
+                            <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">{{ $tiposReconocimiento->firstWhere('tipo_reconocimiento_id', $plantilla['tipo_reconocimiento_id'] ?? null)?->nombre ?? strtoupper($plantilla['tipo'] ?? '—') }}</span>
                             @if (!empty($plantilla['por_defecto']))
                                 <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">Predeterminada</span>
                             @endif
@@ -49,7 +54,11 @@
     <form wire:submit.prevent="guardar">
         <x-dialog-modal wire:model="open_modal" maxWidth="7xl">
             <x-slot name="title">
-                {{ $editando_id ? 'Editar Plantilla del Contexto' : 'Nueva Plantilla del Contexto' }}
+                @if ($clonando_id)
+                    Clonar Plantilla del Contexto
+                @else
+                    {{ $editando_id ? 'Editar Plantilla del Contexto' : 'Nueva Plantilla del Contexto' }}
+                @endif
             </x-slot>
 
             <x-slot name="content">
@@ -284,14 +293,16 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
-                                <select wire:model.live="tipo"
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de reconocimiento</label>
+                                <select wire:model.live="tipo_reconocimiento_id"
                                     class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                    @foreach ($tipos as $t)
-                                        <option value="{{ $t }}">{{ ucfirst($t) }}</option>
+                                    <option value="">Seleccionar tipo...</option>
+                                    @foreach ($tiposReconocimiento as $tipoReconocimiento)
+                                        <option value="{{ $tipoReconocimiento->tipo_reconocimiento_id }}">{{ $tipoReconocimiento->nombre }}</option>
                                     @endforeach
                                 </select>
-                                @error('tipo') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                <p class="mt-1 text-[11px] text-gray-500">Qué se le reconoce al destinatario: asistió, aprobó, colaboró, disertó, tutor, evaluador, etc.</p>
+                                @error('tipo_reconocimiento_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
                             <label class="inline-flex items-start gap-3 text-sm rounded-xl border border-gray-200 bg-white px-3 py-2 w-full">
@@ -310,6 +321,8 @@
                                     <p class="mt-1 text-[11px] font-medium text-blue-700">Archivo listo: {{ $imagen->getClientOriginalName() }}</p>
                                 @elseif ($editando_id)
                                     <p class="mt-1 text-[11px] text-gray-500">Dejá vacío para conservar la actual.</p>
+                                @elseif ($clonando_id)
+                                    <p class="mt-1 text-[11px] text-gray-500">Dejá vacío para copiar la imagen de la plantilla original.</p>
                                 @endif
                                 @error('imagen') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
@@ -380,7 +393,7 @@
 
                     <div class="flex justify-end gap-3">
                         <x-secondary-button wire:click="$set('open_modal', false)">Cancelar</x-secondary-button>
-                        <x-button type="submit">Guardar plantilla</x-button>
+                        <x-button type="submit">{{ $clonando_id ? 'Guardar copia' : 'Guardar plantilla' }}</x-button>
                     </div>
                 </div>
             </x-slot>

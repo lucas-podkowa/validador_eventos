@@ -15,6 +15,7 @@ use App\Models\PlantillaCertificado;
 use App\Models\Responsable;
 use App\Models\Rol;
 use App\Models\TipoEvento;
+use App\Models\TipoReconocimiento;
 use App\Models\User;
 use App\Services\GenerarCertificadoEvento;
 use App\Support\CertificadoVariables;
@@ -102,7 +103,7 @@ class CertificadoContextoTest extends TestCase
         Livewire::test(ContextoPlantillas::class, ['contextoId' => $contexto->contexto_id])
             ->call('abrirCrear')
             ->set('nombre', 'Asistente')
-            ->set('tipo', 'asistencia')
+            ->set('tipo_reconocimiento_id', TipoReconocimiento::where('slug', 'asistencia')->value('tipo_reconocimiento_id'))
             ->set('texto', 'ha asistido {formula} {nombre_evento}')
             ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
             ->call('guardar')
@@ -112,9 +113,61 @@ class CertificadoContextoTest extends TestCase
 
         $this->assertNotNull($plantilla);
         $this->assertSame('asistencia', $plantilla->tipo);
+        $this->assertNotNull($plantilla->tipo_reconocimiento_id);
         $this->assertNotEmpty($plantilla->layout);
         $this->assertTrue($plantilla->esDinamica());
         $this->assertSame('ha asistido {formula} {nombre_evento}', $plantilla->texto);
+    }
+
+    public function test_clona_plantilla_del_contexto_copiando_su_imagen(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->admin);
+
+        $categoria = CategoriaEvento::create(['nombre' => 'JIDeTEV']);
+        $contexto = Contexto::create(['categoria_id' => $categoria->categoria_id, 'nombre' => 'XVI JIDeTEV', 'activo' => true]);
+
+        $asistenciaId = TipoReconocimiento::where('slug', 'asistencia')->value('tipo_reconocimiento_id');
+        $disertanteId = TipoReconocimiento::where('slug', 'disertante')->value('tipo_reconocimiento_id');
+
+        $origen = PlantillaCertificado::create([
+            'categoria_id' => $categoria->categoria_id,
+            'contexto_id' => $contexto->contexto_id,
+            'nombre' => 'Asistente',
+            'imagen_path' => 'plantillas/contexto/base.png',
+            'tipo' => 'asistencia',
+            'tipo_reconocimiento_id' => $asistenciaId,
+            'por_defecto' => true,
+            'texto' => 'ha asistido {formula} {nombre_evento}',
+            'layout' => [
+                ['campo' => 'apellido_nombres', 'x' => 20, 'y' => 38, 'w' => 52, 'size' => 40, 'align' => 'center', 'color' => '#0A1B3A', 'bold' => true, 'italic' => false],
+            ],
+        ]);
+        Storage::disk('public')->put('plantillas/contexto/base.png', base64_decode(self::PNG_1PX));
+
+        Livewire::test(ContextoPlantillas::class, ['contextoId' => $contexto->contexto_id])
+            ->call('clonar', $origen->plantilla_id)
+            ->assertSet('clonando_id', $origen->plantilla_id)
+            ->assertSet('editando_id', null)
+            ->assertSet('nombre', 'Copia de Asistente')
+            ->set('nombre', 'Disertante copia')
+            ->set('tipo_reconocimiento_id', $disertanteId)
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $copia = PlantillaCertificado::where('contexto_id', $contexto->contexto_id)
+            ->where('nombre', 'Disertante copia')
+            ->first();
+
+        $this->assertNotNull($copia);
+        $this->assertNotSame($origen->plantilla_id, $copia->plantilla_id);
+        $this->assertEquals($disertanteId, $copia->tipo_reconocimiento_id);
+        $this->assertSame('ha asistido {formula} {nombre_evento}', $copia->texto);
+        $this->assertNotEmpty($copia->layout);
+        $this->assertFalse($copia->por_defecto);
+        $this->assertNotSame($origen->imagen_path, $copia->imagen_path);
+        Storage::disk('public')->assertExists($copia->imagen_path);
+        Storage::disk('public')->assertExists($origen->imagen_path);
     }
 
     public function test_fecha_certificado_formatea_rango(): void
@@ -201,6 +254,7 @@ class CertificadoContextoTest extends TestCase
             'nombre' => 'Asistente',
             'imagen_path' => 'plantillas/contexto/base.png',
             'tipo' => 'asistencia',
+            'tipo_reconocimiento_id' => TipoReconocimiento::where('slug', 'asistencia')->value('tipo_reconocimiento_id'),
             'por_defecto' => true,
             'texto' => 'ha asistido {formula} {nombre_evento}',
             'layout' => [

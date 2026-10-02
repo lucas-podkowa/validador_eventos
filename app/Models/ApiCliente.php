@@ -25,9 +25,9 @@ class ApiCliente extends Model
         'scopes' => 'array',
     ];
 
-    public function certificadosExternos()
+    public function emisiones()
     {
-        return $this->hasMany(CertificadoExterno::class, 'api_cliente_id', 'api_cliente_id');
+        return $this->hasMany(Emision::class, 'api_cliente_id', 'api_cliente_id');
     }
 
     public function scopeActivos($query)

@@ -5,10 +5,11 @@ namespace Tests\Feature;
 use App\Mail\CertificadoTutorMail;
 use App\Models\ApiCliente;
 use App\Models\CategoriaEvento;
-use App\Models\CertificadoExterno;
 use App\Models\Contexto;
+use App\Models\Emision;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
+use App\Models\TipoReconocimiento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -55,11 +56,11 @@ class CertificadoExternoApiTest extends TestCase
         $response->assertCreated()
             ->assertHeader('Idempotent-Replay', 'false')
             ->assertJsonPath('data.external_ref', 'PPS-TUT-1')
-            ->assertJsonPath('data.estado', CertificadoExterno::ESTADO_EMITIDO)
-            ->assertJsonPath('data.match_estado', CertificadoExterno::MATCH_AUTO)
+            ->assertJsonPath('data.estado', Emision::ESTADO_EMITIDO)
+            ->assertJsonPath('data.match_estado', Emision::MATCH_AUTO)
             ->assertJsonStructure(['data' => ['id', 'verificacion_url', 'receptor' => ['nombre', 'dni']]]);
 
-        $certificado = CertificadoExterno::first();
+        $certificado = Emision::first();
         $this->assertNotNull($certificado);
         $this->assertNotNull($certificado->certificado_path);
         Storage::disk('private')->assertExists($certificado->certificado_path);
@@ -69,7 +70,7 @@ class CertificadoExternoApiTest extends TestCase
             'mail' => 'juan@example.test',
         ]);
 
-        Mail::assertQueued(CertificadoTutorMail::class);
+        Mail::assertSent(CertificadoTutorMail::class);
     }
 
     public function test_idempotencia_por_referencia_externa(): void
@@ -83,8 +84,8 @@ class CertificadoExternoApiTest extends TestCase
         $segunda = $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload());
         $segunda->assertOk()->assertHeader('Idempotent-Replay', 'true');
 
-        $this->assertSame(1, CertificadoExterno::count());
-        Mail::assertQueuedCount(1);
+        $this->assertSame(1, Emision::count());
+        Mail::assertSentCount(1);
     }
 
     public function test_tier_1_reutiliza_participante_y_vincula_cuenta(): void
@@ -109,7 +110,7 @@ class CertificadoExternoApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.match_estado', 'auto');
 
-        $certificado = CertificadoExterno::first();
+        $certificado = Emision::first();
         $this->assertSame($participante->participante_id, $certificado->participante_id);
         $this->assertSame((int) $user->id, (int) $participante->fresh()->user_id);
         $this->assertSame(1, Participante::count());
@@ -132,7 +133,7 @@ class CertificadoExternoApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.match_estado', 'revisar');
 
-        $certificado = CertificadoExterno::first();
+        $certificado = Emision::first();
         $this->assertSame($participante->participante_id, $certificado->participante_id);
         $this->assertSame(1, Participante::count());
     }
@@ -156,7 +157,7 @@ class CertificadoExternoApiTest extends TestCase
         $this->crearPlantilla();
 
         $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())->assertCreated();
-        $certificado = CertificadoExterno::first();
+        $certificado = Emision::first();
 
         $this->withToken($token)
             ->getJson(route('api.certificados.show', $certificado))
@@ -178,13 +179,13 @@ class CertificadoExternoApiTest extends TestCase
         $this->crearPlantilla();
 
         $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())->assertCreated();
-        $certificado = CertificadoExterno::first();
+        $certificado = Emision::first();
 
-        $this->get(route('verificar.externo', ['codigo' => $certificado->codigo_verificacion]))
+        $this->get(route('verificar', ['codigo' => $certificado->codigo_verificacion]))
             ->assertOk()
             ->assertSee('Perez');
 
-        $this->get(route('verificar.externo', ['codigo' => 'inexistente']))
+        $this->get(route('verificar', ['codigo' => 'inexistente']))
             ->assertOk()
             ->assertSee('no válido');
     }
@@ -200,15 +201,15 @@ class CertificadoExternoApiTest extends TestCase
         ]);
 
         $this->withToken($token)->postJson(route('api.certificados.store'), $this->payload())->assertCreated();
-        $certificado = CertificadoExterno::first();
+        $certificado = Emision::first();
 
         $this->actingAs($user)
             ->get(route('mis_certificados'))
             ->assertOk()
-            ->assertSee('Tutoría Académica');
+            ->assertSee('Prácticas Profesionales Supervisadas');
 
         $this->actingAs($user)
-            ->get(route('mis_certificados.externo', $certificado))
+            ->get(route('mis_certificados.emision', $certificado))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
     }
@@ -249,12 +250,16 @@ class CertificadoExternoApiTest extends TestCase
             'activo' => true,
         ]);
 
+        $tipoTutor = TipoReconocimiento::where('slug', 'tutor')->value('tipo_reconocimiento_id');
+
         return PlantillaCertificado::create([
             'categoria_id' => $categoria->categoria_id,
             'contexto_id' => $contexto->contexto_id,
             'nombre' => 'tutor_academico_default',
             'imagen_path' => 'plantillas/contexto/tutor.png',
             'tipo' => 'tutor_academico',
+            'tipo_reconocimiento_id' => $tipoTutor,
+            'alcance' => 'programa',
             'por_defecto' => true,
             'texto' => 'ha cumplido la función de Tutor Académico en {carrera}.',
             'layout' => [

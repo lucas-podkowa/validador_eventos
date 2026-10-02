@@ -103,4 +103,14 @@ class Participante extends Model
     {
         return $this->hasMany(InscripcionParticipante::class, 'participante_id', 'participante_id');
     }
+
+    public function emisiones()
+    {
+        return $this->hasMany(Emision::class, 'participante_id', 'participante_id');
+    }
+
+    public function participaciones()
+    {
+        return $this->hasMany(Participacion::class, 'participante_id', 'participante_id');
+    }
 }

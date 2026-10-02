@@ -10,7 +10,7 @@ class ReemitirCertificadosParticipanteCommand extends Command
 {
     protected $signature = 'participantes:reemitir-certificados {dni* : Uno o más DNI de participantes}';
 
-    protected $description = 'Re-emite los certificados de eventos y títulos de uno o más participantes (útil tras corregir el DNI o fusionar duplicados)';
+    protected $description = 'Re-emite los certificados de eventos y emisiones de uno o más participantes (útil tras corregir el DNI o fusionar duplicados)';
 
     public function handle(): int
     {
@@ -25,7 +25,7 @@ class ReemitirCertificadosParticipanteCommand extends Command
 
             $resultado = app(ReemitirCertificadosParticipante::class)->participante($participante);
 
-            $this->info("DNI {$dni}: eventos reemitidos {$resultado['eventos']}, títulos {$resultado['titulos']}, omitidos {$resultado['omitidos']}.");
+            $this->info("DNI {$dni}: eventos reemitidos {$resultado['eventos']}, emisiones {$resultado['emisiones']}, omitidos {$resultado['omitidos']}.");
         }
 
         return self::SUCCESS;

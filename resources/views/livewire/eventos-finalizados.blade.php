@@ -293,13 +293,18 @@
 
     <x-dialog-modal wire:model="open_emitir">
         <x-slot name="title">
-            <h4 class="text-md font-semibold mb-2 mt-4 text-blue-600">Selector de Plantillas para Certificados</h4>
+            <h4 class="text-md font-semibold mb-2 mt-4 text-blue-600">Plantillas del contexto para los certificados</h4>
         </x-slot>
 
         <x-slot name="content">
             {{-- Información del Evento --}}
             @if ($evento_selected)
                 <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md space-y-1">
+                    <div class="flex items-center text-sm text-gray-700">
+                        <i class="fa-solid fa-layer-group text-indigo-600 mr-2 w-5 text-center"></i>
+                        <span class="font-medium mr-1">Contexto:</span>
+                        {{ $evento_selected->contexto->nombre ?? 'Sin asignar' }}
+                    </div>
                     {{-- Responsable del Evento --}}
                     @if ($evento_selected->responsable)
                         <div class="flex items-center text-sm text-gray-700">
@@ -322,74 +327,78 @@
                 </div>
             @endif
 
-            {{-- Plantillas de Certificados --}}
-            @php
-                $secciones = [];
-                if ($evento_selected && $evento_selected->por_aprobacion) {
-                    $secciones[] = ['tipo' => 'asistencia', 'model' => 'background_image_asistencia', 'id' => 'background_image_asistencia', 'label' => 'Plantilla para Certificado de Asistencia (No Aprobados)', 'icon' => 'fa-file-lines text-blue-500', 'desc' => 'Asistencia'];
-                    $secciones[] = ['tipo' => 'aprobacion', 'model' => 'background_image_aprobacion', 'id' => 'background_image_aprobacion', 'label' => 'Plantilla para Certificado de Aprobación (Aprobados)', 'icon' => 'fa-award text-green-600', 'desc' => 'Aprobación'];
-                } else {
-                    $secciones[] = ['tipo' => 'asistencia', 'model' => 'background_image', 'id' => 'background_image', 'label' => 'Plantilla para Certificado de Asistentes', 'icon' => 'fa-user text-indigo-500', 'desc' => 'Asistente'];
-                }
-                if ($hasDisertantes) {
-                    $secciones[] = ['tipo' => 'disertante', 'model' => 'background_image_disertante', 'id' => 'background_image_disertante', 'label' => 'Plantilla para Certificado de Disertante', 'icon' => 'fa-chalkboard-user text-purple-600', 'desc' => 'Disertante'];
-                }
-                if ($hasColaboradores) {
-                    $secciones[] = ['tipo' => 'colaborador', 'model' => 'background_image_colaborador', 'id' => 'background_image_colaborador', 'label' => 'Plantilla para Certificado de Colaborador', 'icon' => 'fa-handshake text-teal-600', 'desc' => 'Colaborador'];
-                }
-            @endphp
-
-            @foreach ($secciones as $sec)
-                @php
-                    $tipo = $sec['tipo'];
-                    $plantillasTipo = $plantillas_por_tipo[$tipo] ?? [];
-                    $hayPlantilla = !empty($plantillasTipo);
-                    $usaCategoria = $usar_plantilla_categoria[$tipo] ?? false;
-                @endphp
-
-                @if ($hayPlantilla && $usaCategoria)
-                    @php
-                        $plt = collect($plantillasTipo)->firstWhere('por_defecto', true) ?? $plantillasTipo[0];
-                    @endphp
-                    <div class="mb-4 p-3 border border-green-300 bg-green-50 rounded-md">
-                        <div class="flex items-start gap-3">
-                            <img src="{{ asset('storage/' . $plt['imagen_path']) }}" class="w-24 h-16 object-cover rounded border" alt="{{ $plt['nombre'] }}">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-800"><i class="fa-solid fa-check-circle text-green-600 mr-1"></i> Plantilla de categoría: {{ $plt['nombre'] }}</p>
-                                <p class="text-xs text-green-700">Se usará para el certificado de {{ $sec['desc'] }}</p>
-                                <button type="button" wire:click="usarPlantillaManual('{{ $tipo }}')" class="text-xs text-blue-600 hover:underline mt-1 inline-block">
-                                    <i class="fa-solid fa-upload mr-1"></i> Subir otra plantilla
-                                </button>
-                            </div>
+            {{-- Asignación de contexto (sin salir de la instancia de certificación) --}}
+            @if ($evento_selected && is_null($evento_selected->certificado_path))
+                <details class="mb-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4"
+                    @if (! $evento_selected->contexto_id) open @endif>
+                    <summary class="cursor-pointer text-sm font-semibold text-indigo-800">
+                        {{ $evento_selected->contexto_id ? 'Cambiar contexto del evento' : 'Asignar contexto del evento' }}
+                    </summary>
+                    <p class="mt-2 text-xs text-gray-500">
+                        Asignar categoría y contexto no modifica el QR ni las aprobaciones de los participantes.
+                    </p>
+                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+                            <select wire:model.live="categoria_asignada_id"
+                                class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">-- Seleccionar --</option>
+                                @foreach ($categorias as $categoria)
+                                    <option value="{{ $categoria->categoria_id }}">{{ $categoria->nombre }}</option>
+                                @endforeach
+                            </select>
+                            @error('categoria_asignada_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Contexto</label>
+                            <select wire:model="contexto_asignado_id"
+                                class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                @disabled(empty($contextos_asignables))>
+                                <option value="">-- Seleccionar --</option>
+                                @foreach ($contextos_asignables as $contexto)
+                                    <option value="{{ $contexto->contexto_id }}">{{ $contexto->nombre }}</option>
+                                @endforeach
+                            </select>
+                            @error('contexto_asignado_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                @else
-                    <div class="mb-4" wire:key="certificado-upload-{{ $tipo }}-{{ $usaCategoria ? 'categoria' : 'manual' }}">
-                        <label for="{{ $sec['id'] }}" class="block text-sm font-medium text-gray-700">
-                            <i class="fa-solid {{ $sec['icon'] }} mr-1"></i>
-                            {{ $sec['label'] }}
-                            @if ($hayPlantilla && !$usaCategoria)
-                                <span class="text-xs text-orange-500 ml-1">(personalizada)</span>
-                            @endif
-                        </label>
-                        <input type="file" id="{{ $sec['id'] }}" wire:model="{{ $sec['model'] }}"
-                            accept="image/png, image/jpeg"
-                            class="block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        <div wire:loading wire:target="{{ $sec['model'] }}" class="mt-2 text-xs text-blue-700 flex items-center gap-2">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>Cargando plantilla, espere antes de emitir.</span>
-                        </div>
-                        @error($sec['model'])
-                            <span class="text-red-500 text-sm">{{ $message }}</span>
-                        @enderror
-                        @if ($hayPlantilla && !$usaCategoria)
-                            <button type="button" wire:click="usarPlantillaCategoria('{{ $tipo }}')" class="text-xs text-blue-600 hover:underline mt-1 inline-block">
-                                <i class="fa-solid fa-rotate-left mr-1"></i> Usar plantilla de la categoría
-                            </button>
-                        @endif
+                    <div class="mt-3 flex justify-end">
+                        <button type="button" wire:click="asignarContexto"
+                            wire:loading.attr="disabled" wire:target="asignarContexto"
+                            class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+                            <span wire:loading.remove wire:target="asignarContexto">Guardar contexto</span>
+                            <span wire:loading wire:target="asignarContexto">Guardando...</span>
+                        </button>
                     </div>
-                @endif
-            @endforeach
+                </details>
+            @endif
+
+            {{-- Plantillas del contexto --}}
+            @if (! $evento_selected?->contexto_id)
+                <div class="mb-4 p-3 border border-red-300 bg-red-50 rounded-md text-sm text-red-700">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    Asigná un contexto al evento para poder emitir sus certificados.
+                </div>
+            @elseif (! empty($tipos_faltantes))
+                <div class="mb-4 p-3 border border-orange-300 bg-orange-50 rounded-md text-sm text-orange-700">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    Faltan plantillas en el contexto para: {{ implode(', ', $tipos_faltantes) }}. Cargalas desde "Contextos" antes de emitir.
+                </div>
+            @else
+                <p class="text-sm text-gray-600 mb-3">Se generarán los certificados usando estas plantillas del contexto:</p>
+            @endif
+
+            <ul class="space-y-2">
+                @foreach ($plantillas_contexto as $info)
+                    <li class="flex items-center gap-3 border rounded-xl px-4 py-3 {{ $info['existe'] ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' }}">
+                        <i class="fa-solid {{ $info['existe'] ? 'fa-circle-check text-green-600' : 'fa-circle-xmark text-red-500' }}"></i>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-800">{{ $info['etiqueta'] }}</p>
+                            <p class="text-xs text-gray-500">{{ $info['existe'] ? 'Plantilla: '.$info['nombre'] : 'Sin plantilla configurada' }}</p>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
         </x-slot>
 
         <div wire:loading wire:target="emitirCertificados" class="flex items-center justify-center py-4">
@@ -410,10 +419,9 @@
 
             <button type="button" wire:click="emitirCertificados" style="font-size: 0.75rem; font-weight: 600"
                 wire:loading.attr="disabled"
-                wire:target="background_image,background_image_asistencia,background_image_aprobacion,background_image_disertante,background_image_colaborador,emitirCertificados"
-                class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4">
-                <span wire:loading.remove wire:target="background_image,background_image_asistencia,background_image_aprobacion,background_image_disertante,background_image_colaborador,emitirCertificados">Emitir</span>
-                <span wire:loading wire:target="background_image,background_image_asistencia,background_image_aprobacion,background_image_disertante,background_image_colaborador">Subiendo plantilla...</span>
+                @disabled(! $evento_selected?->contexto_id || ! empty($tipos_faltantes))
+                class="btn btn-primary rounded-md text-white uppercase py-2 px-4 mx-4 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span wire:loading.remove wire:target="emitirCertificados">Emitir</span>
                 <span wire:loading wire:target="emitirCertificados">Emitiendo...</span>
             </button>
         </x-slot>

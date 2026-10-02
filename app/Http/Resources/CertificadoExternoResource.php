@@ -13,18 +13,18 @@ class CertificadoExternoResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->certificado_externo_id,
+            'id' => $this->emision_id,
             'external_ref' => $this->external_ref,
-            'tipo' => $this->tipo,
+            'tipo' => $this->tipoReconocimiento?->slug,
             'estado' => $this->estado,
             'match_estado' => $this->match_estado,
             'receptor' => [
-                'nombre' => $this->receptor_nombre,
-                'dni' => $this->receptor_dni,
-                'email' => $this->receptor_email,
+                'nombre' => trim(($this->participante?->nombre ?? '').' '.($this->participante?->apellido ?? '')),
+                'dni' => $this->participante?->dni,
+                'email' => $this->participante?->mail,
             ],
-            'verificacion_url' => route('verificar.externo', ['codigo' => $this->codigo_verificacion]),
-            'emitido_en' => optional($this->created_at)->toIso8601String(),
+            'verificacion_url' => route('verificar', ['codigo' => $this->codigo_verificacion]),
+            'emitido_en' => optional($this->emitida_en ?? $this->created_at)->toIso8601String(),
         ];
     }
 }

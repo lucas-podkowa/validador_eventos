@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\CategoriaEvento;
 use App\Models\Contexto;
 use App\Models\Firmante;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -19,7 +20,11 @@ class Contextos extends Component
 
     public $categoria_id = null;
 
+    public $parent_id = null;
+
     public $nombre = '';
+
+    public $tipo = 'edicion';
 
     public $denominacion = '';
 
@@ -68,9 +73,10 @@ class Contextos extends Component
     public function abrirCrear(): void
     {
         $this->reset([
-            'editando_id', 'categoria_id', 'nombre', 'denominacion', 'institucion',
+            'editando_id', 'categoria_id', 'parent_id', 'nombre', 'denominacion', 'institucion',
             'anio', 'fecha_inicio', 'fecha_fin', 'lugar', 'resolucion',
         ]);
+        $this->tipo = 'edicion';
         $this->activo = true;
         $this->resetValidation();
         $this->open_modal = true;
@@ -82,7 +88,9 @@ class Contextos extends Component
 
         $this->editando_id = $contexto->contexto_id;
         $this->categoria_id = $contexto->categoria_id;
+        $this->parent_id = $contexto->parent_id;
         $this->nombre = $contexto->nombre;
+        $this->tipo = $contexto->tipo ?? 'edicion';
         $this->denominacion = $contexto->denominacion ?? '';
         $this->institucion = $contexto->institucion ?? '';
         $this->anio = $contexto->anio ?? '';
@@ -99,8 +107,10 @@ class Contextos extends Component
     public function guardar(): void
     {
         $this->validate([
-            'categoria_id' => 'required|exists:categoria_evento,categoria_id',
+            'categoria_id' => 'nullable|exists:categoria_evento,categoria_id',
+            'parent_id' => 'nullable|exists:contexto,contexto_id',
             'nombre' => 'required|string|max:150',
+            'tipo' => 'nullable|string|max:30',
             'denominacion' => 'nullable|string|max:255',
             'institucion' => 'nullable|string|max:255',
             'anio' => 'nullable|integer|min:1900|max:2100',
@@ -112,7 +122,9 @@ class Contextos extends Component
 
         $datos = [
             'categoria_id' => $this->categoria_id,
+            'parent_id' => $this->parent_id ?: null,
             'nombre' => $this->nombre,
+            'tipo' => $this->tipo ?: 'edicion',
             'denominacion' => $this->denominacion ?: null,
             'institucion' => $this->institucion ?: null,
             'anio' => $this->anio !== '' ? (int) $this->anio : null,
@@ -133,9 +145,10 @@ class Contextos extends Component
 
         $this->open_modal = false;
         $this->reset([
-            'editando_id', 'categoria_id', 'nombre', 'denominacion', 'institucion',
+            'editando_id', 'categoria_id', 'parent_id', 'nombre', 'denominacion', 'institucion',
             'anio', 'fecha_inicio', 'fecha_fin', 'lugar', 'resolucion',
         ]);
+        $this->tipo = 'edicion';
     }
 
     public function eliminar(int $id): void
@@ -274,7 +287,13 @@ class Contextos extends Component
             ];
         }
 
-        $contexto->firmantes()->sync($sync);
+        // Reconstruimos el pivote completo dentro de una transacción: un `sync`
+        // fila por fila choca con el índice único (contexto_id, orden) al
+        // intercambiar dos órdenes (estado intermedio duplicado).
+        DB::transaction(function () use ($contexto, $sync) {
+            $contexto->firmantes()->detach();
+            $contexto->firmantes()->attach($sync);
+        });
     }
 
     public function render()

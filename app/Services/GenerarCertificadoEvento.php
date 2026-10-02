@@ -2,12 +2,18 @@
 
 namespace App\Services;
 
+use App\Models\Emision;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
+use App\Models\TipoReconocimiento;
 use App\Support\CertificadoPdfAssets;
 use App\Support\CertificadoVariables;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,7 +21,7 @@ class GenerarCertificadoEvento
 {
     /**
      * Resuelve la plantilla a usar para un participante según su rol/aprobación.
-     * Prioriza las plantillas del contexto del evento y cae a las de la categoría (legacy).
+     * Sólo se consideran las plantillas del contexto del evento.
      */
     public function plantillaPara(Evento $evento, EventoParticipante $relacion): ?PlantillaCertificado
     {
@@ -36,22 +42,19 @@ class GenerarCertificadoEvento
 
     public function buscarPlantilla(Evento $evento, string $tipo): ?PlantillaCertificado
     {
-        if ($evento->contexto_id) {
-            $plantilla = PlantillaCertificado::query()
-                ->where('contexto_id', $evento->contexto_id)
-                ->where('tipo', $tipo)
-                ->orderByDesc('por_defecto')
-                ->first();
+        if (! $evento->contexto_id) {
+            return null;
+        }
 
-            if ($plantilla) {
-                return $plantilla;
-            }
+        $tipoId = $this->tipoReconocimientoId($tipo);
+
+        if (! $tipoId) {
+            return null;
         }
 
         return PlantillaCertificado::query()
-            ->where('categoria_id', $evento->categoria_id)
-            ->whereNull('contexto_id')
-            ->where('tipo', $tipo)
+            ->where('contexto_id', $evento->contexto_id)
+            ->where('tipo_reconocimiento_id', $tipoId)
             ->orderByDesc('por_defecto')
             ->first();
     }
@@ -74,6 +77,16 @@ class GenerarCertificadoEvento
 
         $plantilla = $plantilla ?? $this->plantillaPara($evento, $relacion);
 
+        $emision = $this->emisionPara($relacion, $evento, $participante, $plantilla);
+
+        // Los certificados nuevos validan por código unificado. Los ya impresos
+        // (con url propia) conservan su QR legacy intacto.
+        if (! $relacion->url) {
+            $relacion->url = route('verificar', ['codigo' => $emision->codigo_verificacion]);
+            $relacion->qrcode = $this->qrSvg($relacion->url);
+            $relacion->save();
+        }
+
         $contenido = $this->render($evento, $participante, $plantilla, $relacion->qrcode, $backgroundAbsOverride);
 
         if ($contenido === null) {
@@ -89,7 +102,105 @@ class GenerarCertificadoEvento
         Storage::disk('private')->put($filename, $contenido);
         $relacion->update(['certificado_path' => $filename]);
 
+        $this->actualizarEmision($emision, $evento, $participante, $plantilla, $relacion, $filename);
+
         return $filename;
+    }
+
+    /**
+     * Registra/actualiza la emisión unificada de un vínculo sin regenerar el PDF.
+     * Se usa cuando el PDF ya fue generado por otro flujo (p. ej. fondo manual).
+     */
+    public function sincronizarEmision(EventoParticipante $relacion, ?PlantillaCertificado $plantilla = null): void
+    {
+        $evento = $relacion->evento()
+            ->with(['tipoEvento', 'contexto.firmantes', 'categoria'])
+            ->first();
+        $participante = $relacion->participante;
+
+        if (! $evento || ! $participante || ! $relacion->certificado_path) {
+            return;
+        }
+
+        $plantilla = $plantilla ?? $this->plantillaPara($evento, $relacion);
+
+        $emision = $this->emisionPara($relacion, $evento, $participante, $plantilla);
+
+        $this->actualizarEmision($emision, $evento, $participante, $plantilla, $relacion, $relacion->certificado_path);
+    }
+
+    /**
+     * Crea o recupera la emisión unificada asociada a un vínculo evento–participante.
+     */
+    private function emisionPara(EventoParticipante $relacion, Evento $evento, Participante $participante, ?PlantillaCertificado $plantilla): Emision
+    {
+        $tipoId = $this->tipoReconocimientoId($this->tipoPara($evento, $relacion));
+
+        $emision = Emision::query()
+            ->where('origen_type', Evento::class)
+            ->where('origen_id', $evento->evento_id)
+            ->where('participante_id', $participante->participante_id)
+            ->where('tipo_reconocimiento_id', $tipoId)
+            ->first();
+
+        if ($emision) {
+            return $emision;
+        }
+
+        return Emision::create([
+            'participante_id' => $participante->participante_id,
+            'tipo_reconocimiento_id' => $tipoId,
+            'origen_type' => Evento::class,
+            'origen_id' => $evento->evento_id,
+            'alcance' => 'evento',
+            'plantilla_id' => $plantilla?->plantilla_id,
+            'estado' => Emision::ESTADO_EMITIDO,
+            'emitido_por' => auth()->id(),
+            'emitida_en' => now(),
+        ]);
+    }
+
+    private function actualizarEmision(
+        Emision $emision,
+        Evento $evento,
+        Participante $participante,
+        ?PlantillaCertificado $plantilla,
+        EventoParticipante $relacion,
+        string $filename,
+    ): void {
+        $contexto = $evento->contexto;
+        $firmantes = CertificadoVariables::firmantesDe($contexto);
+        $variables = CertificadoVariables::paraEvento($evento, $participante, $contexto, $firmantes);
+
+        $emision->update([
+            'plantilla_id' => $plantilla?->plantilla_id,
+            'certificado_path' => $filename,
+            'datos' => $variables,
+            'origen_snapshot' => [
+                'tipo' => 'evento',
+                'nombre' => $evento->nombre,
+                'tipo_evento' => $evento->tipoEvento?->nombre,
+                'contexto_nombre' => $contexto?->nombre,
+                'contexto_denominacion' => $contexto?->denominacion,
+                'institucion' => $contexto?->institucion,
+                'resolucion' => $contexto?->resolucion,
+                'lugar' => $contexto?->lugar,
+                'anio' => $contexto?->anio,
+            ],
+            'texto_snapshot' => CertificadoVariables::reemplazar($plantilla?->texto, $variables, false),
+        ]);
+    }
+
+    private function tipoReconocimientoId(string $tipo): ?int
+    {
+        return TipoReconocimiento::where('slug', $tipo)->value('tipo_reconocimiento_id');
+    }
+
+    private function qrSvg(string $url): string
+    {
+        $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd);
+
+        return (new Writer($renderer))->writeString($url);
     }
 
     /**

@@ -117,6 +117,93 @@ class CertificadoVariables
     }
 
     /**
+     * Tokens para una emisión cuyo origen es un contexto/agrupador (jornada, cursillo,
+     * expo, PPS). `nombre_evento` apunta al nombre del contexto para reutilizar plantillas.
+     *
+     * @param  array<string, mixed>  $extra
+     * @param  array<int, array{nombre?:string, cargo?:string, imagen_path?:string}>  $firmantes
+     * @return array<string, string>
+     */
+    public static function paraContexto(Contexto $contexto, Participante $participante, array $extra = [], array $firmantes = []): array
+    {
+        $contextoNombre = (string) ($contexto->nombre ?? '');
+        $contextoDenominacion = (string) ($contexto->denominacion ?? '');
+
+        $contextoCompleto = trim($contextoNombre);
+        if ($contextoDenominacion !== '') {
+            $contextoCompleto = $contextoCompleto === ''
+                ? $contextoDenominacion
+                : "{$contextoNombre} ({$contextoDenominacion})";
+        }
+
+        $variables = array_merge([
+            'apellido' => (string) $participante->apellido,
+            'nombres' => (string) $participante->nombre,
+            'apellido_nombres' => NombreCertificado::paraCertificado($participante->apellido, $participante->nombre),
+            'dni' => (string) $participante->dni,
+            'tipo_evento' => '',
+            'formula' => '',
+            'nombre_evento' => $contextoNombre,
+            'contexto' => $contextoCompleto,
+            'contexto_nombre' => $contextoNombre,
+            'contexto_denominacion' => $contextoDenominacion,
+            'institucion' => (string) ($contexto->institucion ?? ''),
+            'resolucion' => (string) ($contexto->resolucion ?? ''),
+            'lugar' => (string) ($contexto->lugar ?? ''),
+            'anio' => (string) ($contexto->anio ?? ''),
+            'fecha_rango' => FechaCertificado::rango($contexto->fecha_inicio, $contexto->fecha_fin),
+        ], array_map(fn ($valor) => (string) ($valor ?? ''), $extra));
+
+        return self::conFirmantes($variables, $firmantes);
+    }
+
+    /**
+     * Tokens para una emisión sin origen de actividad (p. ej. un título).
+     *
+     * @param  array<string, mixed>  $extra
+     * @param  array<int, array{nombre?:string, cargo?:string, imagen_path?:string}>  $firmantes
+     * @return array<string, string>
+     */
+    public static function paraSinOrigen(Participante $participante, array $extra = [], array $firmantes = []): array
+    {
+        $variables = array_merge([
+            'apellido' => (string) $participante->apellido,
+            'nombres' => (string) $participante->nombre,
+            'apellido_nombres' => NombreCertificado::paraCertificado($participante->apellido, $participante->nombre),
+            'dni' => (string) $participante->dni,
+            'tipo_evento' => '',
+            'formula' => '',
+            'nombre_evento' => '',
+            'contexto' => '',
+            'contexto_nombre' => '',
+            'contexto_denominacion' => '',
+            'institucion' => '',
+            'resolucion' => '',
+            'lugar' => '',
+            'anio' => '',
+            'fecha_rango' => '',
+        ], array_map(fn ($valor) => (string) ($valor ?? ''), $extra));
+
+        return self::conFirmantes($variables, $firmantes);
+    }
+
+    /**
+     * @param  array<string, string>  $variables
+     * @param  array<int, array{nombre?:string, cargo?:string, imagen_path?:string}>  $firmantes
+     * @return array<string, string>
+     */
+    private static function conFirmantes(array $variables, array $firmantes): array
+    {
+        foreach (array_values($firmantes) as $i => $firmante) {
+            $slot = $i + 1;
+            $variables["firmante_{$slot}_nombre"] = (string) ($firmante['nombre'] ?? '');
+            $variables["firmante_{$slot}_cargo"] = (string) ($firmante['cargo'] ?? '');
+        }
+
+        return $variables;
+    }
+
+    /**
      * Reemplaza los tokens {clave} de un texto por su valor. Por defecto escapa los
      * valores para poder renderizar el resultado como HTML (el HTML de la plantilla
      * se conserva; los datos del participante se neutralizan).

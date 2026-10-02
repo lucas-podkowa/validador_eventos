@@ -65,9 +65,9 @@
 
 @php
     $datos = $certificado->datos ?? [];
-    $tutor = $datos['tutor'] ?? [];
-    $practica = $datos['practica'] ?? [];
-    $nombreTutor = trim(($tutor['nombres'] ?? ($tutor['nombre'] ?? '')).' '.($tutor['apellido'] ?? ''));
+    $nombreTutor = trim(($datos['nombres'] ?? '').' '.($datos['apellido'] ?? ''));
+    $carrera = $datos['carrera'] ?? '';
+    $periodo = $datos['fecha_rango'] ?? '';
 @endphp
 
 <body>
@@ -84,13 +84,11 @@
                 Prácticas Profesionales Supervisadas.
             </p>
 
-            @if (! empty($practica['carrera']) || ! empty($practica['periodo_inicio']))
+            @if (! empty($carrera) || ! empty($periodo))
                 <p>
-                    Su acompañamiento se desarrolló en
-                    @if (! empty($practica['carrera']))la carrera <strong>{{ $practica['carrera'] }}</strong>@endif
-                    @if (! empty($practica['periodo_inicio']))
-                        durante el período {{ $practica['periodo_inicio'] }} - {{ $practica['periodo_fin'] ?? '' }}
-                    @endif.
+                    Su acompañamiento se desarrolló
+                    @if (! empty($carrera)) en la carrera <strong>{{ $carrera }}</strong>@endif
+                    @if (! empty($periodo)) durante el período {{ $periodo }}@endif.
                 </p>
             @endif
 

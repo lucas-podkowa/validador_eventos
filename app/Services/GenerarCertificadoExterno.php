@@ -3,40 +3,34 @@
 namespace App\Services;
 
 use App\Models\ApiCliente;
-use App\Models\CertificadoExterno;
+use App\Models\Contexto;
+use App\Models\Emision;
 use App\Models\PlantillaCertificado;
-use App\Support\CertificadoPdfAssets;
-use App\Support\CertificadoVariables;
-use App\Support\NombreCertificado;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use App\Models\TipoReconocimiento;
 use RuntimeException;
 
 /**
- * Emite un certificado externo (por ejemplo, tutores académicos de PPS):
- * resuelve plantilla y participante, crea el registro, genera el PDF con QR y lo
- * guarda en el disco privado. La plantilla es la misma vista Blade que los eventos.
+ * Emite un certificado externo (por ejemplo, tutores académicos de PPS) delegando en
+ * el emisor unificado. La emisión queda en `emision` y se valida por su código.
  */
 class GenerarCertificadoExterno
 {
-    public function __construct(private ResolverParticipanteExterno $resolver) {}
+    public function __construct(
+        private ResolverParticipanteExterno $resolver,
+        private GenerarCertificadoEmision $emisor,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $datos
      */
-    public function emitir(ApiCliente $cliente, array $datos): CertificadoExterno
+    public function emitir(ApiCliente $cliente, array $datos): Emision
     {
-        if (! empty($datos['external_ref'])) {
-            $existente = CertificadoExterno::query()
+        $externalRef = (string) ($datos['external_ref'] ?? '');
+
+        if ($externalRef !== '') {
+            $existente = Emision::query()
                 ->where('api_cliente_id', $cliente->api_cliente_id)
-                ->where('external_ref', $datos['external_ref'])
+                ->where('external_ref', $externalRef)
                 ->first();
 
             if ($existente) {
@@ -45,122 +39,98 @@ class GenerarCertificadoExterno
         }
 
         $tutor = $datos['tutor'] ?? [];
+        $practica = $datos['practica'] ?? [];
+
         $match = $this->resolver->resolver($tutor);
-        $plantilla = $this->resolverPlantilla($datos);
+        $tipo = $this->resolverTipo($datos);
+        $plantilla = $this->resolverPlantilla($datos, $tipo);
 
         if (! $plantilla) {
             throw new RuntimeException('No hay una plantilla configurada para el tipo de certificado solicitado.');
         }
 
-        try {
-            $certificado = DB::transaction(fn () => CertificadoExterno::create([
-                'api_cliente_id' => $cliente->api_cliente_id,
-                'external_ref' => $datos['external_ref'],
-                'tipo' => $datos['tipo'] ?? 'tutor_academico',
-                'plantilla_certificado_id' => $plantilla->plantilla_id,
-                'contexto_id' => $plantilla->contexto_id ?? ($datos['contexto_id'] ?? null),
-                'participante_id' => $match['participante']->participante_id,
-                'datos' => $datos,
-                'receptor_nombre' => NombreCertificado::formatear(
-                    $tutor['apellido'] ?? '',
-                    $tutor['nombres'] ?? ($tutor['nombre'] ?? '')
-                ),
-                'receptor_dni' => (string) ($tutor['dni'] ?? ''),
-                'receptor_email' => (string) ($tutor['email'] ?? ($tutor['mail'] ?? '')),
-                'match_estado' => $match['match_estado'],
-                'match_detalle' => $match['match_detalle'],
-                'codigo_verificacion' => $this->codigoUnico(),
-                'estado' => CertificadoExterno::ESTADO_EMITIDO,
-            ]));
-        } catch (QueryException $e) {
-            // Carrera por idempotencia: otro request creó la misma external_ref.
-            $existente = CertificadoExterno::query()
-                ->where('api_cliente_id', $cliente->api_cliente_id)
-                ->where('external_ref', $datos['external_ref'])
-                ->first();
+        $contexto = $this->resolverContexto($datos, $plantilla);
 
-            if ($existente) {
-                return $existente;
-            }
+        $extra = array_filter([
+            'cargo' => $tutor['cargo'] ?? null,
+            'carrera' => $practica['carrera'] ?? null,
+            'estudiante' => $practica['estudiante_apellido_nombres'] ?? null,
+            'estudiante_dni' => $practica['estudiante_dni'] ?? null,
+            'horas' => $practica['horas'] ?? null,
+            'institucion' => $practica['institucion'] ?? null,
+            'resolucion' => $practica['resolucion'] ?? null,
+        ], fn ($valor) => $valor !== null && $valor !== '');
 
-            throw $e;
+        $emision = $this->emisor->emitir(
+            participante: $match['participante'],
+            tipo: $tipo,
+            plantilla: $plantilla,
+            origen: $contexto,
+            datos: $extra,
+            alcance: 'programa',
+            apiCliente: $cliente,
+            externalRef: $externalRef ?: null,
+            matchEstado: $match['match_estado'],
+            matchDetalle: $match['match_detalle'],
+        );
+
+        if ($contexto) {
+            $emision->update([
+                'origen_snapshot' => array_merge($emision->origen_snapshot ?? [], array_filter([
+                    'practica_carrera' => $practica['carrera'] ?? null,
+                    'practica_estudiante' => $practica['estudiante_apellido_nombres'] ?? null,
+                    'practica_institucion' => $practica['institucion'] ?? null,
+                    'practica_periodo_inicio' => $practica['periodo_inicio'] ?? null,
+                    'practica_periodo_fin' => $practica['periodo_fin'] ?? null,
+                ], fn ($valor) => $valor !== null && $valor !== '')),
+            ]);
         }
 
-        $this->generar($certificado);
-
-        return $certificado->refresh();
+        return $emision->refresh();
     }
 
-    public function generar(CertificadoExterno $certificado): string
+    public function generar(Emision $emision): string
     {
-        $certificado->loadMissing(['plantilla.contexto.firmantes', 'contexto.firmantes']);
-
-        $plantilla = $certificado->plantilla;
-
-        if (! $plantilla) {
-            throw new RuntimeException('El certificado no tiene plantilla asociada.');
-        }
-
-        $contexto = $plantilla->contexto ?? $certificado->contexto;
-
-        $url = route('verificar.externo', ['codigo' => $certificado->codigo_verificacion]);
-        $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd);
-        $qrcode = (new Writer($renderer))->writeString($url);
-        $qr = 'data:image/svg+xml;base64,'.base64_encode($qrcode);
-
-        $firmantes = CertificadoVariables::firmantesDe($contexto);
-        foreach ($firmantes as &$firmante) {
-            $firmante['imagen'] = CertificadoPdfAssets::resolvePrivatePath($firmante['imagen_path']);
-        }
-        unset($firmante);
-
-        $datos = $certificado->datos ?? [];
-        $tutor = $datos['tutor'] ?? [];
-
-        $variables = CertificadoVariables::paraExterno($datos, $contexto, $firmantes);
-        $background = CertificadoPdfAssets::prepareBackgroundForPdf($plantilla->imagen_path);
-
-        $contenido = Pdf::loadView('certificado', [
-            'nombre' => $tutor['nombres'] ?? ($tutor['nombre'] ?? ''),
-            'apellido' => $tutor['apellido'] ?? '',
-            'dni' => $tutor['dni'] ?? '',
-            'qr' => $qr,
-            'background' => $background,
-            'layout' => $plantilla->layout,
-            'texto' => $plantilla->texto,
-            'variables' => $variables,
-            'firmas' => $firmantes,
-        ])->setPaper('a4', 'landscape')->output();
-
-        $filename = $this->rutaArchivo($certificado);
-
-        if ($certificado->certificado_path
-            && $certificado->certificado_path !== $filename
-            && Storage::disk('private')->exists($certificado->certificado_path)) {
-            Storage::disk('private')->delete($certificado->certificado_path);
-        }
-
-        Storage::disk('private')->put($filename, $contenido);
-
-        $certificado->update([
-            'certificado_path' => $filename,
-            'qrcode' => $qrcode,
-        ]);
-
-        return $filename;
+        return $this->emisor->generar($emision);
     }
 
     /**
      * @param  array<string, mixed>  $datos
      */
-    public function resolverPlantilla(array $datos): ?PlantillaCertificado
+    private function resolverTipo(array $datos): TipoReconocimiento
     {
-        $tipo = $datos['tipo'] ?? 'tutor_academico';
+        $slug = match ((string) ($datos['tipo'] ?? 'tutor_academico')) {
+            'tutor_academico', 'tutor' => 'tutor',
+            default => (string) ($datos['tipo'] ?? 'tutor'),
+        };
+
+        $tipo = TipoReconocimiento::where('slug', $slug)->first();
+
+        if (! $tipo) {
+            throw new RuntimeException("No existe el tipo de reconocimiento '{$slug}'.");
+        }
+
+        return $tipo;
+    }
+
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    public function resolverPlantilla(array $datos, TipoReconocimiento $tipo): ?PlantillaCertificado
+    {
         $contextoId = $datos['contexto_id'] ?? null;
 
+        $query = PlantillaCertificado::query()
+            ->where('tipo_reconocimiento_id', $tipo->tipo_reconocimiento_id)
+            ->whereNotNull('contexto_id')
+            ->whereNotNull('layout');
+
+        if ($contextoId) {
+            $query->where('contexto_id', $contextoId);
+        }
+
         if (! empty($datos['plantilla_codigo'])) {
-            $plantilla = PlantillaCertificado::query()
-                ->where('tipo', $tipo)
+            $plantilla = (clone $query)
                 ->where('nombre', $datos['plantilla_codigo'])
                 ->orderByDesc('por_defecto')
                 ->first();
@@ -170,44 +140,16 @@ class GenerarCertificadoExterno
             }
         }
 
-        $query = PlantillaCertificado::query()
-            ->where('tipo', $tipo)
-            ->whereNotNull('contexto_id')
-            ->whereNotNull('layout');
-
-        if ($contextoId) {
-            $query->where('contexto_id', $contextoId);
-        }
-
         return $query->orderByDesc('por_defecto')->first();
     }
 
-    public function rutaArchivo(CertificadoExterno $certificado): string
+    /**
+     * @param  array<string, mixed>  $datos
+     */
+    private function resolverContexto(array $datos, PlantillaCertificado $plantilla): ?Contexto
     {
-        $datos = $certificado->datos ?? [];
-        $tutor = $datos['tutor'] ?? [];
+        $contextoId = $datos['contexto_id'] ?? $plantilla->contexto_id;
 
-        $apellido = Str::slug((string) ($tutor['apellido'] ?? 'tutor'));
-        $nombre = Str::slug((string) ($tutor['nombres'] ?? ($tutor['nombre'] ?? '')));
-        $dni = preg_replace('/\D+/', '', (string) ($tutor['dni'] ?? '')) ?: 's-dni';
-        $tipo = Str::slug((string) $certificado->tipo);
-
-        return sprintf(
-            'certificados_externos/%s/%s/%s_%s_%s.pdf',
-            now()->year,
-            $tipo,
-            $apellido ?: 'tutor',
-            $nombre ?: 's-nombre',
-            $dni
-        );
-    }
-
-    private function codigoUnico(): string
-    {
-        do {
-            $codigo = Str::random(48);
-        } while (CertificadoExterno::where('codigo_verificacion', $codigo)->exists());
-
-        return $codigo;
+        return $contextoId ? Contexto::find($contextoId) : null;
     }
 }

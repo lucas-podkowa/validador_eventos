@@ -19,6 +19,7 @@ class EventoParticipante extends Model
         'evento_id',
         'participante_id',
         'rol_id',
+        'tipo_reconocimiento_id',
         'url',
         'qrcode',
         'aprobado',
@@ -56,5 +57,10 @@ class EventoParticipante extends Model
     public function rol()
     {
         return $this->belongsTo(Rol::class, 'rol_id', 'rol_id');
+    }
+
+    public function tipoReconocimiento()
+    {
+        return $this->belongsTo(TipoReconocimiento::class, 'tipo_reconocimiento_id', 'tipo_reconocimiento_id');
     }
 }

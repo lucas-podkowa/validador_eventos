@@ -15,7 +15,9 @@ class Contexto extends Model
 
     protected $fillable = [
         'categoria_id',
+        'parent_id',
         'nombre',
+        'tipo',
         'denominacion',
         'institucion',
         'anio',
@@ -38,9 +40,29 @@ class Contexto extends Model
         return $this->belongsTo(CategoriaEvento::class, 'categoria_id');
     }
 
+    public function padre()
+    {
+        return $this->belongsTo(Contexto::class, 'parent_id', 'contexto_id');
+    }
+
+    public function hijos()
+    {
+        return $this->hasMany(Contexto::class, 'parent_id', 'contexto_id');
+    }
+
     public function eventos()
     {
         return $this->hasMany(Evento::class, 'contexto_id', 'contexto_id');
+    }
+
+    public function emisiones()
+    {
+        return $this->morphMany(Emision::class, 'origen', 'origen_type', 'origen_id');
+    }
+
+    public function esEdicion(): bool
+    {
+        return $this->tipo === 'edicion';
     }
 
     public function firmantes()

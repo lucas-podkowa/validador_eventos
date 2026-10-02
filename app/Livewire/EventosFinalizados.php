@@ -4,10 +4,10 @@ namespace App\Livewire;
 
 use App\Mail\CertificadoEventoMail;
 use App\Models\CategoriaEvento;
+use App\Models\Contexto;
 use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\Participante;
-use App\Models\PlantillaCertificado;
 use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Models\User;
@@ -36,21 +36,6 @@ class EventosFinalizados extends Component
      * 'finalizados': eventos con certificados ya emitidos.
      */
     public string $modo = 'finalizados';
-
-    protected array $uploadFieldByTipo = [
-        'asistencia' => 'background_image_asistencia',
-        'aprobacion' => 'background_image_aprobacion',
-        'disertante' => 'background_image_disertante',
-        'colaborador' => 'background_image_colaborador',
-    ];
-
-    protected $validationAttributes = [
-        'background_image' => 'plantilla para certificado de asistentes',
-        'background_image_asistencia' => 'plantilla para certificado de asistencia',
-        'background_image_aprobacion' => 'plantilla para certificado de aprobacion',
-        'background_image_disertante' => 'plantilla para certificado de disertante',
-        'background_image_colaborador' => 'plantilla para certificado de colaborador',
-    ];
 
     public $evento_selected = null;
 
@@ -84,23 +69,21 @@ class EventosFinalizados extends Component
 
     public $selected_participantes = [];
 
-    public $background_image; // <- Usada como plantilla genérica (Asistente en evento simple)
-
-    public $background_image_disertante;
-
-    public $background_image_colaborador;
-
-    public $background_image_asistencia;
-
-    public $background_image_aprobacion;
-
     public $hasDisertantes = false;
 
     public $hasColaboradores = false;
 
-    public $plantillas_por_tipo = [];
+    // Resumen de plantillas del contexto (tipo => [etiqueta, existe, nombre]).
+    public $plantillas_contexto = [];
 
-    public $usar_plantilla_categoria = [];
+    public $tipos_faltantes = [];
+
+    // Asignación de contexto/categoría desde la instancia de certificación.
+    public $categoria_asignada_id = null;
+
+    public $contexto_asignado_id = null;
+
+    public $contextos_asignables = [];
 
     // Gestión de eventos en la etapa "a certificar"
     public $open_modal_revisor = false;
@@ -123,80 +106,17 @@ class EventosFinalizados extends Component
     {
         $this->modo = in_array($modo, self::MODOS, true) ? $modo : 'finalizados';
         $this->tiposEvento = TipoEvento::orderBy('nombre')->get();
-        $this->categorias = CategoriaEvento::orderBy('nombre')->get();
-    }
-
-    protected function rules()
-    {
-        $rules = [];
-        $maxSize = '30720';
-
-        if ($this->evento_selected && $this->evento_selected->por_aprobacion) {
-            if (! ($this->usar_plantilla_categoria['asistencia'] ?? false)) {
-                $rules['background_image_asistencia'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
-            }
-            if (! ($this->usar_plantilla_categoria['aprobacion'] ?? false)) {
-                $rules['background_image_aprobacion'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
-            }
-        } else {
-            if (! ($this->usar_plantilla_categoria['asistencia'] ?? false)) {
-                $rules['background_image'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
-            }
-        }
-
-        if ($this->evento_selected && $this->hasDisertantes) {
-            if (! ($this->usar_plantilla_categoria['disertante'] ?? false)) {
-                $rules['background_image_disertante'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
-            }
-        }
-
-        if ($this->evento_selected && $this->hasColaboradores) {
-            if (! ($this->usar_plantilla_categoria['colaborador'] ?? false)) {
-                $rules['background_image_colaborador'] = "required|image|mimes:jpeg,png|max:{$maxSize}";
-            }
-        }
-
-        return $rules;
+        $this->categorias = CategoriaEvento::disponiblesParaEventos()->orderBy('nombre')->get();
     }
 
     /**
-     * Abre el modal de emisión y verifica si existen disertantes y colaboradores.
+     * Abre el modal de emisión y resuelve las plantillas del contexto.
      */
     public function emitir($evento)
     {
         abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
 
-        $this->evento_selected = Evento::with('categoria.plantillas')->find($evento['evento_id']);
-
-        $this->plantillas_por_tipo = [];
-        $this->usar_plantilla_categoria = [];
-
-        if ($this->evento_selected && $this->evento_selected->categoria) {
-            $plantillas = $this->evento_selected->categoria->plantillas;
-            if ($plantillas->count() > 0) {
-                $grouped = $plantillas->groupBy(function ($p) {
-                    return $p->tipo ?: 'asistencia';
-                });
-                $this->plantillas_por_tipo = $grouped->map(fn ($items) => $items->toArray())->toArray();
-
-                foreach (array_keys($this->plantillas_por_tipo) as $tipo) {
-                    $this->usar_plantilla_categoria[$tipo] = true;
-                }
-            }
-        }
-
-        // Plantillas dinámicas del contexto: no requieren subir imagen manualmente.
-        if ($this->evento_selected && $this->evento_selected->contexto_id) {
-            $tiposDinamicos = PlantillaCertificado::where('contexto_id', $this->evento_selected->contexto_id)
-                ->whereNotNull('layout')
-                ->pluck('tipo')
-                ->unique()
-                ->all();
-
-            foreach ($tiposDinamicos as $tipo) {
-                $this->usar_plantilla_categoria[$tipo ?: 'asistencia'] = true;
-            }
-        }
+        $this->evento_selected = Evento::with('contexto.firmantes')->find($evento['evento_id']);
 
         $roles = Rol::whereIn('nombre', ['Disertante', 'Colaborador'])
             ->pluck('rol_id', 'nombre');
@@ -212,65 +132,137 @@ class EventosFinalizados extends Component
             ? $this->evento_selected->participantes()->wherePivot('rol_id', $rolColaboradorId)->exists()
             : false;
 
-        $this->reset([
-            'background_image',
-            'background_image_disertante',
-            'background_image_colaborador',
-            'background_image_asistencia',
-            'background_image_aprobacion',
-        ]);
+        $this->plantillas_contexto = $this->resolverPlantillasDelContexto();
+        $this->tipos_faltantes = collect($this->plantillas_contexto)
+            ->filter(fn ($info) => ! $info['existe'])
+            ->pluck('etiqueta')
+            ->values()
+            ->all();
+
+        $this->categoria_asignada_id = $this->evento_selected->categoria_id;
+        $this->contexto_asignado_id = $this->evento_selected->contexto_id;
+        $this->cargarContextosAsignables();
+
         $this->resetValidation();
 
         $this->open_emitir = true;
     }
 
-    public function usarPlantillaManual($tipo): void
+    /**
+     * Contextos activos de la categoría elegida en el formulario de asignación.
+     */
+    private function cargarContextosAsignables(): void
     {
-        $this->usar_plantilla_categoria[$tipo] = false;
-
-        if ($field = $this->getUploadFieldForTipo($tipo)) {
-            $this->resetValidation($field);
-        }
+        $this->contextos_asignables = $this->categoria_asignada_id
+            ? Contexto::where('categoria_id', $this->categoria_asignada_id)
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get()
+            : collect();
     }
 
-    public function usarPlantillaCategoria($tipo): void
+    public function updatedCategoriaAsignadaId(): void
     {
-        $this->usar_plantilla_categoria[$tipo] = true;
-
-        if ($field = $this->getUploadFieldForTipo($tipo)) {
-            $this->reset($field);
-            $this->resetValidation($field);
-        }
+        $this->contexto_asignado_id = null;
+        $this->cargarContextosAsignables();
     }
 
-    public function updated($propertyName): void
+    /**
+     * Asigna categoría y contexto a un evento listo para certificar, sin cambiar
+     * su estado ni tocar el QR o las aprobaciones de los participantes.
+     */
+    public function asignarContexto(): void
     {
-        if (in_array($propertyName, array_values($this->uploadFieldByTipo), true) || $propertyName === 'background_image') {
-            $this->resetValidation($propertyName);
+        abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede asignar el contexto.');
+
+        if (! $this->evento_selected) {
+            return;
         }
+
+        if (! is_null($this->evento_selected->certificado_path)) {
+            $this->dispatch('oops', message: 'El evento ya tiene certificados emitidos; no se puede cambiar el contexto.');
+
+            return;
+        }
+
+        $this->validate([
+            'categoria_asignada_id' => 'required|exists:categoria_evento,categoria_id',
+            'contexto_asignado_id' => 'required|exists:contexto,contexto_id',
+        ], [
+            'categoria_asignada_id.required' => 'Seleccioná una categoría.',
+            'contexto_asignado_id.required' => 'Seleccioná un contexto.',
+        ]);
+
+        $contexto = Contexto::findOrFail($this->contexto_asignado_id);
+
+        if ((int) $contexto->categoria_id !== (int) $this->categoria_asignada_id) {
+            $this->addError('contexto_asignado_id', 'El contexto seleccionado no pertenece a la categoría.');
+
+            return;
+        }
+
+        // categoria_id/contexto_id son fillable; el estado no se toca.
+        $this->evento_selected->update([
+            'categoria_id' => $this->categoria_asignada_id,
+            'contexto_id' => $this->contexto_asignado_id,
+        ]);
+
+        $this->evento_selected = Evento::with('contexto.firmantes')->find($this->evento_selected->evento_id);
+
+        $this->plantillas_contexto = $this->resolverPlantillasDelContexto();
+        $this->tipos_faltantes = collect($this->plantillas_contexto)
+            ->filter(fn ($info) => ! $info['existe'])
+            ->pluck('etiqueta')
+            ->values()
+            ->all();
+
+        $this->resetValidation();
+        $this->dispatch('alert', message: 'Contexto asignado al evento correctamente.');
     }
 
-    private function getUploadFieldForTipo(string $tipo): ?string
+    /**
+     * Resuelve, para cada tipo de reconocimiento requerido por el evento,
+     * la plantilla existente en su contexto.
+     *
+     * @return array<string, array{etiqueta:string, existe:bool, nombre:?string}>
+     */
+    private function resolverPlantillasDelContexto(): array
     {
-        if ($tipo === 'asistencia' && ! ($this->evento_selected && $this->evento_selected->por_aprobacion)) {
-            return 'background_image';
+        if (! $this->evento_selected) {
+            return [];
         }
 
-        return $this->uploadFieldByTipo[$tipo] ?? null;
-    }
+        $requeridos = [
+            'asistencia' => $this->evento_selected->por_aprobacion
+                ? 'Asistencia (no aprobados)'
+                : 'Asistentes',
+        ];
 
-    private function getPlantillaPath($tipo): ?string
-    {
-        $available = $this->plantillas_por_tipo[$tipo] ?? [];
-        if (empty($available)) {
-            return null;
-        }
-        $default = collect($available)->firstWhere('por_defecto', true);
-        if (! $default) {
-            $default = $available[0];
+        if ($this->evento_selected->por_aprobacion) {
+            $requeridos['aprobacion'] = 'Aprobación';
         }
 
-        return $default['imagen_path'];
+        if ($this->hasDisertantes) {
+            $requeridos['disertante'] = 'Disertante';
+        }
+
+        if ($this->hasColaboradores) {
+            $requeridos['colaborador'] = 'Colaborador';
+        }
+
+        $servicio = app(GenerarCertificadoEvento::class);
+
+        $resultado = [];
+        foreach ($requeridos as $slug => $etiqueta) {
+            $plantilla = $servicio->buscarPlantilla($this->evento_selected, $slug);
+            $resultado[$slug] = [
+                'etiqueta' => $etiqueta,
+                'existe' => (bool) $plantilla,
+                'nombre' => $plantilla?->nombre,
+            ];
+        }
+
+        return $resultado;
     }
 
     private function assertPdfEnvironmentReady(): void
@@ -324,32 +316,28 @@ class EventosFinalizados extends Component
     }
 
     /**
-     * Emite los certificados, solo subiendo las plantillas que son necesarias.
+     * Emite los certificados usando las plantillas del contexto del evento.
      */
     public function emitirCertificados()
     {
         abort_if(! auth()->user()->hasRole('Administrador'), 403, 'Solo el Administrador puede emitir certificados.');
 
-        $rules = $this->rules();
-        if (! empty($rules)) {
-            $this->validate($rules);
+        if (! $this->evento_selected) {
+            return;
         }
 
-        // 1. OBTENER IDS DE ROLES
-        $roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])
-            ->pluck('rol_id', 'nombre');
-
-        $rolAsistenteId = $roles['Participante'] ?? null;
-        $rolDisertanteId = $roles['Disertante'] ?? null;
-        $rolColaboradorId = $roles['Colaborador'] ?? null;
-
-        if (! $rolAsistenteId || ! $rolDisertanteId || ! $rolColaboradorId) {
-            $this->dispatch('oops', message: 'Faltan IDs de roles esenciales (Participante, Disertante, Colaborador) en la base de datos.');
+        if (! $this->evento_selected->contexto_id) {
+            $this->dispatch('oops', message: 'El evento no tiene un contexto asignado. Asignalo en este mismo panel antes de emitir.');
 
             return;
         }
 
-        // 2. CONFIGURACIÓN DE RUTAS Y PARTICIPANTES
+        if (! empty($this->tipos_faltantes)) {
+            $this->dispatch('oops', message: 'Faltan plantillas en el contexto para: '.implode(', ', $this->tipos_faltantes).'.');
+
+            return;
+        }
+
         $year = now()->year;
         $tipoEvento = $this->evento_selected->tipoEvento->nombre;
         $nombreEvento = $this->evento_selected->nombre;
@@ -357,162 +345,35 @@ class EventosFinalizados extends Component
 
         $participantes = $this->evento_selected->participantes;
 
-        $paths = [];
-        $isPorAprobacion = $this->evento_selected->por_aprobacion;
-
-        try {
-            if ($isPorAprobacion) {
-                if ($this->usar_plantilla_categoria['asistencia'] ?? false) {
-                    $paths['asistencia'] = $this->getPlantillaPath('asistencia');
-                } else {
-                    $paths['asistencia'] = $this->background_image_asistencia->store('images', 'public');
-                }
-                if ($this->usar_plantilla_categoria['aprobacion'] ?? false) {
-                    $paths['aprobacion'] = $this->getPlantillaPath('aprobacion');
-                } else {
-                    $paths['aprobacion'] = $this->background_image_aprobacion->store('images', 'public');
-                }
-
-                if ($this->hasDisertantes) {
-                    if ($this->usar_plantilla_categoria['disertante'] ?? false) {
-                        $paths['disertante'] = $this->getPlantillaPath('disertante');
-                    } elseif ($this->background_image_disertante) {
-                        $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
-                    }
-                }
-
-                if ($this->hasColaboradores) {
-                    if ($this->usar_plantilla_categoria['colaborador'] ?? false) {
-                        $paths['colaborador'] = $this->getPlantillaPath('colaborador');
-                    } elseif ($this->background_image_colaborador) {
-                        $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
-                    }
-                }
-            } else {
-                if ($this->usar_plantilla_categoria['asistencia'] ?? false) {
-                    $paths['asistente_generico'] = $this->getPlantillaPath('asistencia');
-                } else {
-                    $paths['asistente_generico'] = $this->background_image->store('images', 'public');
-                }
-
-                if ($this->hasDisertantes) {
-                    if ($this->usar_plantilla_categoria['disertante'] ?? false) {
-                        $paths['disertante'] = $this->getPlantillaPath('disertante');
-                    } elseif ($this->background_image_disertante) {
-                        $paths['disertante'] = $this->background_image_disertante->store('images', 'public');
-                    }
-                }
-
-                if ($this->hasColaboradores) {
-                    if ($this->usar_plantilla_categoria['colaborador'] ?? false) {
-                        $paths['colaborador'] = $this->getPlantillaPath('colaborador');
-                    } elseif ($this->background_image_colaborador) {
-                        $paths['colaborador'] = $this->background_image_colaborador->store('images', 'public');
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            $this->dispatch('oops', message: 'Error al subir una o más plantillas: '.$e->getMessage());
-
-            return;
-        }
-
         try {
             $this->assertPdfEnvironmentReady();
             $this->extendExecutionTime($participantes->count());
-
-            $privateDisk = Storage::disk('private');
-
-            $preparedPaths = [];
-            foreach ($paths as $pathValue) {
-                if (empty($pathValue)) {
-                    continue;
-                }
-
-                $prepared = CertificadoPdfAssets::prepareBackgroundForPdf($pathValue);
-
-                if (! $prepared) {
-                    throw new \RuntimeException('No se pudo preparar una de las plantillas para la emision PDF.');
-                }
-
-                $preparedPaths[$pathValue] = $prepared;
-            }
 
             $this->purgeExistingEmission($folderPath);
 
             $servicio = app(GenerarCertificadoEvento::class);
 
-            // 3. LÓGICA DE GENERACIÓN DE CERTIFICADOS
             foreach ($participantes as $participante) {
                 $relacion = EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
                     ->where('participante_id', $participante->participante_id)
                     ->first();
 
-                if ($relacion) {
-                    $plantillaDinamica = $servicio->plantillaPara($this->evento_selected, $relacion);
-
-                    if ($plantillaDinamica?->esDinamica()) {
-                        $servicio->generar($relacion, $plantillaDinamica);
-
-                        continue;
-                    }
+                if (! $relacion) {
+                    continue;
                 }
 
-                $rolParticipanteId = $participante->pivot->rol_id;
-                $background = null;
+                $plantilla = $servicio->plantillaPara($this->evento_selected, $relacion);
 
-                // COMPRUEBA que el rol existe Y que su plantilla fue subida
-                if ($rolParticipanteId == $rolDisertanteId && isset($paths['disertante'])) {
-                    $background = $paths['disertante'];
-                } elseif ($rolParticipanteId == $rolColaboradorId && isset($paths['colaborador'])) {
-                    $background = $paths['colaborador'];
-                } elseif ($rolParticipanteId == $rolAsistenteId) {
-                    if ($isPorAprobacion) {
-                        $background = $participante->pivot->aprobado ? $paths['aprobacion'] : $paths['asistencia'];
-                    } else {
-                        $background = $paths['asistente_generico'];
-                    }
-                }
-
-                if (is_null($background)) {
-                    Log::warning('No se pudo resolver la plantilla del certificado.', [
-                        'rol_id' => $rolParticipanteId,
+                if (! $plantilla) {
+                    Log::warning('No se pudo resolver la plantilla del certificado en el contexto.', [
                         'participante_id' => $participante->participante_id,
-                        'background' => $background,
                         'evento_id' => $this->evento_selected->evento_id,
                     ]);
 
                     continue;
                 }
 
-                $backgroundPath = $preparedPaths[$background] ?? null;
-
-                if (is_null($backgroundPath)) {
-                    Log::warning('No se encontró la plantilla PDF ya preparada para el certificado.', [
-                        'rol_id' => $rolParticipanteId,
-                        'participante_id' => $participante->participante_id,
-                        'background_key' => $background,
-                        'evento_id' => $this->evento_selected->evento_id,
-                    ]);
-
-                    continue;
-                }
-
-                $filename = "{$folderPath}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
-
-                $pdf = Pdf::loadView('certificado', [
-                    'nombre' => $participante->nombre,
-                    'apellido' => $participante->apellido,
-                    'dni' => $participante->dni,
-                    'qr' => 'data:image/svg+xml;base64,'.base64_encode($participante->pivot->qrcode),
-                    'background' => $backgroundPath,
-                ])->setPaper('a4', 'landscape');
-
-                $privateDisk->put($filename, $pdf->output());
-
-                EventoParticipante::where('evento_id', $this->evento_selected->evento_id)
-                    ->where('participante_id', $participante->participante_id)
-                    ->update(['certificado_path' => $filename]);
+                $servicio->generar($relacion, $plantilla);
             }
         } catch (\Throwable $e) {
             Log::error('Error al generar certificados desde eventos finalizados.', [
@@ -533,17 +394,16 @@ class EventosFinalizados extends Component
 
         $this->reset([
             'open_emitir',
-            'background_image',
-            'background_image_disertante',
-            'background_image_colaborador',
-            'background_image_asistencia',
-            'background_image_aprobacion',
             'evento_selected',
             'hasDisertantes',
             'hasColaboradores',
-            'plantillas_por_tipo',
-            'usar_plantilla_categoria',
+            'plantillas_contexto',
+            'tipos_faltantes',
+            'categoria_asignada_id',
+            'contexto_asignado_id',
+            'contextos_asignables',
         ]);
+
         session()->flash('message', $this->modo === 'a_certificar'
             ? 'Certificados generados correctamente. El evento ahora aparece en la pestaña "Eventos Finalizados".'
             : 'Certificados reemitidos correctamente. Los archivos anteriores fueron reemplazados.');

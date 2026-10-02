@@ -73,7 +73,7 @@ class NormalizarParticipantesCommandTest extends TestCase
         ]);
 
         $this->mock(ReemitirCertificadosParticipante::class, function ($mock) {
-            $mock->shouldReceive('participante')->once()->andReturn(['eventos' => 2, 'titulos' => 1, 'omitidos' => 0]);
+            $mock->shouldReceive('participante')->once()->andReturn(['eventos' => 2, 'emisiones' => 1, 'omitidos' => 0]);
         });
 
         $this->artisan('participantes:reemitir-certificados', ['dni' => [$participante->dni]])

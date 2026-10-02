@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\CrearEvento;
 use App\Livewire\RegistroEventoPublico;
 use App\Models\CategoriaEvento;
+use App\Models\Contexto;
 use App\Models\Destinatario;
 use App\Models\DocumentoPresentado;
 use App\Models\Evento;
@@ -32,6 +33,8 @@ class RequisitosDocumentacionTest extends TestCase
 
     protected Destinatario $destinatario;
 
+    protected Contexto $contexto;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -50,7 +53,12 @@ class RequisitosDocumentacionTest extends TestCase
         $this->admin->assignRole('Administrador');
 
         TipoEvento::create(['nombre' => 'Curso']);
-        CategoriaEvento::create(['nombre' => 'Categoría Test']);
+        $categoria = CategoriaEvento::create(['nombre' => 'Categoría Test']);
+        $this->contexto = Contexto::create([
+            'categoria_id' => $categoria->categoria_id,
+            'nombre' => 'Contexto Test',
+            'activo' => true,
+        ]);
 
         $this->destinatario = Destinatario::where('nombre', 'Público General')->first()
             ?? Destinatario::create(['nombre' => 'Público General', 'activo' => true]);
@@ -64,6 +72,7 @@ class RequisitosDocumentacionTest extends TestCase
 
         Livewire::test(CrearEvento::class)
             ->set('categoria_id', CategoriaEvento::first()->categoria_id)
+            ->set('contexto_id', $this->contexto->contexto_id)
             ->set('tipo_evento_id', TipoEvento::first()->tipo_evento_id)
             ->set('nombre_evento', 'Evento Gratuito con Requisitos')
             ->set('fecha_inicio', now()->addDay()->format('Y-m-d'))
@@ -98,6 +107,7 @@ class RequisitosDocumentacionTest extends TestCase
 
         Livewire::test(CrearEvento::class)
             ->set('categoria_id', CategoriaEvento::first()->categoria_id)
+            ->set('contexto_id', $this->contexto->contexto_id)
             ->set('tipo_evento_id', TipoEvento::first()->tipo_evento_id)
             ->set('nombre_evento', 'Curso Arancelado con Docs')
             ->set('fecha_inicio', now()->addDay()->format('Y-m-d'))
@@ -359,6 +369,7 @@ class RequisitosDocumentacionTest extends TestCase
             'fecha_inicio' => now()->addDay(),
             'tipo_evento_id' => $tipo->tipo_evento_id,
             'categoria_id' => $categoria->categoria_id,
+            'contexto_id' => $this->contexto->contexto_id,
             'cupo' => null,
             'por_aprobacion' => false,
             'arancel' => $arancel,

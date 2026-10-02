@@ -12,15 +12,24 @@ class CategoriaEvento extends Model
 
     protected $primaryKey = 'categoria_id';
 
-    protected $fillable = ['nombre', 'descripcion'];
+    protected $fillable = ['nombre', 'descripcion', 'disponible_para_eventos'];
 
-    public function plantillas()
-    {
-        return $this->hasMany(PlantillaCertificado::class, 'categoria_id');
-    }
+    protected $casts = [
+        'disponible_para_eventos' => 'boolean',
+    ];
 
     public function eventos()
     {
         return $this->hasMany(Evento::class, 'categoria_id');
+    }
+
+    public function contextos()
+    {
+        return $this->hasMany(Contexto::class, 'categoria_id', 'categoria_id');
+    }
+
+    public function scopeDisponiblesParaEventos($query)
+    {
+        return $query->where('disponible_para_eventos', true);
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Evento;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\TipoEvento;
+use App\Models\TipoReconocimiento;
 use App\Support\CertificadoLayout;
 use App\Support\CertificadoPdfAssets;
 use App\Support\CertificadoVariables;
@@ -16,7 +17,7 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -60,9 +61,11 @@ class ContextoPlantillas extends Component
 
     public $editando_id = null;
 
+    public $clonando_id = null;
+
     public $nombre = '';
 
-    public $tipo = 'asistencia';
+    public ?int $tipo_reconocimiento_id = null;
 
     public $por_defecto = false;
 
@@ -100,7 +103,7 @@ class ContextoPlantillas extends Component
     private function cargarPlantillas(): void
     {
         $this->plantillas = PlantillaCertificado::where('contexto_id', $this->contexto_id)
-            ->orderBy('tipo')
+            ->orderBy('tipo_reconocimiento_id')
             ->orderByDesc('por_defecto')
             ->get()
             ->toArray();
@@ -108,8 +111,8 @@ class ContextoPlantillas extends Component
 
     public function abrirCrear(): void
     {
-        $this->reset(['editando_id', 'nombre', 'imagen', 'imagen_actual', 'seleccionado']);
-        $this->tipo = 'asistencia';
+        $this->reset(['editando_id', 'clonando_id', 'nombre', 'imagen', 'imagen_actual', 'seleccionado']);
+        $this->tipo_reconocimiento_id = $this->tipoReconocimientoPorDefecto();
         $this->por_defecto = false;
         $this->texto = 'ha asistido {formula} {nombre_evento}, realizado en la {contexto} {institucion}. Según Res. {resolucion}.';
         $this->bloques = $this->layoutPorDefecto();
@@ -123,9 +126,33 @@ class ContextoPlantillas extends Component
         $plantilla = PlantillaCertificado::where('contexto_id', $this->contexto_id)->findOrFail($id);
 
         $this->editando_id = $plantilla->plantilla_id;
+        $this->clonando_id = null;
         $this->nombre = $plantilla->nombre;
-        $this->tipo = $plantilla->tipo ?? 'asistencia';
+        $this->tipo_reconocimiento_id = $plantilla->tipo_reconocimiento_id;
         $this->por_defecto = (bool) $plantilla->por_defecto;
+        $this->imagen = null;
+        $this->imagen_actual = $plantilla->imagen_path;
+        $this->texto = $plantilla->texto ?? '';
+        $this->bloques = $plantilla->layout ?: $this->layoutPorDefecto();
+        $this->nuevo_campo = 'literal';
+        $this->seleccionado = null;
+        $this->resetValidation();
+        $this->open_modal = true;
+    }
+
+    /**
+     * Abre el editor prellenado con una copia de la plantilla indicada.
+     * Al guardar se crea una plantilla nueva (con su propia imagen).
+     */
+    public function clonar(int $id): void
+    {
+        $plantilla = PlantillaCertificado::where('contexto_id', $this->contexto_id)->findOrFail($id);
+
+        $this->editando_id = null;
+        $this->clonando_id = $plantilla->plantilla_id;
+        $this->nombre = 'Copia de '.$plantilla->nombre;
+        $this->tipo_reconocimiento_id = $plantilla->tipo_reconocimiento_id;
+        $this->por_defecto = false;
         $this->imagen = null;
         $this->imagen_actual = $plantilla->imagen_path;
         $this->texto = $plantilla->texto ?? '';
@@ -210,17 +237,18 @@ class ContextoPlantillas extends Component
     {
         $this->validate([
             'nombre' => 'required|string|max:100',
-            'tipo' => ['required', Rule::in(PlantillaCertificado::TIPOS)],
-            'imagen' => ($this->editando_id ? 'nullable' : 'required').'|image|mimes:jpeg,png|max:30720',
+            'tipo_reconocimiento_id' => 'required|exists:tipo_reconocimiento,tipo_reconocimiento_id',
+            'imagen' => ($this->editando_id || $this->clonando_id ? 'nullable' : 'required').'|image|mimes:jpeg,png|max:30720',
             'texto' => 'nullable|string',
             'bloques' => 'array',
         ]);
 
         $layout = $this->layoutNormalizado();
+        $tipoReconocimiento = TipoReconocimiento::findOrFail($this->tipo_reconocimiento_id);
 
         if ($this->por_defecto) {
             PlantillaCertificado::where('contexto_id', $this->contexto_id)
-                ->where('tipo', $this->tipo)
+                ->where('tipo_reconocimiento_id', $this->tipo_reconocimiento_id)
                 ->update(['por_defecto' => false]);
         }
 
@@ -233,28 +261,70 @@ class ContextoPlantillas extends Component
             }
 
             $plantilla->nombre = $this->nombre;
-            $plantilla->tipo = $this->tipo;
+            $plantilla->tipo = $tipoReconocimiento->slug;
+            $plantilla->tipo_reconocimiento_id = $tipoReconocimiento->tipo_reconocimiento_id;
+            $plantilla->alcance = $tipoReconocimiento->alcance_sugerido ?: 'evento';
             $plantilla->por_defecto = (bool) $this->por_defecto;
             $plantilla->texto = $this->texto ?: null;
             $plantilla->layout = $layout;
             $plantilla->save();
         } else {
+            $imagenPath = $this->imagen
+                ? $this->imagen->store("plantillas/contexto/{$this->contexto_id}", 'public')
+                : $this->copiarImagenDePlantilla($this->clonando_id);
+
+            if (! $imagenPath) {
+                $this->addError('imagen', 'No se pudo copiar la imagen de la plantilla original. Subí una imagen.');
+
+                return;
+            }
+
             PlantillaCertificado::create([
                 'categoria_id' => $this->contextoModel()->categoria_id,
                 'contexto_id' => $this->contexto_id,
                 'nombre' => $this->nombre,
-                'imagen_path' => $this->imagen->store("plantillas/contexto/{$this->contexto_id}", 'public'),
+                'imagen_path' => $imagenPath,
                 'layout' => $layout,
                 'texto' => $this->texto ?: null,
-                'tipo' => $this->tipo,
+                'tipo' => $tipoReconocimiento->slug,
+                'tipo_reconocimiento_id' => $tipoReconocimiento->tipo_reconocimiento_id,
+                'alcance' => $tipoReconocimiento->alcance_sugerido ?: 'evento',
                 'por_defecto' => (bool) $this->por_defecto,
             ]);
         }
 
-        $this->dispatch('alert', message: 'Plantilla del contexto guardada correctamente.');
+        $this->dispatch('alert', message: $this->clonando_id ? 'Plantilla clonada correctamente.' : 'Plantilla del contexto guardada correctamente.');
         $this->open_modal = false;
-        $this->reset(['editando_id', 'nombre', 'imagen', 'imagen_actual', 'texto', 'bloques', 'seleccionado']);
+        $this->reset(['editando_id', 'clonando_id', 'nombre', 'imagen', 'imagen_actual', 'texto', 'bloques', 'seleccionado']);
         $this->cargarPlantillas();
+    }
+
+    /**
+     * Copia física del archivo de imagen de una plantilla existente para que la
+     * copia sea independiente (borrar una no afecta a la otra).
+     */
+    private function copiarImagenDePlantilla(?int $plantillaId): ?string
+    {
+        if (! $plantillaId) {
+            return null;
+        }
+
+        $origen = PlantillaCertificado::where('contexto_id', $this->contexto_id)->find($plantillaId);
+
+        if (! $origen?->imagen_path) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+
+        if (! $disk->exists($origen->imagen_path)) {
+            return null;
+        }
+
+        $extension = pathinfo($origen->imagen_path, PATHINFO_EXTENSION) ?: 'png';
+        $destino = "plantillas/contexto/{$this->contexto_id}/clone-".Str::uuid().'.'.$extension;
+
+        return $disk->copy($origen->imagen_path, $destino) ? $destino : null;
     }
 
     public function descargarPdfPrueba()
@@ -289,14 +359,14 @@ class ContextoPlantillas extends Component
     {
         $plantilla = PlantillaCertificado::where('contexto_id', $this->contexto_id)->findOrFail($id);
         $wasDefault = (bool) $plantilla->por_defecto;
-        $tipo = $plantilla->tipo;
+        $tipoReconocimientoId = $plantilla->tipo_reconocimiento_id;
 
         Storage::disk('public')->delete($plantilla->imagen_path);
         $plantilla->delete();
 
         if ($wasDefault) {
             $otra = PlantillaCertificado::where('contexto_id', $this->contexto_id)
-                ->where('tipo', $tipo)
+                ->where('tipo_reconocimiento_id', $tipoReconocimientoId)
                 ->orderBy('plantilla_id')
                 ->first();
 
@@ -438,12 +508,20 @@ class ContextoPlantillas extends Component
         ];
     }
 
+    private function tipoReconocimientoPorDefecto(): ?int
+    {
+        return TipoReconocimiento::where('slug', 'asistencia')->value('tipo_reconocimiento_id')
+            ?? TipoReconocimiento::activos()->orderBy('orden')->value('tipo_reconocimiento_id');
+    }
+
     public function render()
     {
+        $tiposReconocimiento = TipoReconocimiento::activos()->orderBy('orden')->orderBy('nombre')->get();
+
         return view('livewire.admin.contexto-plantillas', [
             'campos' => self::CAMPOS,
             'tokens' => self::TOKENS,
-            'tipos' => PlantillaCertificado::TIPOS,
+            'tiposReconocimiento' => $tiposReconocimiento,
             'contexto' => $this->contextoModel(),
             'mockVariables' => $this->mockVariables(),
             'mockFirmas' => $this->mockFirmasPreview(),

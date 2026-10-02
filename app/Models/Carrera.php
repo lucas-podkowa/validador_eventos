@@ -16,9 +16,4 @@ class Carrera extends Model
     protected $casts = [
         'activa' => 'boolean',
     ];
-
-    public function titulosIntermedios()
-    {
-        return $this->hasMany(TituloIntermedio::class, 'carrera_id');
-    }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Models\Contexto;
+use App\Models\Emision;
 use App\Models\Evento;
 use App\Models\Rol;
 use App\Models\TipoEvento;
@@ -134,8 +136,66 @@ class Informes extends Component
             'eventosDisponibles' => $eventosDisponibles,
             'reporteGeneral' => $this->modo === 'general' ? $this->buildGeneralReport() : null,
             'reporteCurso' => $this->modo === 'curso' && $this->eventoId !== '' ? $this->buildCourseReport($this->eventoId) : null,
+            'reporteEmisiones' => $this->modo === 'emisiones' ? $this->buildEmisionesReport() : null,
             'filtrosActivos' => $this->activeFiltersLabel(),
         ]);
+    }
+
+    /**
+     * Informe de certificados emitidos por el emisor unificado: familia, edición,
+     * tipo de reconocimiento y año.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildEmisionesReport(): array
+    {
+        $total = Emision::count();
+        $emitidas = Emision::where('estado', Emision::ESTADO_EMITIDO)->count();
+        $anuladas = Emision::where('estado', Emision::ESTADO_ANULADO)->count();
+
+        $porTipo = DB::table('emision as e')
+            ->leftJoin('tipo_reconocimiento as t', 'e.tipo_reconocimiento_id', '=', 't.tipo_reconocimiento_id')
+            ->selectRaw('COALESCE(t.nombre, "Sin tipo") as tipo, COUNT(*) as total')
+            ->groupBy('t.nombre')
+            ->orderByDesc('total')
+            ->get();
+
+        $porAnio = DB::table('emision')
+            ->selectRaw('YEAR(COALESCE(emitida_en, created_at)) as anio, COUNT(*) as total')
+            ->groupBy('anio')
+            ->orderByDesc('anio')
+            ->get();
+
+        $desdeContexto = DB::table('emision as e')
+            ->join('contexto as c', 'e.origen_id', '=', 'c.contexto_id')
+            ->leftJoin('categoria_evento as cat', 'c.categoria_id', '=', 'cat.categoria_id')
+            ->where('e.origen_type', Contexto::class)
+            ->selectRaw('cat.nombre as familia, c.nombre as edicion, c.anio as anio, COUNT(*) as total')
+            ->groupBy('cat.nombre', 'c.nombre', 'c.anio')
+            ->orderBy('cat.nombre')
+            ->orderByDesc('total')
+            ->get();
+
+        $desdeEvento = DB::table('emision as e')
+            ->join('evento as ev', 'e.origen_id', '=', 'ev.evento_id')
+            ->leftJoin('categoria_evento as cat', 'ev.categoria_id', '=', 'cat.categoria_id')
+            ->where('e.origen_type', Evento::class)
+            ->selectRaw('cat.nombre as familia, ev.nombre as edicion, YEAR(ev.fecha_inicio) as anio, COUNT(*) as total')
+            ->groupBy('cat.nombre', 'ev.nombre')
+            ->orderBy('cat.nombre')
+            ->orderByDesc('total')
+            ->get();
+
+        return [
+            'resumen' => [
+                'total' => $total,
+                'emitidas' => $emitidas,
+                'anuladas' => $anuladas,
+            ],
+            'por_tipo' => $porTipo,
+            'por_anio' => $porAnio,
+            'origenes' => $desdeContexto->concat($desdeEvento)->values(),
+        ];
     }
 
     private function filteredEventosQuery()

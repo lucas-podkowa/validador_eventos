@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\CertificadoExterno;
+use App\Models\Emision;
 use App\Models\Participante;
 use App\Models\User;
 use Livewire\Component;
@@ -34,7 +34,7 @@ class CertificadosExternos extends Component
         $this->resetPage();
     }
 
-    public function abrirVincular(int $id): void
+    public function abrirVincular(string $id): void
     {
         $this->certificado_id = $id;
         $this->vincular_email = '';
@@ -48,7 +48,7 @@ class CertificadosExternos extends Component
             'vincular_email' => 'required|email',
         ]);
 
-        $certificado = CertificadoExterno::findOrFail($this->certificado_id);
+        $certificado = Emision::findOrFail($this->certificado_id);
         $participante = $certificado->participante;
 
         if (! $participante) {
@@ -76,7 +76,7 @@ class CertificadosExternos extends Component
         $participante->user_id = $user->id;
         $participante->save();
 
-        $certificado->update(['match_estado' => CertificadoExterno::MATCH_AUTO]);
+        $certificado->update(['match_estado' => Emision::MATCH_AUTO]);
 
         $this->vincular_modal = false;
         $this->dispatch('alert', message: 'Certificado vinculado a la cuenta.');
@@ -84,15 +84,19 @@ class CertificadosExternos extends Component
 
     public function render()
     {
-        $certificados = CertificadoExterno::query()
-            ->with('participante')
-            ->when($this->solo_revision, fn ($query) => $query->where('match_estado', CertificadoExterno::MATCH_REVISAR))
+        $certificados = Emision::query()
+            ->with(['participante', 'tipoReconocimiento'])
+            ->whereNotNull('api_cliente_id')
+            ->when($this->solo_revision, fn ($query) => $query->where('match_estado', Emision::MATCH_REVISAR))
             ->when($this->search, function ($query) {
                 $busqueda = '%'.$this->search.'%';
                 $query->where(function ($q) use ($busqueda) {
-                    $q->where('receptor_nombre', 'like', $busqueda)
-                        ->orWhere('receptor_dni', 'like', $busqueda)
-                        ->orWhere('external_ref', 'like', $busqueda);
+                    $q->where('external_ref', 'like', $busqueda)
+                        ->orWhereHas('participante', function ($p) use ($busqueda) {
+                            $p->where('nombre', 'like', $busqueda)
+                                ->orWhere('apellido', 'like', $busqueda)
+                                ->orWhere('dni', 'like', $busqueda);
+                        });
                 });
             })
             ->orderByDesc('created_at')

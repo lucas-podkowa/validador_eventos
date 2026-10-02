@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\EmitirCertificadoExternoRequest;
 use App\Http\Resources\CertificadoExternoResource;
 use App\Mail\CertificadoTutorMail;
-use App\Models\CertificadoExterno;
+use App\Models\Emision;
 use App\Services\GenerarCertificadoExterno;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Mail;
@@ -19,7 +19,7 @@ class CertificadoExternoController extends Controller
         $cliente = $request->user();
         $datos = $request->validated();
 
-        $existia = CertificadoExterno::query()
+        $existia = Emision::query()
             ->where('api_cliente_id', $cliente->api_cliente_id)
             ->where('external_ref', $datos['external_ref'])
             ->exists();
@@ -30,8 +30,15 @@ class CertificadoExternoController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        if (! $existia && $certificado->receptor_email) {
-            Mail::to($certificado->receptor_email)->queue(new CertificadoTutorMail($certificado));
+        $email = $certificado->participante?->mail;
+
+        if (! $existia && $email) {
+            $mail = new CertificadoTutorMail($certificado);
+
+            // Sin worker de colas configurado, el envío debe ser síncrono.
+            config('emision.usar_cola')
+                ? Mail::to($email)->queue($mail)
+                : Mail::to($email)->send($mail);
         }
 
         $resource = (new CertificadoExternoResource($certificado))
@@ -43,7 +50,7 @@ class CertificadoExternoController extends Controller
         return $resource;
     }
 
-    public function show(CertificadoExterno $certificado): CertificadoExternoResource
+    public function show(Emision $certificado): CertificadoExternoResource
     {
         $cliente = request()->user();
 

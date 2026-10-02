@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\CertificadoExterno;
+use App\Models\Emision;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
@@ -15,7 +15,7 @@ class CertificadoTutorMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public CertificadoExterno $certificado) {}
+    public function __construct(public Emision $certificado) {}
 
     public function envelope(): Envelope
     {

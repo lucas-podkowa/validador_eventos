@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CertificadoExterno;
+use App\Models\Emision;
 
-class VerificacionExternaController extends Controller
+class VerificacionEmisionController extends Controller
 {
     public function show(string $codigo)
     {
-        $certificado = CertificadoExterno::query()
+        $emision = Emision::query()
+            ->with(['participante', 'tipoReconocimiento'])
             ->where('codigo_verificacion', $codigo)
             ->first();
 
-        $valido = $certificado && $certificado->estado === CertificadoExterno::ESTADO_EMITIDO;
+        $valido = $emision && $emision->esValida();
+        $anulado = $emision && $emision->estaAnulada();
 
         $fondo = $valido ? 'cert_valido.png' : 'cert_no_valido.png';
         $path = storage_path("app/private/img_validacion/{$fondo}");
@@ -24,6 +26,6 @@ class VerificacionExternaController extends Controller
         $type = pathinfo($path, PATHINFO_EXTENSION);
         $base64 = 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
 
-        return view('verificacion-externa', compact('certificado', 'valido', 'base64'));
+        return view('verificacion-emision', compact('emision', 'valido', 'anulado', 'base64'));
     }
 }

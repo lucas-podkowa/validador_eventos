@@ -3,45 +3,46 @@
 namespace App\Livewire;
 
 use App\Actions\BuscarParticipanteSimilar;
+use App\Models\CategoriaEvento;
+use App\Models\Contexto;
 use App\Models\DuplicadoRevision;
+use App\Models\Emision;
 use App\Models\Evento;
-use App\Models\EventoParticipante;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
-use App\Models\Rol;
+use App\Models\TipoReconocimiento;
 use App\Rules\LargoNombreCertificado;
-use App\Services\GenerarCertificadoEvento;
-use App\Support\CertificadoPdfAssets;
+use App\Services\GenerarCertificadoEmision;
 use App\Support\NormalizadorIdentidad;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class EmisorCertificados extends Component
 {
-    use WithFileUploads;
     use WithPagination;
 
-    public $modal_abierto = false;
+    public $origen_tipo = 'evento';
+
+    public $categoria_id;
 
     public $evento_id;
 
-    public $rol_id;
+    public $contexto_id;
 
-    public $nombre;
+    public $tipo_reconocimiento_id;
 
-    public $apellido;
+    public $plantilla_id;
 
-    public $dni;
+    public $nombre = '';
 
-    public $telefono;
+    public $apellido = '';
 
-    public $mail;
+    public $dni = '';
+
+    public $telefono = '';
+
+    public $mail = '';
 
     public ?array $participanteExistente = null;
 
@@ -49,155 +50,149 @@ class EmisorCertificados extends Component
 
     public ?string $decision_similar = null;
 
-    public $reemision = false;
-
-    public $reemision_rol = null;
-
-    public $background_image;
-
-    // Plantillas de categoría
-    public $plantilla_id = null;
-
-    public $plantillas_disponibles = [];
-
-    public $certificado_tipo = null;
-
-    public $plantillas_por_tipo = [];
-
-    public $eventoParticipantes = [];
+    public $categorias = [];
 
     public $eventos = [];
 
-    public $roles = [];
+    public $contextos = [];
 
-    protected $rules = [
-        'evento_id' => 'required|exists:evento,evento_id',
-        'nombre' => 'required|string|max:100',
-        'apellido' => 'required|string|max:100',
-        'dni' => 'required|string|max:15',
-        'telefono' => 'required|string|min:6|max:15',
-        'mail' => 'required|email|max:100',
-        'rol_id' => 'required|exists:rol,rol_id',
-    ];
+    public $tipos = [];
 
-    public function mount()
+    public $plantillas = [];
+
+    public int $porPagina = 10;
+
+    public function mount(): void
     {
-        $this->eventos = Evento::where('estado', 'Finalizado')->get();
-        $this->roles = Rol::whereIn('nombre', ['Participante', 'Disertante', 'Colaborador'])->get();
-        $this->cargarEventoParticipantes();
+        $this->categorias = CategoriaEvento::orderBy('nombre')->get();
+        $this->tipos = TipoReconocimiento::activos()->orderBy('orden')->get()->toArray();
+        $this->cargarContextos();
+        $this->cargarEventos();
     }
 
-    private function cargarEventoParticipantes(): void
+    public function updatedOrigenTipo(): void
     {
-        $this->eventoParticipantes = EventoParticipante::with(['participante', 'evento'])
-            ->where('emision_directa', true)
-            ->whereHas('evento', function ($query) {
-                $query->where('estado', 'Finalizado');
-            })
-            ->get();
+        $this->reset(['categoria_id', 'evento_id', 'contexto_id', 'plantilla_id']);
+        $this->plantillas = [];
+        $this->cargarContextos();
+        $this->cargarEventos();
     }
 
-    public function abrirModal()
+    public function updatedCategoriaId(): void
     {
-        $this->reset(['evento_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'rol_id', 'background_image', 'plantilla_id', 'plantillas_disponibles', 'certificado_tipo', 'plantillas_por_tipo', 'reemision', 'reemision_rol', 'similar', 'decision_similar']);
-        $this->modal_abierto = true;
+        $this->reset(['contexto_id', 'evento_id', 'plantilla_id']);
+        $this->plantillas = [];
+        $this->cargarContextos();
+        $this->cargarEventos();
     }
 
     public function updatedEventoId(): void
     {
         $this->plantilla_id = null;
-        $this->plantillas_disponibles = [];
-        $this->certificado_tipo = null;
-        $this->plantillas_por_tipo = [];
-
-        if ($this->evento_id) {
-            $evento = Evento::with(['categoria.plantillas', 'contexto.plantillas'])->find($this->evento_id);
-            if ($evento) {
-                $plantillas = ($evento->contexto_id && $evento->contexto)
-                    ? $evento->contexto->plantillas
-                    : ($evento->categoria?->plantillas ?? collect());
-
-                if ($plantillas && $plantillas->count() > 0) {
-                    $grouped = $plantillas->groupBy(function ($p) {
-                        return $p->tipo ?: 'asistencia';
-                    });
-                    // Convertir a arrays para Livewire
-                    $this->plantillas_por_tipo = $grouped->map(fn ($items) => $items->map->toArray())->toArray();
-                }
-
-                // Determinar tipo y plantilla por defecto según rol y si el evento es por aprobación
-                $this->determineDefaultTipoAndPlantilla($evento);
-            }
-        }
-
-        $this->refreshEstadoReemision();
+        $this->cargarPlantillas();
     }
 
-    public function updatedRolId(): void
+    public function updatedContextoId(): void
     {
-        // Recalcular selección si ya tenemos un evento seleccionado
-        if ($this->evento_id) {
-            $evento = Evento::with('categoria.plantillas')->find($this->evento_id);
-            if ($evento) {
-                $this->determineDefaultTipoAndPlantilla($evento);
-            }
-        }
-    }
-
-    private function determineDefaultTipoAndPlantilla(Evento $evento): void
-    {
-        $this->certificado_tipo = null;
         $this->plantilla_id = null;
 
-        $availableTypes = array_keys($this->plantillas_por_tipo ?? []);
+        if ($this->origen_tipo === 'evento') {
+            $this->evento_id = null;
+            $this->plantillas = [];
+            $this->cargarEventos();
 
-        // Obtener nombre del rol seleccionado
-        $rolNombre = null;
-        if ($this->rol_id) {
-            $rol = $this->roles->firstWhere('rol_id', $this->rol_id) ?? null;
-            $rolNombre = $rol?->nombre ?? null;
+            return;
         }
 
-        $preferred = null;
-        if ($rolNombre === 'Disertante') {
-            $preferred = 'disertante';
-        } elseif ($rolNombre === 'Colaborador') {
-            $preferred = 'colaborador';
-        } else {
-            // Participante y otros
-            if ($evento->esPorAprobacion() && in_array('aprobacion', $availableTypes)) {
-                $preferred = 'aprobacion';
-            } else {
-                $preferred = 'asistencia';
-            }
-        }
-
-        // Si el tipo preferido está disponible, usarlo; si no, usar el primer disponible
-        if ($preferred && in_array($preferred, $availableTypes)) {
-            $this->certificado_tipo = $preferred;
-        } elseif (! empty($availableTypes)) {
-            $this->certificado_tipo = $availableTypes[0];
-        }
-
-        // Preseleccionar plantilla por_defecto si existe
-        if ($this->certificado_tipo && isset($this->plantillas_por_tipo[$this->certificado_tipo])) {
-            $group = $this->plantillas_por_tipo[$this->certificado_tipo];
-            $porDefecto = null;
-            foreach ($group as $g) {
-                if (! empty($g['por_defecto'])) {
-                    $porDefecto = $g;
-                    break;
-                }
-            }
-            if ($porDefecto) {
-                $this->plantilla_id = $porDefecto['plantilla_id'];
-            } elseif (! empty($group)) {
-                $this->plantilla_id = $group[0]['plantilla_id'];
-            }
-        }
+        $this->cargarPlantillas();
     }
 
-    public function buscarParticipante()
+    public function updatedTipoReconocimientoId(): void
+    {
+        $this->plantilla_id = null;
+        $this->cargarPlantillas();
+    }
+
+    private function alcance(): string
+    {
+        return $this->origen_tipo === 'contexto' ? 'contexto' : 'evento';
+    }
+
+    /**
+     * Contextos disponibles: al emitir por evento se acotan a la categoría elegida.
+     */
+    private function cargarContextos(): void
+    {
+        if ($this->origen_tipo === 'evento') {
+            $this->contextos = $this->categoria_id
+                ? Contexto::where('categoria_id', $this->categoria_id)->orderBy('nombre')->get()
+                : collect();
+
+            return;
+        }
+
+        $this->contextos = Contexto::orderBy('nombre')->get();
+    }
+
+    /**
+     * Eventos finalizados del contexto seleccionado.
+     */
+    private function cargarEventos(): void
+    {
+        $this->eventos = $this->origen_tipo === 'evento' && $this->contexto_id
+            ? Evento::where('estado', 'Finalizado')
+                ->where('contexto_id', $this->contexto_id)
+                ->orderByDesc('fecha_inicio')
+                ->get()
+            : collect();
+    }
+
+    private function cargarPlantillas(): void
+    {
+        $contextoOrigen = $this->contextoOrigen();
+
+        if (! $this->tipo_reconocimiento_id || ! $contextoOrigen) {
+            $this->plantillas = [];
+            $this->plantilla_id = null;
+
+            return;
+        }
+
+        $this->plantillas = PlantillaCertificado::query()
+            ->where('tipo_reconocimiento_id', $this->tipo_reconocimiento_id)
+            ->where('contexto_id', $contextoOrigen->contexto_id)
+            ->whereNotNull('layout')
+            ->orderByDesc('por_defecto')
+            ->get()
+            ->toArray();
+
+        $porDefecto = collect($this->plantillas)->firstWhere('por_defecto', true) ?? $this->plantillas[0] ?? null;
+        $this->plantilla_id = $porDefecto['plantilla_id'] ?? null;
+    }
+
+    private function contextoOrigen(): ?Contexto
+    {
+        if ($this->origen_tipo === 'contexto') {
+            return $this->contexto_id ? Contexto::find($this->contexto_id) : null;
+        }
+
+        if ($this->evento_id) {
+            return Evento::find($this->evento_id)?->contexto;
+        }
+
+        return null;
+    }
+
+    private function origen(): ?object
+    {
+        if ($this->origen_tipo === 'contexto') {
+            return $this->contexto_id ? Contexto::find($this->contexto_id) : null;
+        }
+
+        return $this->evento_id ? Evento::find($this->evento_id) : null;
+    }
+
+    public function buscarParticipante(): void
     {
         if ($this->dni) {
             $this->participanteExistente = Participante::where('dni', $this->dni)->first()?->toArray();
@@ -211,8 +206,6 @@ class EmisorCertificados extends Component
                 $this->reset('nombre', 'apellido', 'telefono', 'mail');
             }
         }
-
-        $this->refreshEstadoReemision();
     }
 
     public function detectarSimilar(): void
@@ -250,42 +243,25 @@ class EmisorCertificados extends Component
         $this->decision_similar = 'nuevo';
     }
 
-    private function refreshEstadoReemision(): void
+    public function emitir(): void
     {
-        $this->reemision = false;
-        $this->reemision_rol = null;
+        $this->validate([
+            'dni' => 'required|string|max:15',
+            'nombre' => 'required|string|max:100',
+            'apellido' => ['required', 'string', 'max:100', new LargoNombreCertificado($this->nombre)],
+            'telefono' => 'required|string|min:6|max:15',
+            'mail' => 'required|email|max:100',
+            'tipo_reconocimiento_id' => 'required|exists:tipo_reconocimiento,tipo_reconocimiento_id',
+            'plantilla_id' => 'required|exists:plantilla_certificado,plantilla_id',
+        ]);
 
-        if (! $this->evento_id || ! $this->participanteExistente) {
+        $origen = $this->origen();
+
+        if (! $origen) {
+            $this->dispatch('oops', message: 'Seleccioná un evento o contexto de origen.');
+
             return;
         }
-
-        $existing = EventoParticipante::where('evento_id', $this->evento_id)
-            ->where('participante_id', $this->participanteExistente['participante_id'])
-            ->first();
-
-        if ($existing) {
-            $this->reemision = true;
-            $this->reemision_rol = $existing->rol_id;
-        }
-    }
-
-    public function guardar()
-    {
-        // Validación condicional: plantilla del tipo seleccionado O imagen manual
-        $extraRules = [];
-
-        $extraRules['certificado_tipo'] = 'required|string';
-
-        $plantillasForTipo = $this->plantillas_por_tipo[$this->certificado_tipo] ?? [];
-        if (empty($plantillasForTipo)) {
-            $extraRules['background_image'] = 'required|image|mimes:jpeg,png|max:30720';
-        } else {
-            $extraRules['plantilla_id'] = 'required|exists:plantilla_certificado,plantilla_id';
-        }
-
-        $this->validate(array_merge($this->rules, $extraRules, [
-            'apellido' => array_merge((array) $this->rules['apellido'], [new LargoNombreCertificado($this->nombre)]),
-        ]));
 
         if ($this->similar === null) {
             $this->detectarSimilar();
@@ -297,166 +273,112 @@ class EmisorCertificados extends Component
             return;
         }
 
-        $backgroundPath = null;
-        if (! empty($plantillasForTipo) && $this->plantilla_id) {
-            $plantilla = PlantillaCertificado::find($this->plantilla_id);
-            // Seguridad: comprobar que la plantilla pertenece a la categoría y al tipo seleccionado
-            $evento = Evento::with('categoria')->find($this->evento_id);
-            if (! $plantilla || ! $evento || $plantilla->categoria_id !== $evento->categoria_id || ($plantilla->tipo ?? 'asistencia') !== $this->certificado_tipo) {
-                $this->dispatch('oops', message: 'La plantilla seleccionada no corresponde a la categoría/tipo del evento.');
-
-                return;
-            }
-            $backgroundPath = $plantilla ? $plantilla->imagen_path : null;
-        } elseif ($this->background_image) {
-            $backgroundPath = $this->background_image->store('images', 'public');
-        }
-
         DB::beginTransaction();
+
         try {
-            // Normalizar campos
             $this->nombre = NormalizadorIdentidad::titulo($this->nombre);
             $this->apellido = NormalizadorIdentidad::titulo($this->apellido);
 
-            $participante = null;
+            $participante = $this->resolverParticipante();
 
-            if ($this->similar && $this->decision_similar === 'usar') {
-                $participante = Participante::find($this->similar['participante_id']);
-
-                if (! $participante) {
-                    DB::rollBack();
-                    $this->dispatch('oops', message: 'El participante similar ya no está disponible. Volvé a intentar.');
-
-                    return;
-                }
-
-                $participante->update([
-                    'nombre' => $this->nombre,
-                    'apellido' => $this->apellido,
-                    'telefono' => $this->telefono,
-                ]);
-
-                DuplicadoRevision::create([
-                    'participante_id' => $participante->participante_id,
-                    'candidato_id' => $participante->participante_id,
-                    'origen' => 'emision',
-                    'decision' => 'misma_persona',
-                ]);
-            } else {
-                $participante = Participante::where('dni', $this->dni)->first();
-
-                if (! $participante) {
-                    $participante = Participante::create([
-                        'nombre' => $this->nombre,
-                        'apellido' => $this->apellido,
-                        'dni' => $this->dni,
-                        'telefono' => $this->telefono,
-                        'mail' => $this->mail,
-                    ]);
-
-                    if ($this->similar && $this->decision_similar === 'nuevo') {
-                        DuplicadoRevision::create([
-                            'participante_id' => $participante->participante_id,
-                            'candidato_id' => $this->similar['participante_id'],
-                            'origen' => 'emision',
-                            'decision' => 'otra_persona',
-                        ]);
-                    }
-                }
-            }
-
-            // Evitar duplicados y, si ya existe, tratar como re-emisión
-            $yaExiste = EventoParticipante::where('evento_id', $this->evento_id)
-                ->where('participante_id', $participante->participante_id)
-                ->first();
-
-            if ($yaExiste) {
-                if ((int) $yaExiste->rol_id !== (int) $this->rol_id) {
-                    DB::rollBack();
-                    $this->dispatch('oops', message: 'Este participante ya está registrado en el evento con otro rol.');
-
-                    return;
-                }
-
-                // Re-emisión: reusa el vínculo y el QR existentes, solo regenera su certificado
-                $participante->update([
-                    'nombre' => $this->nombre,
-                    'apellido' => $this->apellido,
-                    'dni' => $this->dni,
-                    'telefono' => $this->telefono,
-                    'mail' => $this->mail,
-                ]);
-
-                $evento = Evento::with('tipoEvento')->find($this->evento_id);
-                $this->generarCertificadoIndividual($participante, $evento, $backgroundPath);
-
-                DB::commit();
-                $this->cargarEventoParticipantes();
-                $this->dispatch('alert', message: 'Certificado reemitido correctamente.');
-                $this->modal_abierto = false;
+            if (! $participante) {
+                DB::rollBack();
 
                 return;
             }
 
-            // Generar URL y QR
-            $url = route('validar.participante', [
-                'evento_id' => $this->evento_id,
-                'participante_id' => $participante->participante_id,
-            ]);
+            $tipo = TipoReconocimiento::findOrFail($this->tipo_reconocimiento_id);
+            $plantilla = PlantillaCertificado::findOrFail($this->plantilla_id);
 
-            $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd);
-            $writer = new Writer($renderer);
-            $qrcode = $writer->writeString($url);
-
-            EventoParticipante::create([
-                'evento_id' => $this->evento_id,
-                'participante_id' => $participante->participante_id,
-                'rol_id' => $this->rol_id,
-                'url' => $url,
-                'qrcode' => $qrcode,
-                'emision_directa' => true,
-            ]);
-
-            // Generar certificado
-            $evento = Evento::with('tipoEvento')->find($this->evento_id);
-            $this->generarCertificadoIndividual($participante, $evento, $backgroundPath);
+            $emision = app(GenerarCertificadoEmision::class)->emitir(
+                participante: $participante,
+                tipo: $tipo,
+                plantilla: $plantilla,
+                origen: $origen,
+                alcance: $this->alcance(),
+                emitidoPor: auth()->id(),
+            );
 
             DB::commit();
-            $this->cargarEventoParticipantes();
-            $this->dispatch('alert', message: 'Participante registrado correctamente.');
-            $this->modal_abierto = false;
-        } catch (\Exception $e) {
+
+            $this->dispatch('alert', message: $emision->wasRecentlyCreated
+                ? 'Certificado emitido correctamente.'
+                : 'Certificado reemitido correctamente (se reemplazó el anterior).');
+            $this->reset(['evento_id', 'contexto_id', 'tipo_reconocimiento_id', 'plantilla_id', 'nombre', 'apellido', 'dni', 'telefono', 'mail', 'participanteExistente', 'similar', 'decision_similar', 'plantillas']);
+            $this->cargarEventos();
+        } catch (\Throwable $e) {
             DB::rollBack();
             $this->dispatch('oops', message: 'Error: '.$e->getMessage());
         }
     }
 
-    private function generarCertificadoIndividual(Participante $participante, Evento $evento, ?string $backgroundPath)
+    private function resolverParticipante(): ?Participante
     {
-        $relacion = EventoParticipante::where('evento_id', $evento->evento_id)
-            ->where('participante_id', $participante->participante_id)
-            ->first();
+        if ($this->similar && $this->decision_similar === 'usar') {
+            $participante = Participante::find($this->similar['participante_id']);
 
-        if (! $relacion) {
-            throw new \Exception('No se encontró el vínculo entre evento y participante.');
+            if (! $participante) {
+                $this->dispatch('oops', message: 'El participante similar ya no está disponible.');
+
+                return null;
+            }
+
+            $participante->update([
+                'nombre' => $this->nombre,
+                'apellido' => $this->apellido,
+                'telefono' => $this->telefono,
+            ]);
+
+            DuplicadoRevision::create([
+                'participante_id' => $participante->participante_id,
+                'candidato_id' => $participante->participante_id,
+                'origen' => 'emision',
+                'decision' => 'misma_persona',
+            ]);
+
+            return $participante;
         }
 
-        $plantilla = $this->plantilla_id ? PlantillaCertificado::find($this->plantilla_id) : null;
+        $participante = Participante::where('dni', $this->dni)->first();
 
-        $override = null;
-        if (! $plantilla && $backgroundPath) {
-            $override = CertificadoPdfAssets::prepareBackgroundForPdf($backgroundPath);
+        if ($participante) {
+            $participante->update([
+                'nombre' => $this->nombre,
+                'apellido' => $this->apellido,
+                'telefono' => $this->telefono,
+                'mail' => $this->mail,
+            ]);
+
+            return $participante;
         }
 
-        $filename = app(GenerarCertificadoEvento::class)->generar($relacion, $plantilla, $override);
+        $participante = Participante::create([
+            'nombre' => $this->nombre,
+            'apellido' => $this->apellido,
+            'dni' => $this->dni,
+            'telefono' => $this->telefono,
+            'mail' => $this->mail,
+        ]);
 
-        if ($filename) {
-            $evento->update(['certificado_path' => dirname($filename)]);
+        if ($this->similar && $this->decision_similar === 'nuevo') {
+            DuplicadoRevision::create([
+                'participante_id' => $participante->participante_id,
+                'candidato_id' => $this->similar['participante_id'],
+                'origen' => 'emision',
+                'decision' => 'otra_persona',
+            ]);
         }
+
+        return $participante;
     }
 
     public function render()
     {
-        return view('livewire.emisor-certificados');
+        $emisiones = Emision::query()
+            ->with(['participante', 'tipoReconocimiento'])
+            ->orderByDesc('created_at')
+            ->paginate($this->porPagina);
+
+        return view('livewire.emisor-certificados', compact('emisiones'));
     }
 }
