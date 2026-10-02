@@ -56,67 +56,6 @@ class CertificadoVariables
     }
 
     /**
-     * Construye el mapa de tokens para un certificado emitido por un sistema externo
-     * (por ejemplo, tutores académicos de PPS). El payload trae las claves `tutor` y
-     * `practica`; se devuelven las mismas claves que `paraEvento` más extras de la práctica.
-     *
-     * @param  array<string, mixed>  $datos
-     * @param  array<int, array{nombre?:string, cargo?:string, imagen_path?:string}>  $firmantes
-     * @return array<string, string>
-     */
-    public static function paraExterno(array $datos, ?Contexto $contexto = null, array $firmantes = []): array
-    {
-        $tutor = $datos['tutor'] ?? $datos;
-        $practica = $datos['practica'] ?? [];
-
-        $contextoNombre = (string) ($contexto?->nombre ?? '');
-        $contextoDenominacion = (string) ($contexto?->denominacion ?? '');
-
-        $contextoCompleto = trim($contextoNombre);
-        if ($contextoDenominacion !== '') {
-            $contextoCompleto = $contextoCompleto === ''
-                ? $contextoDenominacion
-                : "{$contextoNombre} ({$contextoDenominacion})";
-        }
-
-        $apellido = (string) ($tutor['apellido'] ?? '');
-        $nombres = (string) ($tutor['nombres'] ?? ($tutor['nombre'] ?? ''));
-
-        $inicio = $practica['periodo_inicio'] ?? $contexto?->fecha_inicio;
-        $fin = $practica['periodo_fin'] ?? $contexto?->fecha_fin;
-
-        $variables = [
-            'apellido' => $apellido,
-            'nombres' => $nombres,
-            'apellido_nombres' => NombreCertificado::paraCertificado($apellido, $nombres),
-            'dni' => (string) ($tutor['dni'] ?? ''),
-            'tipo_evento' => (string) ($datos['tipo_evento'] ?? ''),
-            'formula' => (string) ($datos['formula'] ?? ''),
-            'nombre_evento' => (string) ($datos['nombre_evento'] ?? ''),
-            'contexto' => $contextoCompleto,
-            'contexto_nombre' => $contextoNombre,
-            'contexto_denominacion' => $contextoDenominacion,
-            'institucion' => (string) ($practica['institucion'] ?? ($contexto?->institucion ?? '')),
-            'resolucion' => (string) ($practica['resolucion'] ?? ($contexto?->resolucion ?? '')),
-            'lugar' => (string) ($contexto?->lugar ?? ''),
-            'fecha_rango' => FechaCertificado::rango($inicio, $fin),
-            'cargo' => (string) ($tutor['cargo'] ?? ''),
-            'carrera' => (string) ($practica['carrera'] ?? ''),
-            'estudiante' => (string) ($practica['estudiante_apellido_nombres'] ?? ''),
-            'estudiante_dni' => (string) ($practica['estudiante_dni'] ?? ''),
-            'horas' => isset($practica['horas']) ? (string) $practica['horas'] : '',
-        ];
-
-        foreach (array_values($firmantes) as $i => $firmante) {
-            $slot = $i + 1;
-            $variables["firmante_{$slot}_nombre"] = (string) ($firmante['nombre'] ?? '');
-            $variables["firmante_{$slot}_cargo"] = (string) ($firmante['cargo'] ?? '');
-        }
-
-        return $variables;
-    }
-
-    /**
      * Tokens para una emisión cuyo origen es un contexto/agrupador (jornada, cursillo,
      * expo, PPS). `nombre_evento` apunta al nombre del contexto para reutilizar plantillas.
      *

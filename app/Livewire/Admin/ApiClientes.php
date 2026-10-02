@@ -10,7 +10,7 @@ class ApiClientes extends Component
 {
     use WithPagination;
 
-    public const ABILITIES = ['certificados:emitir', 'certificados:leer'];
+    public const ABILITIES = ['certificados:emitir', 'certificados:leer', 'certificados:contextos'];
 
     public $open_modal = false;
 

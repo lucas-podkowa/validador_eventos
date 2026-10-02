@@ -20,6 +20,8 @@ class CertificadoExternoApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private ?int $contextoId = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -58,6 +60,9 @@ class CertificadoExternoApiTest extends TestCase
             ->assertJsonPath('data.external_ref', 'PPS-TUT-1')
             ->assertJsonPath('data.estado', Emision::ESTADO_EMITIDO)
             ->assertJsonPath('data.match_estado', Emision::MATCH_AUTO)
+            ->assertJsonPath('data.receptor.nombre', 'Perez, Juan Carlos')
+            ->assertJsonPath('data.contexto.nombre', 'Prácticas Profesionales Supervisadas')
+            ->assertJsonPath('data.plantilla.codigo', 'tutor_academico_default')
             ->assertJsonStructure(['data' => ['id', 'verificacion_url', 'receptor' => ['nombre', 'dni']]]);
 
         $certificado = Emision::first();
@@ -233,6 +238,95 @@ class CertificadoExternoApiTest extends TestCase
     /**
      * @return array{0: ApiCliente, 1: string}
      */
+    public function test_contexto_id_es_obligatorio(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $this->withToken($token)
+            ->postJson(route('api.certificados.store'), $this->payload(['contexto_id' => null]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['contexto_id']);
+    }
+
+    public function test_no_usa_plantilla_de_otro_contexto(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $otraCategoria = CategoriaEvento::create(['nombre' => 'Otros']);
+        $otroContexto = Contexto::create([
+            'categoria_id' => $otraCategoria->categoria_id,
+            'nombre' => 'Otro programa',
+            'activo' => true,
+        ]);
+
+        $this->withToken($token)
+            ->postJson(route('api.certificados.store'), $this->payload([
+                'contexto_id' => $otroContexto->contexto_id,
+                'plantilla_codigo' => 'tutor_academico_default',
+            ]))
+            ->assertStatus(422);
+
+        $this->assertSame(0, Emision::count());
+    }
+
+    public function test_exige_plantilla_predeterminada_o_codigo(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $plantilla = $this->crearPlantilla();
+        $plantilla->update(['por_defecto' => false]);
+
+        $this->withToken($token)
+            ->postJson(route('api.certificados.store'), $this->payload(['plantilla_codigo' => null]))
+            ->assertStatus(422);
+
+        $this->assertSame(0, Emision::count());
+    }
+
+    public function test_fecha_rango_usa_el_periodo_de_la_practica(): void
+    {
+        [$cliente, $token] = $this->clienteConToken();
+        $this->crearPlantilla();
+
+        $this->withToken($token)
+            ->postJson(route('api.certificados.store'), $this->payload())
+            ->assertCreated();
+
+        $fechaRango = (string) (Emision::first()->datos['fecha_rango'] ?? '');
+
+        $this->assertStringContainsString('marzo', $fechaRango);
+        $this->assertStringContainsString('junio', $fechaRango);
+    }
+
+    public function test_lista_contextos_con_plantillas(): void
+    {
+        [$cliente, $token] = $this->clienteConToken(['certificados:contextos']);
+        $this->crearPlantilla();
+
+        $this->withToken($token)
+            ->getJson(route('api.contextos.index'))
+            ->assertOk()
+            ->assertJsonPath('data.0.nombre', 'Prácticas Profesionales Supervisadas')
+            ->assertJsonPath('data.0.plantillas.0.codigo', 'tutor_academico_default')
+            ->assertJsonPath('data.0.plantillas.0.por_defecto', true);
+
+        $this->withToken($token)
+            ->getJson(route('api.contextos.index', ['tipo' => 'tutor_academico']))
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_contextos_requiere_ability(): void
+    {
+        [$cliente, $token] = $this->clienteConToken(['certificados:emitir']);
+        $this->crearPlantilla();
+
+        $this->withToken($token)
+            ->getJson(route('api.contextos.index'))
+            ->assertForbidden();
+    }
+
     private function clienteConToken(array $abilities = ['certificados:emitir']): array
     {
         $cliente = ApiCliente::create(['nombre' => 'PPS', 'activo' => true]);
@@ -249,6 +343,8 @@ class CertificadoExternoApiTest extends TestCase
             'institucion' => 'Facultad de Ingeniería UNaM',
             'activo' => true,
         ]);
+
+        $this->contextoId = $contexto->contexto_id;
 
         $tipoTutor = TipoReconocimiento::where('slug', 'tutor')->value('tipo_reconocimiento_id');
 
@@ -279,6 +375,7 @@ class CertificadoExternoApiTest extends TestCase
             'external_ref' => 'PPS-TUT-1',
             'tipo' => 'tutor_academico',
             'plantilla_codigo' => 'tutor_academico_default',
+            'contexto_id' => $this->contextoId,
             'tutor' => [
                 'apellido' => 'Perez',
                 'nombres' => 'Juan Carlos',

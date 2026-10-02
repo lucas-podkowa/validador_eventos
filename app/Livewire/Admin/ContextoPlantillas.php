@@ -18,6 +18,7 @@ use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -29,6 +30,11 @@ class ContextoPlantillas extends Component
         'literal' => 'Texto literal (acepta tokens)',
         'apellido_nombres' => 'Apellido, Nombres',
         'dni' => 'DNI',
+        'cargo' => 'Cargo (tutores)',
+        'carrera' => 'Carrera (práctica)',
+        'estudiante' => 'Estudiante (práctica)',
+        'estudiante_dni' => 'DNI del estudiante (práctica)',
+        'horas' => 'Horas (práctica)',
         'texto_cuerpo' => 'Texto del cuerpo',
         'fecha_rango' => 'Fecha (rango)',
         'qr' => 'QR',
@@ -48,6 +54,7 @@ class ContextoPlantillas extends Component
         '{tipo_evento}', '{formula}', '{nombre_evento}',
         '{contexto}', '{contexto_nombre}', '{contexto_denominacion}', '{institucion}',
         '{resolucion}', '{lugar}', '{fecha_rango}',
+        '{cargo}', '{carrera}', '{estudiante}', '{estudiante_dni}', '{horas}',
         '{firmante_1_nombre}', '{firmante_1_cargo}',
         '{firmante_2_nombre}', '{firmante_2_cargo}',
         '{firmante_3_nombre}', '{firmante_3_cargo}',
@@ -236,12 +243,37 @@ class ContextoPlantillas extends Component
     public function guardar(): void
     {
         $this->validate([
-            'nombre' => 'required|string|max:100',
+            'nombre' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('plantilla_certificado', 'nombre')
+                    ->where(fn ($query) => $query
+                        ->where('contexto_id', $this->contexto_id)
+                        ->where('tipo_reconocimiento_id', $this->tipo_reconocimiento_id))
+                    ->ignore($this->editando_id, 'plantilla_id'),
+            ],
             'tipo_reconocimiento_id' => 'required|exists:tipo_reconocimiento,tipo_reconocimiento_id',
             'imagen' => ($this->editando_id || $this->clonando_id ? 'nullable' : 'required').'|image|mimes:jpeg,png|max:30720',
             'texto' => 'nullable|string',
             'bloques' => 'array',
         ]);
+
+        // Regla de predeterminada: si es la única del tipo, se marca sola; si hay varias,
+        // al menos una debe quedar como predeterminada.
+        $otras = PlantillaCertificado::query()
+            ->where('contexto_id', $this->contexto_id)
+            ->where('tipo_reconocimiento_id', $this->tipo_reconocimiento_id)
+            ->when($this->editando_id, fn ($query) => $query->where('plantilla_id', '!=', $this->editando_id))
+            ->get();
+
+        if ($otras->isEmpty()) {
+            $this->por_defecto = true;
+        } elseif (! $this->por_defecto && ! $otras->contains(fn ($plantilla) => (bool) $plantilla->por_defecto)) {
+            $this->addError('por_defecto', 'Marcá esta plantilla como predeterminada o dejá otra del mismo tipo como predeterminada.');
+
+            return;
+        }
 
         $layout = $this->layoutNormalizado();
         $tipoReconocimiento = TipoReconocimiento::findOrFail($this->tipo_reconocimiento_id);

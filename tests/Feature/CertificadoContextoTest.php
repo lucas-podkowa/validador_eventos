@@ -164,7 +164,7 @@ class CertificadoContextoTest extends TestCase
         $this->assertEquals($disertanteId, $copia->tipo_reconocimiento_id);
         $this->assertSame('ha asistido {formula} {nombre_evento}', $copia->texto);
         $this->assertNotEmpty($copia->layout);
-        $this->assertFalse($copia->por_defecto);
+        $this->assertTrue((bool) $copia->por_defecto);
         $this->assertNotSame($origen->imagen_path, $copia->imagen_path);
         Storage::disk('public')->assertExists($copia->imagen_path);
         Storage::disk('public')->assertExists($origen->imagen_path);
@@ -415,6 +415,94 @@ class CertificadoContextoTest extends TestCase
             ->get(route('admin.firmantes.imagen', $firmante))
             ->assertOk()
             ->assertHeader('Content-Type', 'image/png');
+    }
+
+    public function test_plantilla_unica_del_tipo_queda_predeterminada(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->admin);
+
+        $categoria = CategoriaEvento::create(['nombre' => 'JIDeTEV']);
+        $contexto = Contexto::create(['categoria_id' => $categoria->categoria_id, 'nombre' => 'XVI JIDeTEV', 'activo' => true]);
+
+        Livewire::test(ContextoPlantillas::class, ['contextoId' => $contexto->contexto_id])
+            ->call('abrirCrear')
+            ->set('nombre', 'Tutor PPS')
+            ->set('tipo_reconocimiento_id', TipoReconocimiento::where('slug', 'tutor')->value('tipo_reconocimiento_id'))
+            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $plantilla = PlantillaCertificado::where('nombre', 'Tutor PPS')->first();
+
+        $this->assertNotNull($plantilla);
+        $this->assertTrue((bool) $plantilla->por_defecto);
+    }
+
+    public function test_exige_predeterminada_al_desmarcar_la_unica(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->admin);
+
+        $categoria = CategoriaEvento::create(['nombre' => 'JIDeTEV']);
+        $contexto = Contexto::create(['categoria_id' => $categoria->categoria_id, 'nombre' => 'XVI JIDeTEV', 'activo' => true]);
+        $tipoId = TipoReconocimiento::where('slug', 'tutor')->value('tipo_reconocimiento_id');
+
+        $layout = [['campo' => 'apellido_nombres', 'x' => 20, 'y' => 38, 'w' => 52, 'size' => 40, 'align' => 'center', 'color' => '#0A1B3A', 'bold' => true, 'italic' => false]];
+
+        $predeterminada = PlantillaCertificado::create([
+            'contexto_id' => $contexto->contexto_id,
+            'nombre' => 'Tutor A',
+            'imagen_path' => 'plantillas/contexto/a.png',
+            'tipo' => 'tutor',
+            'tipo_reconocimiento_id' => $tipoId,
+            'por_defecto' => true,
+            'layout' => $layout,
+        ]);
+
+        PlantillaCertificado::create([
+            'contexto_id' => $contexto->contexto_id,
+            'nombre' => 'Tutor B',
+            'imagen_path' => 'plantillas/contexto/b.png',
+            'tipo' => 'tutor',
+            'tipo_reconocimiento_id' => $tipoId,
+            'por_defecto' => false,
+            'layout' => $layout,
+        ]);
+
+        Livewire::test(ContextoPlantillas::class, ['contextoId' => $contexto->contexto_id])
+            ->call('abrirEditar', $predeterminada->plantilla_id)
+            ->set('por_defecto', false)
+            ->call('guardar')
+            ->assertHasErrors('por_defecto');
+    }
+
+    public function test_nombre_de_plantilla_unico_por_contexto_y_tipo(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->admin);
+
+        $categoria = CategoriaEvento::create(['nombre' => 'JIDeTEV']);
+        $contexto = Contexto::create(['categoria_id' => $categoria->categoria_id, 'nombre' => 'XVI JIDeTEV', 'activo' => true]);
+        $tipoId = TipoReconocimiento::where('slug', 'tutor')->value('tipo_reconocimiento_id');
+
+        PlantillaCertificado::create([
+            'contexto_id' => $contexto->contexto_id,
+            'nombre' => 'Tutor PPS',
+            'imagen_path' => 'plantillas/contexto/a.png',
+            'tipo' => 'tutor',
+            'tipo_reconocimiento_id' => $tipoId,
+            'por_defecto' => true,
+            'layout' => [['campo' => 'apellido_nombres']],
+        ]);
+
+        Livewire::test(ContextoPlantillas::class, ['contextoId' => $contexto->contexto_id])
+            ->call('abrirCrear')
+            ->set('nombre', 'Tutor PPS')
+            ->set('tipo_reconocimiento_id', $tipoId)
+            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
+            ->call('guardar')
+            ->assertHasErrors('nombre');
     }
 
     private function contextoDePrueba(): Contexto

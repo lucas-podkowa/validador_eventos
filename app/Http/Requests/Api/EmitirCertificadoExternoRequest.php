@@ -20,7 +20,7 @@ class EmitirCertificadoExternoRequest extends FormRequest
             'external_ref' => ['required', 'string', 'max:191'],
             'tipo' => ['required', 'string', 'max:50'],
             'plantilla_codigo' => ['nullable', 'string', 'max:191'],
-            'contexto_id' => ['nullable', 'integer', 'exists:contexto,contexto_id'],
+            'contexto_id' => ['required', 'integer', 'exists:contexto,contexto_id'],
             'fecha_emision' => ['nullable', 'date'],
 
             'tutor' => ['required', 'array'],

@@ -30,6 +30,8 @@ class CertificadoExternoController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        $certificado->loadMissing(['participante', 'tipoReconocimiento', 'plantilla', 'origen']);
+
         $email = $certificado->participante?->mail;
 
         if (! $existia && $email) {
@@ -58,6 +60,8 @@ class CertificadoExternoController extends Controller
             $cliente && (int) $certificado->api_cliente_id === (int) $cliente->api_cliente_id,
             404
         );
+
+        $certificado->loadMissing(['participante', 'tipoReconocimiento', 'plantilla', 'origen']);
 
         return new CertificadoExternoResource($certificado);
     }

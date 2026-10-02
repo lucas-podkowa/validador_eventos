@@ -13,6 +13,7 @@ use App\Livewire\Admin\Categorias;
 use App\Livewire\Admin\CertificadosExternos;
 use App\Livewire\Admin\Contextos;
 use App\Livewire\Admin\Destinatarios;
+use App\Livewire\Admin\Emisiones;
 use App\Livewire\Admin\Firmantes;
 use App\Livewire\Admin\SolicitudesDni;
 use App\Livewire\Admin\TiposEvento;
@@ -61,6 +62,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/informes', Informes::class)->name('informes');
         Route::get('/emision', EmisorCertificados::class)->name('emisor_certificados');
         Route::get('/emisiones/masiva', EmisionMasiva::class)->name('emision_masiva');
+        Route::get('/admin/certificados', Emisiones::class)->name('admin.certificados');
         Route::get('/admin/solicitudes-dni', SolicitudesDni::class)->name('admin.solicitudes_dni');
         Route::get('/admin/solicitudes-dni/{solicitud}/imagen', [SolicitudDniController::class, 'imagen'])->name('admin.solicitudes_dni.imagen');
     });

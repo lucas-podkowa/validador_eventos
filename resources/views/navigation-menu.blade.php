@@ -133,6 +133,12 @@
                 <span>Emisión masiva</span>
             </a>
 
+            <a href="{{ route('admin.certificados') }}"
+                class="{{ request()->routeIs('admin.certificados') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-circle-check w-5 text-center"></i>
+                <span>Certificados emitidos</span>
+            </a>
+
             <a href="{{ route('informes') }}" class="{{ request()->routeIs('informes') ? 'active' : '' }}">
                 <i class="fa-solid fa-file-lines w-5 text-center"></i>
                 <span>Informes</span>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CertificadoExternoController;
+use App\Http\Controllers\Api\V1\ContextoExternoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'api.cliente.activo'])->group(f
     Route::get('/certificados/{certificado}', [CertificadoExternoController::class, 'show'])
         ->middleware('ability:certificados:leer')
         ->name('api.certificados.show');
+
+    Route::get('/contextos', [ContextoExternoController::class, 'index'])
+        ->middleware('ability:certificados:contextos')
+        ->name('api.contextos.index');
 });

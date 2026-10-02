@@ -7,6 +7,11 @@ El validador centraliza la emisión: PPS envía los datos del tutor y de la prá
 genera el PDF, lo guarda, notifica por email al tutor y publica una URL pública de verificación (QR).
 El tutor podrá ver y descargar su certificado al iniciar sesión en el validador.
 
+> **Cambio importante (2026):** las plantillas de certificado ahora viven **dentro de un contexto**
+> institucional. La emisión externa exige `contexto_id`. Antes de emitir, PPS debe descubrir el
+> contexto de PPS y su plantilla con `GET /api/v1/contextos`. Las llamadas que no envíen
+> `contexto_id` serán rechazadas con `422`.
+
 ---
 
 ## 1. Entornos y URLs base
@@ -21,6 +26,7 @@ El tutor podrá ver y descargar su certificado al iniciar sesión en el validado
 
 Todas las rutas llevan el prefijo `/api/v1`:
 
+- Descubrir contextos/plantillas: `GET {BASE}/contextos`
 - Emitir: `POST {BASE}/certificados`
 - Consultar: `GET {BASE}/certificados/{id}`
 
@@ -35,13 +41,18 @@ de entorno/secretos del servidor (nunca en el frontend ni en el repositorio).
 ### 2.1 Obtener el token (lo hace el administrador del validador)
 
 Opción A — Panel web: `/admin/api-clientes` → crear/linkear el cliente PPS → **Generar token**,
-tildando las habilidades necesarias (`certificados:emitir` y opcionalmente `certificados:leer`).
+tildando las habilidades necesarias (`certificados:emitir`, `certificados:contextos` y opcionalmente
+`certificados:leer`).
 
 Opción B — Comandos:
 
 ```bash
 php artisan api:cliente:crear PPS
-php artisan api:token:crear PPS --ability=certificados:emitir --ability=certificados:leer --name=pps-prod
+php artisan api:token:crear PPS \
+  --ability=certificados:emitir \
+  --ability=certificados:contextos \
+  --ability=certificados:leer \
+  --name=pps-prod
 ```
 
 El comando imprime el token una sola vez. Guardarlo en PPS como `VALIDADOR_API_TOKEN`.
@@ -51,6 +62,7 @@ El comando imprime el token una sola vez. Guardarlo en PPS como `VALIDADOR_API_T
 | Habilidad | Permite |
 |---|---|
 | `certificados:emitir` | `POST /api/v1/certificados` |
+| `certificados:contextos` | `GET /api/v1/contextos` (descubrir contexto y plantilla) |
 | `certificados:leer` | `GET /api/v1/certificados/{id}` |
 
 Si el cliente está deshabilitado, todas las llamadas devuelven `403`.
@@ -68,18 +80,72 @@ Content-Type: application/json
 
 ---
 
-## 3. Emitir un certificado
+## 3. Descubrir el contexto y la plantilla de PPS
+
+`GET {BASE}/contextos` — requiere `certificados:contextos`.
+
+Devuelve los contextos que tienen al menos una plantilla emitible (con layout). Se puede filtrar por
+tipo de reconocimiento con `?tipo=tutor` (también se acepta el alias `tutor_academico`).
+
+```bash
+curl "http://localhost:8000/api/v1/contextos?tipo=tutor" \
+  -H "Authorization: Bearer $VALIDADOR_API_TOKEN" \
+  -H "Accept: application/json"
+```
+
+Respuesta:
+
+```json
+{
+  "data": [
+    {
+      "id": 45,
+      "nombre": "Prácticas Profesionales Supervisadas",
+      "tipo": "programa",
+      "denominacion": "Prácticas Profesionales Supervisadas",
+      "institucion": "Facultad de Ingeniería UNaM",
+      "anio": null,
+      "resolucion": "Res. CD 123/2026",
+      "lugar": null,
+      "plantillas": [
+        {
+          "id": 12,
+          "codigo": "tutor_academico_default",
+          "tipo": "tutor",
+          "por_defecto": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Campo | Descripción |
+|---|---|
+| `id` | `contexto_id` que PPS debe enviar al emitir. |
+| `nombre` | Nombre del contexto (ej. la edición/programa). |
+| `tipo` | `edicion`, `programa` o `subprograma`. |
+| `plantillas[].codigo` | Valor para `plantilla_codigo` (opcional al emitir). |
+| `plantillas[].por_defecto` | Si es `true`, se usa cuando PPS no envía `plantilla_codigo`. |
+
+**Recomendación:** obtener el contexto una vez y persistirlo en PPS como `VALIDADOR_CONTEXTO_ID`
+(junto con `VALIDADOR_PLANTILLA_CODIGO` si hay más de una variante). No hace falta descubrirlo en
+cada emisión.
+
+---
+
+## 4. Emitir un certificado
 
 `POST {BASE}/certificados`
 
-### 3.1 Cuerpo de la petición
+### 4.1 Cuerpo de la petición
 
 ```json
 {
   "external_ref": "PPS-TUT-2026-000123",
   "tipo": "tutor_academico",
+  "contexto_id": 45,
   "plantilla_codigo": "tutor_academico_default",
-  "contexto_id": null,
   "tutor": {
     "apellido": "Perez",
     "nombres": "Juan Carlos",
@@ -101,45 +167,65 @@ Content-Type: application/json
 }
 ```
 
-### 3.2 Campos
+### 4.2 Campos
 
 | Campo | Tipo | Obligatorio | Notas |
 |---|---|---|---|
-| `external_ref` | string (≤191) | Sí | Identificador único **de PPS**. Clave de idempotencia (ver §5). |
-| `tipo` | string | Sí | Para tutores usar `"tutor_academico"`. |
-| `plantilla_codigo` | string | No | Nombre de la plantilla configurada en el validador. Si se omite, se usa la marcada por defecto para el `tipo`. |
-| `contexto_id` | integer | No | Contexto institucional (jornada/año). Reservado; normalmente no se envía. |
+| `external_ref` | string (≤191) | Sí | Identificador único **de PPS**. Clave de idempotencia (ver §6). |
+| `tipo` | string | Sí | Para tutores usar `"tutor_academico"` (alias de `"tutor"`). |
+| `contexto_id` | integer | **Sí** | Contexto de PPS obtenido en §3. Define dónde y con qué firmantes se emite. |
+| `plantilla_codigo` | string | No | Nombre de la plantilla. Si se omite, se usa la **predeterminada** del `(contexto, tipo)`. |
 | `tutor.apellido` | string (≤100) | Sí | |
 | `tutor.nombres` | string (≤100) | Sí | Se usa `nombres` (no `nombre`). |
 | `tutor.dni` | string, 6–12 dígitos | Sí | Se usa para vincular con la cuenta del tutor. |
 | `tutor.email` | email (≤191) | Sí | Se usa para vincular y para enviar el certificado. |
 | `tutor.telefono` | string (≤30) | Sí | Requerido por el modelo de datos del validador. |
-| `tutor.cargo` | string (≤100) | No | Ej. "Tutor Académico". |
-| `practica.carrera` | string (≤191) | No | |
-| `practica.estudiante_apellido_nombres` | string (≤191) | No | Formato "Apellido, Nombres". |
-| `practica.estudiante_dni` | string, 6–12 dígitos | No | |
-| `practica.institucion` | string (≤191) | No | |
-| `practica.periodo_inicio` | fecha `YYYY-MM-DD` | No | |
+| `tutor.cargo` | string (≤100) | No | Ej. "Tutor Académico". Disponible como `{cargo}`. |
+| `practica.carrera` | string (≤191) | No | Disponible como `{carrera}`. |
+| `practica.estudiante_apellido_nombres` | string (≤191) | No | Formato "Apellido, Nombres". Token `{estudiante}`. |
+| `practica.estudiante_dni` | string, 6–12 dígitos | No | Token `{estudiante_dni}`. |
+| `practica.institucion` | string (≤191) | No | Si se omite, usa la institución del contexto. |
+| `practica.periodo_inicio` | fecha `YYYY-MM-DD` | No | Define `{fecha_rango}` del certificado. |
 | `practica.periodo_fin` | fecha `YYYY-MM-DD` | No | Debe ser ≥ `periodo_inicio`. |
-| `practica.horas` | integer (0–100000) | No | |
-| `practica.resolucion` | string (≤191) | No | |
+| `practica.horas` | integer (0–100000) | No | Token `{horas}`. |
+| `practica.resolucion` | string (≤191) | No | Si se omite, usa la resolución del contexto. |
+| `fecha_emision` | fecha | No | Reservado; no se usa por ahora. |
 
-Los campos desconocidos se ignoran. `fecha_emision` está reservado y no se usa por ahora.
+Los campos desconocidos se ignoran.
 
-### 3.3 Respuesta exitosa (`201 Created`)
+### 4.3 Plantillas: predeterminada y múltiples variantes
+
+- Cada plantilla pertenece a un `contexto` y a un `tipo_reconocimiento`.
+- Si un `(contexto, tipo)` tiene **una sola** plantilla, esa queda marcada como predeterminada.
+- Si tiene **varias**, el administrador debe marcar al menos una como *predeterminada*.
+- Al emitir:
+  - **Sin** `plantilla_codigo` → se usa la predeterminada del `(contexto, tipo)`.
+  - **Con** `plantilla_codigo` → se usa esa variante (el nombre es único por `(contexto, tipo)`).
+  - Si no hay predeterminada ni se envía código → `422`.
+
+### 4.4 Respuesta exitosa (`201 Created`)
 
 ```json
 {
   "data": {
     "id": "5f2c1c9e-8a4b-4c2e-9d10-3b7a1e2f4a55",
     "external_ref": "PPS-TUT-2026-000123",
-    "tipo": "tutor_academico",
+    "tipo": "tutor",
+    "alcance": "programa",
     "estado": "emitido",
     "match_estado": "auto",
     "receptor": {
       "nombre": "Perez, Juan Carlos",
       "dni": "30111222",
       "email": "juan.perez@fio.unam.edu.ar"
+    },
+    "contexto": {
+      "id": 45,
+      "nombre": "Prácticas Profesionales Supervisadas"
+    },
+    "plantilla": {
+      "id": 12,
+      "codigo": "tutor_academico_default"
     },
     "verificacion_url": "https://acreditar.fio.unam.edu.ar/verificar/AbC123...",
     "emitido_en": "2026-09-24T12:00:00-03:00"
@@ -150,12 +236,15 @@ Los campos desconocidos se ignoran. `fecha_emision` está reservado y no se usa 
 | Campo | Descripción |
 |---|---|
 | `id` | UUID del certificado. Usar para `GET /certificados/{id}`. |
+| `tipo` | Slug del tipo de reconocimiento (`tutor`). |
+| `alcance` | `programa` (tutores), `contexto` o `evento`. |
 | `estado` | `emitido` (o `anulado` a futuro). |
 | `match_estado` | `auto` (vínculo confiable) o `revisar` (revisión manual; ver §6). |
+| `contexto` / `plantilla` | Contexto y plantilla efectivamente usados (trazabilidad). |
 | `verificacion_url` | URL pública del QR. PPS puede guardarla y compartirla. |
 | `emitido_en` | ISO-8601. |
 
-### 3.4 Ejemplos de llamada
+### 4.5 Ejemplos de llamada
 
 **cURL**
 
@@ -167,6 +256,7 @@ curl -X POST "http://localhost:8000/api/v1/certificados" \
   -d '{
     "external_ref": "PPS-TUT-2026-000123",
     "tipo": "tutor_academico",
+    "contexto_id": 45,
     "tutor": {
       "apellido": "Perez", "nombres": "Juan Carlos", "dni": "30111222",
       "email": "juan.perez@fio.unam.edu.ar", "telefono": "3764123456",
@@ -184,6 +274,7 @@ curl -X POST "http://localhost:8000/api/v1/certificados" \
 ```js
 const VALIDADOR_URL = process.env.VALIDADOR_URL ?? 'http://localhost:8000';
 const TOKEN = process.env.VALIDADOR_API_TOKEN;
+const CONTEXTO_ID = Number(process.env.VALIDADOR_CONTEXTO_ID);
 
 export async function emitirCertificadoTutor(datos) {
   const res = await fetch(`${VALIDADOR_URL}/api/v1/certificados`, {
@@ -193,7 +284,7 @@ export async function emitirCertificadoTutor(datos) {
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(datos),
+    body: JSON.stringify({ contexto_id: CONTEXTO_ID, ...datos }),
   });
 
   if (res.status === 201 || res.status === 200) {
@@ -210,7 +301,10 @@ export async function emitirCertificadoTutor(datos) {
 ```php
 $response = Http::withToken(config('services.validador.token'))
     ->acceptJson()
-    ->post(config('services.validador.url').'/api/v1/certificados', $datos);
+    ->post(config('services.validador.url').'/api/v1/certificados', array_merge(
+        ['contexto_id' => config('services.validador.contexto_id')],
+        $datos,
+    ));
 
 if ($response->successful()) {
     $certificado = $response->json('data');
@@ -219,7 +313,7 @@ if ($response->successful()) {
 
 ---
 
-## 4. Consultar un certificado
+## 5. Consultar un certificado
 
 `GET {BASE}/certificados/{id}` — requiere `certificados:leer`. Solo el cliente que lo emitió puede
 verlo (otro cliente obtiene `404`).
@@ -233,7 +327,7 @@ Devuelve el mismo objeto `data` de la emisión.
 
 ---
 
-## 5. Idempotencia y reintentos (importante)
+## 6. Idempotencia y reintentos (importante)
 
 `(cliente, external_ref)` es único. Si PPS reintenta la misma `external_ref` (por timeout o error de
 red), el validador **no genera un duplicado**: devuelve la emisión existente con `200 OK` y el header:
@@ -252,7 +346,7 @@ Recomendaciones para PPS:
 
 ---
 
-## 6. Cómo decide el validador a qué tutor pertenece el certificado
+## 7. Cómo decide el validador a qué tutor pertenece el certificado
 
 El validador intenta vincular al tutor con un registro existente aplicando una cascada de claves y
 marca el resultado en `match_estado`:
@@ -275,37 +369,67 @@ Los casos `revisar` **no bloquean la emisión**: el PDF, el QR y el email se gen
 queda pendiente de revisión la visibilidad del certificado en el portal del tutor hasta que un
 administrador resuelva el vínculo.
 
+> Un mismo tutor puede tener **varios certificados** (una práctica = una `external_ref`). Todos quedan
+> accesibles y el administrador puede verlos juntos en `/admin/certificados`.
+
 ---
 
-## 7. Errores
+## 8. Plantillas y tokens disponibles
+
+La estética y los textos los define el validador. Las plantillas del contexto pueden usar tokens que
+se completan con los datos del tutor y de la práctica:
+
+| Token | Origen |
+|---|---|
+| `{apellido}`, `{nombres}`, `{apellido_nombres}`, `{dni}` | Tutor |
+| `{contexto}`, `{contexto_nombre}`, `{contexto_denominacion}`, `{institucion}`, `{resolucion}`, `{lugar}` | Contexto |
+| `{fecha_rango}` | Período de la práctica (o del contexto si no se envía) |
+| `{cargo}`, `{carrera}`, `{estudiante}`, `{estudiante_dni}`, `{horas}` | Datos de la práctica |
+| `{firmante_1_nombre}`, `{firmante_1_cargo}`, … | Firmantes del contexto |
+
+PPS **no** envía HTML ni plantillas: solo datos.
+
+---
+
+## 9. Errores
 
 | Código | Cuándo | Cuerpo típico |
 |---|---|---|
 | `401` | Falta el token o es inválido | `{ "message": "Unauthenticated." }` |
 | `403` | Token sin la habilidad requerida, o cliente deshabilitado | `{ "message": "Invalid ability provided." }` / `{ "message": "El cliente de API está inactivo." }` |
 | `404` | Certificado inexistente o de otro cliente (en `GET`) | `{ "message": "No query results..." }` |
-| `422` | Datos inválidos o falta plantilla configurada | `{ "message": "...", "errors": { "tutor.dni": ["..."] } }` |
+| `422` | Datos inválidos, falta `contexto_id`, o no hay plantilla válida | `{ "message": "...", "errors": { ... } }` |
 | `429` | Superó el límite de peticiones | `{ "message": "Too Many Requests." }` + header `Retry-After` |
 
 Ejemplo de error de validación:
 
 ```json
 {
-  "message": "tutor.telefono field is required. (and 1 more error)",
+  "message": "The contexto id field is required. (and 1 more error)",
   "errors": {
-    "tutor.telefono": ["tutor.telefono field is required."],
-    "tutor.email": ["tutor.email must be a valid email address."]
+    "contexto_id": ["The contexto id field is required."],
+    "tutor.email": ["The tutor.email field must be a valid email address."]
   }
+}
+```
+
+Ejemplo de error de plantilla (contexto/tipo sin plantilla disponible):
+
+```json
+{
+  "message": "No hay una plantilla por defecto para el tipo y contexto indicados. Configurá una plantilla predeterminada o enviá plantilla_codigo."
 }
 ```
 
 ---
 
-## 8. Límites y buenas prácticas
+## 10. Límites y buenas prácticas
 
 - **Rate limit:** 60 peticiones por minuto por cliente. Para emisiones masivas, hacer batching con
   pausas o coordinar un límite mayor con el administrador del validador.
 - **Un certificado por tutor y práctica.** Usar `external_ref` para no emitir dos veces lo mismo.
+- **Guardar `contexto_id`** una vez (descubierto en §3); no cambiarlo salvo que el validador lo
+  indique.
 - **No enviar HTML ni plantillas.** La estética y los textos los define el validador.
 - **El token es un secreto.** Guardarlo en el servidor de PPS; rotarlo periódicamente
   (`api:token:crear` / `api:token:revocar`).
@@ -314,12 +438,16 @@ Ejemplo de error de validación:
 
 ---
 
-## 9. Checklist de integración
+## 11. Checklist de integración
 
-- [ ] Crear el cliente API y generar el token (panel `/admin/api-clientes` o comando).
-- [ ] Configurar en PPS: `VALIDADOR_URL` (`http://localhost:8000` local / `https://acreditar.fio.unam.edu.ar` prod) y `VALIDADOR_API_TOKEN`.
-- [ ] Configurar una plantilla `tipo=tutor_academico` en el validador (marcada por defecto) o acordar su `plantilla_codigo`.
-- [ ] Implementar `POST /api/v1/certificados` con `external_ref` persistida e idempotencia.
+- [ ] Crear el cliente API y generar el token con `certificados:emitir` y `certificados:contextos`
+      (panel `/admin/api-clientes` o comando).
+- [ ] Configurar en PPS: `VALIDADOR_URL`, `VALIDADOR_API_TOKEN`, `VALIDADOR_CONTEXTO_ID` y, si aplica,
+      `VALIDADOR_PLANTILLA_CODIGO`.
+- [ ] Descubrir el contexto con `GET /api/v1/contextos?tipo=tutor` y guardar su `id`.
+- [ ] Configurar en el validador una plantilla `tipo=tutor` en ese contexto y marcarla como
+      **predeterminada** (o acordar el `plantilla_codigo`).
+- [ ] Implementar `POST /api/v1/certificados` con `contexto_id`, `external_ref` persistida e idempotencia.
 - [ ] Manejar `401/403/422/429/5xx` y reintentos con backoff.
 - [ ] Probar en local (PPS `:3000` → validador `:8000`) y verificar el PDF, el email y la URL del QR.
 - [ ] Al desplegar: HTTPS, token de producción y dominio `https://acreditar.fio.unam.edu.ar`.

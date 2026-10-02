@@ -2,6 +2,12 @@
 
 Fecha: 2026-09-24
 
+> **Actualizado (2026-10):** tras unificar la emisión sobre contextos, `contexto_id` pasó a ser
+> **obligatorio** y la selección de plantilla se acota a `(contexto, tipo)` con plantilla
+> **predeterminada**. Se agregó `GET /api/v1/contextos` y `CertificadoVariables::paraExterno()` fue
+> eliminado (el flujo usa `paraContexto` + overrides de práctica). La guía vigente es
+> `docs/integracion-api-certificados-pps.md`; este documento queda como registro histórico.
+
 ## Resumen
 
 El sistema PPS (Prácticas Profesionales Supervisadas) emitirá certificados a Tutores Académicos
