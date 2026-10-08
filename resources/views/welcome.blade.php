@@ -137,6 +137,46 @@
             align-self: flex-start;
         }
 
+        .left-contact {
+            position: absolute;
+            bottom: 1.75rem;
+            left: calc(3rem + 8rem + 60px);
+            right: 3rem;
+            display: inline-flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            z-index: 1;
+        }
+
+        .left-contact i {
+            color: #ffffff;
+            transition: color 0.2s ease;
+        }
+
+        .left-contact .contact-email {
+            text-decoration: underline;
+            text-decoration-color: rgba(255, 255, 255, 0.45);
+            text-underline-offset: 3px;
+            transition: text-decoration-color 0.2s ease;
+        }
+
+        .left-contact:hover {
+            color: #00ffff;
+        }
+
+        .left-contact:hover i {
+            color: #00ffff;
+        }
+
+        .left-contact:hover .contact-email {
+            text-decoration-color: #00ffff;
+        }
+
         /* ── Right Panel ── */
         .landing-right {
             flex: 1 1 50%;
@@ -550,6 +590,14 @@
             .left-footer {
                 text-align: center;
             }
+
+            .left-contact {
+                left: 1.5rem;
+                right: 1.5rem;
+                bottom: 1.25rem;
+                justify-content: center;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -579,6 +627,11 @@
                     Gestión de Eventos y Certificados
                 </p>
             </div>
+
+            <a href="mailto:extension@fio.unam.edu.ar" class="left-contact">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span>Contacto: <span class="contact-email">extension@fio.unam.edu.ar</span></span>
+            </a>
 
         </div>
 
