@@ -11,6 +11,7 @@ use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Models\User;
+use App\Services\AuditoriaService;
 use App\Services\GenerarCertificadoEvento;
 use App\Support\CertificadoPdfAssets;
 use App\Support\Texto;
@@ -625,7 +626,7 @@ class EventosFinalizados extends Component
             ->with(['gestores', 'tipoEvento', 'categoria'])
             ->leftJoin('tipo_evento as tipo_evento_orden', 'evento.tipo_evento_id', '=', 'tipo_evento_orden.tipo_evento_id')
             ->leftJoin('categoria_evento as categoria_orden', 'evento.categoria_id', '=', 'categoria_orden.categoria_id')
-            ->where('evento.estado', 'finalizado')
+            ->whereRaw('LOWER(evento.estado) = ?', ['finalizado'])
             // Separación entre pestañas: un evento con certificado_path ya tiene emisión.
             ->when($this->modo === 'a_certificar', fn ($query) => $query->whereNull('evento.certificado_path'))
             ->when($this->modo === 'finalizados', fn ($query) => $query->whereNotNull('evento.certificado_path'))
@@ -738,13 +739,24 @@ class EventosFinalizados extends Component
             }
 
             // Limpiar los registros creados al finalizar (QR + aprobaciones parciales).
-            EventoParticipante::where('evento_id', $evento_id)->delete();
+            $relacionesEliminadas = EventoParticipante::where('evento_id', $evento_id)->delete();
 
             // 'estado' no es fillable: se actualiza con el query builder.
             Evento::where('evento_id', $evento_id)->update([
                 'estado' => 'En Curso',
                 'revisado' => false,
             ]);
+
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Evento devuelto a En Curso',
+                $evento,
+                [
+                    'estado_anterior' => $evento->estado,
+                    'participantes_eliminados' => $relacionesEliminadas,
+                ],
+                'evento.devuelto_a_en_curso'
+            );
 
             DB::commit();
 
@@ -843,11 +855,19 @@ class EventosFinalizados extends Component
 
             $rolParticipanteId = Rol::where('nombre', 'Participante')->value('rol_id');
 
-            EventoParticipante::where('evento_id', $evento_id)
+            $participantesAprobados = EventoParticipante::where('evento_id', $evento_id)
                 ->where('rol_id', $rolParticipanteId)
                 ->update(['aprobado' => true]);
 
             $evento->update(['revisado' => true]);
+
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Aprobación instantánea aplicada',
+                $evento,
+                ['participantes_aprobados' => $participantesAprobados],
+                'evento.aprobacion_instantanea'
+            );
 
             DB::commit();
 
@@ -880,7 +900,7 @@ class EventosFinalizados extends Component
 
             $rolParticipanteId = Rol::where('nombre', 'Participante')->value('rol_id');
 
-            EventoParticipante::where('evento_id', $evento_id)
+            $participantesAfectados = EventoParticipante::where('evento_id', $evento_id)
                 ->where('rol_id', $rolParticipanteId)
                 ->update(['aprobado' => null]);
 
@@ -889,6 +909,14 @@ class EventosFinalizados extends Component
                 'revisor_id' => null,
                 'revisado' => false,
             ]);
+
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Aprobación quitada',
+                $evento,
+                ['participantes_afectados' => $participantesAfectados],
+                'evento.aprobacion_quitada'
+            );
 
             DB::commit();
 

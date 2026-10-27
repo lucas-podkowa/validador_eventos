@@ -8,6 +8,7 @@ use App\Models\InscripcionParticipante;
 use App\Models\PlanillaInscripcion;
 use App\Models\TipoEvento;
 use App\Models\User;
+use App\Services\AuditoriaService;
 use App\Support\Texto;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
@@ -194,7 +195,7 @@ class EventosActivos extends Component
 
         return response()->streamDownload(function () use ($inscriptos) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nombre', 'Apellido', 'DNI', 'Email', 'Teléfono', 'Destinatario', 'Monto'], ';');
+            fputcsv($handle, ['Nombre', 'Apellido', 'DNI', 'Email', 'Teléfono', 'Destinatario', 'Monto'], ';', '"', '\\');
 
             foreach ($inscriptos as $inscripto) {
                 fputcsv($handle, [
@@ -205,7 +206,7 @@ class EventosActivos extends Component
                     $inscripto->participante->telefono ?? '',
                     $inscripto->destinatario?->nombre ?? '',
                     $inscripto->monto !== null ? number_format($inscripto->monto, 2, ',', '.') : '',
-                ], ';');
+                ], ';', '"', '\\');
             }
 
             fclose($handle);
@@ -319,6 +320,18 @@ class EventosActivos extends Component
             Evento::where('evento_id', $evento_id)->update(['estado' => 'Finalizado']);
             PlanillaInscripcion::where('evento_id', $evento_id)->update(['cierre' => Carbon::now()]);
 
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Evento finalizado',
+                $evento,
+                [
+                    'estado_anterior' => $evento->estado,
+                    'participantes' => $inscripcionesFinales->count(),
+                    'planilla_id' => $planilla->planilla_inscripcion_id,
+                ],
+                'evento.finalizado'
+            );
+
             DB::commit();
             $this->reset(['evento_selected']);
             $this->redirectToEventos('a_certificar');
@@ -338,21 +351,38 @@ class EventosActivos extends Component
 
         DB::beginTransaction();
         try {
+            $evento = Evento::find($evento_id);
             $planilla = PlanillaInscripcion::where('evento_id', $evento_id)->first();
+            $inscripcionesEliminadas = 0;
+            $planillaId = null;
 
             if ($planilla) {
+                $planillaId = $planilla->planilla_inscripcion_id;
+
                 if ($mantener_inscripciones) {
                     // Suspender la planilla conservando todas las inscripciones
                     $planilla->update(['estado' => 'suspendida']);
                 } else {
                     // Eliminar inscripciones y planilla (comportamiento original)
-                    $planilla_id = $planilla->planilla_inscripcion_id;
-                    InscripcionParticipante::where('planilla_id', $planilla_id)->delete();
+                    $inscripcionesEliminadas = InscripcionParticipante::where('planilla_id', $planillaId)->delete();
                     $planilla->delete();
                 }
             }
 
             Evento::where('evento_id', $evento_id)->update(['estado' => 'Pendiente']);
+
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Evento cancelado',
+                $evento,
+                [
+                    'estado_anterior' => $evento?->estado,
+                    'mantener_inscripciones' => (bool) $mantener_inscripciones,
+                    'planilla_id' => $planillaId,
+                    'inscripciones_eliminadas' => $inscripcionesEliminadas,
+                ],
+                'evento.cancelado'
+            );
 
             DB::commit();
 
@@ -466,7 +496,7 @@ class EventosActivos extends Component
         $eventos = Evento::query()
             ->select('evento.*')
             ->with(['planillaInscripcion', 'revisor', 'gestores'])
-            ->where('estado', 'en curso')
+            ->whereRaw('LOWER(estado) = ?', ['en curso'])
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {
                 $query->whereHas('gestores', function ($q) use ($user) {
                     $q->where('user_id', $user->id);

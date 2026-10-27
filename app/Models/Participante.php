@@ -7,10 +7,15 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Participante extends Model
 {
     use HasFactory;
+    use LogsActivity;
+
+    protected static $recordEvents = ['updated', 'deleted'];
 
     public $timestamps = false;
 
@@ -23,6 +28,20 @@ class Participante extends Model
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
     protected $fillable = ['participante_id', 'nombre', 'apellido', 'dni', 'mail', 'telefono', 'user_id'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['nombre', 'apellido', 'dni', 'mail', 'telefono', 'user_id'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('participante')
+            ->setDescriptionForEvent(fn (string $eventName): string => match ($eventName) {
+                'updated' => 'Participante actualizado',
+                'deleted' => 'Participante eliminado',
+                default => "Participante: {$eventName}",
+            });
+    }
 
     protected static function boot()
     {

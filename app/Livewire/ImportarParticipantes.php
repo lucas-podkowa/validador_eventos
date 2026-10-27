@@ -9,6 +9,7 @@ use App\Models\InscripcionParticipante;
 use App\Models\Participante;
 use App\Models\PlanillaInscripcion;
 use App\Models\Rol;
+use App\Services\AuditoriaService;
 use App\Support\NombreCertificado;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Collection;
@@ -93,7 +94,7 @@ class ImportarParticipantes extends Component
         $fileName = 'plantilla_importar_participantes.xlsx';
 
         return response()->streamDownload(function () use ($ejemplo) {
-            (new \Rap2hpoutre\FastExcel\FastExcel(collect($ejemplo)))->export('php://output');
+            (new FastExcel(collect($ejemplo)))->export('php://output');
         }, $fileName, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store, no-cache, must-revalidate',
@@ -107,7 +108,7 @@ class ImportarParticipantes extends Component
         if (($handle = fopen($path, 'r')) !== false) {
             $header = null;
 
-            while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+            while (($row = fgetcsv($handle, 1000, ',', '"', '\\')) !== false) {
                 if (! $header) {
                     $header = array_map('strtolower', $row);
 
@@ -259,6 +260,19 @@ class ImportarParticipantes extends Component
                     ];
                 }
             }
+
+            app(AuditoriaService::class)->registrar(
+                'inscripcion',
+                'Importación de participantes',
+                $this->evento,
+                [
+                    'planilla_id' => $this->planilla->planilla_inscripcion_id,
+                    'total' => $this->total,
+                    'exitosos' => $this->exitosos,
+                    'errores' => $this->errores,
+                ],
+                'inscripciones.importadas'
+            );
 
             DB::commit();
             $this->dispatch('alert', message: "Importación finalizada: {$this->exitosos}/{$this->total} inscriptos correctamente.");

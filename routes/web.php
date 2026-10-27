@@ -9,6 +9,7 @@ use App\Http\Controllers\SolicitudDniController;
 use App\Http\Controllers\VerificacionEmisionController;
 use App\Http\Controllers\WelcomeController;
 use App\Livewire\Admin\ApiClientes;
+use App\Livewire\Admin\Auditoria;
 use App\Livewire\Admin\Categorias;
 use App\Livewire\Admin\CertificadosExternos;
 use App\Livewire\Admin\Contextos;
@@ -65,6 +66,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/admin/certificados', Emisiones::class)->name('admin.certificados');
         Route::get('/admin/solicitudes-dni', SolicitudesDni::class)->name('admin.solicitudes_dni');
         Route::get('/admin/solicitudes-dni/{solicitud}/imagen', [SolicitudDniController::class, 'imagen'])->name('admin.solicitudes_dni.imagen');
+    });
+
+    Route::middleware('can:ver_auditoria')->group(function () {
+        Route::get('/admin/auditoria', Auditoria::class)->name('admin.auditoria');
     });
 
     // Rutas compartidas entre administrador y gestor

@@ -26,7 +26,7 @@ class ProcesarAprobaciones extends Component
         $usuario = Auth::user();
 
         $query = Evento::where('por_aprobacion', true)
-            ->where('estado', 'finalizado')
+            ->whereRaw('LOWER(estado) = ?', ['finalizado'])
             ->where('revisado', false);
 
         if ($usuario->hasRole('Revisor')) {

@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class PlanillaInscripcion extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     public $timestamps = false;
 
@@ -21,6 +24,21 @@ class PlanillaInscripcion extends Model
     protected $keyType = 'string'; // Tipo de clave primaria es string
 
     protected $fillable = ['planilla_inscripcion_id', 'apertura', 'cierre', 'evento_id', 'header', 'footer', 'qr_formulario', 'disposicion', 'nro_expediente', 'estado'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['evento_id', 'apertura', 'cierre', 'disposicion', 'nro_expediente', 'estado'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('planilla')
+            ->setDescriptionForEvent(fn (string $eventName): string => match ($eventName) {
+                'created' => 'Planilla de inscripción creada',
+                'updated' => 'Planilla de inscripción actualizada',
+                'deleted' => 'Planilla de inscripción eliminada',
+                default => "Planilla: {$eventName}",
+            });
+    }
 
     protected static function boot()
     {

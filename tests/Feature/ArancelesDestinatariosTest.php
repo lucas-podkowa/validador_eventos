@@ -18,6 +18,7 @@ use App\Models\TipoEvento;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -145,7 +146,7 @@ class ArancelesDestinatariosTest extends TestCase
             ->set('destinatarioSeleccionado', [(string) $this->destinatarioPago->destinatario_id])
             ->set('destinatarioPrecio.'.$this->destinatarioPago->destinatario_id, '100')
             ->call('save')
-            ->assertHasErrors(['link_pago']);
+            ->assertHasErrors(['metodosPago']);
     }
 
     public function test_formulario_publico_evento_gratuito_no_pide_destinatario(): void
@@ -331,10 +332,10 @@ class ArancelesDestinatariosTest extends TestCase
             ->call('save')
             ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('evento', [
-            'evento_id' => $evento->evento_id,
-            'fecha_inicio' => $nuevaFecha,
-        ]);
+        $this->assertSame(
+            $nuevaFecha,
+            Carbon::parse($evento->fresh()->fecha_inicio)->toDateString()
+        );
     }
 
     public function test_gestor_no_puede_editar_fecha_de_evento_en_curso(): void
@@ -404,7 +405,7 @@ class ArancelesDestinatariosTest extends TestCase
         $evento = $this->crearEventoConPlanilla();
 
         Livewire::test(HabilitarPlanilla::class, ['evento_id' => $evento->evento_id])
-            ->assertSee('hasta 30 MB');
+            ->assertSee('Tamaño máximo: 30 MB');
     }
 
     public function test_planilla_restringe_fecha_cierre_posterior_a_apertura(): void

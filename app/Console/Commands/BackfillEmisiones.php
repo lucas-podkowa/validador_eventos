@@ -7,8 +7,10 @@ use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\PlantillaCertificado;
 use App\Models\TipoReconocimiento;
+use App\Services\AuditoriaService;
 use App\Support\CertificadoVariables;
 use Illuminate\Console\Command;
+use Spatie\Activitylog\Facades\Activity;
 
 class BackfillEmisiones extends Command
 {
@@ -21,69 +23,79 @@ class BackfillEmisiones extends Command
         $creadas = 0;
         $existentes = 0;
 
-        EventoParticipante::query()
-            ->whereNotNull('certificado_path')
-            ->with(['evento.tipoEvento', 'evento.contexto.firmantes', 'participante', 'rol'])
-            ->chunkById('evento_participantes_id', (int) $this->option('chunk'), function ($relaciones) use (&$creadas, &$existentes) {
-                foreach ($relaciones as $relacion) {
-                    $evento = $relacion->evento;
-                    $participante = $relacion->participante;
+        Activity::withoutLogging(function () use (&$creadas, &$existentes) {
+            EventoParticipante::query()
+                ->whereNotNull('certificado_path')
+                ->with(['evento.tipoEvento', 'evento.contexto.firmantes', 'participante', 'rol'])
+                ->chunkById('evento_participantes_id', (int) $this->option('chunk'), function ($relaciones) use (&$creadas, &$existentes) {
+                    foreach ($relaciones as $relacion) {
+                        $evento = $relacion->evento;
+                        $participante = $relacion->participante;
 
-                    if (! $evento || ! $participante) {
-                        continue;
+                        if (! $evento || ! $participante) {
+                            continue;
+                        }
+
+                        $slug = $this->tipoSlug($relacion, $evento);
+                        $tipoId = TipoReconocimiento::where('slug', $slug)->value('tipo_reconocimiento_id');
+
+                        $existente = Emision::query()
+                            ->where('origen_type', Evento::class)
+                            ->where('origen_id', $evento->evento_id)
+                            ->where('participante_id', $participante->participante_id)
+                            ->where('tipo_reconocimiento_id', $tipoId)
+                            ->first();
+
+                        if ($existente) {
+                            $existentes++;
+
+                            continue;
+                        }
+
+                        $contexto = $evento->contexto;
+                        $plantilla = $this->resolverPlantilla($evento, $slug);
+                        $firmantes = CertificadoVariables::firmantesDe($contexto);
+                        $variables = CertificadoVariables::paraEvento($evento, $participante, $contexto, $firmantes);
+
+                        Emision::create([
+                            'participante_id' => $participante->participante_id,
+                            'tipo_reconocimiento_id' => $tipoId,
+                            'origen_type' => Evento::class,
+                            'origen_id' => $evento->evento_id,
+                            'alcance' => 'evento',
+                            'plantilla_id' => $plantilla?->plantilla_id,
+                            'estado' => $relacion->aprobado === false && $evento->por_aprobacion
+                                ? Emision::ESTADO_ANULADO
+                                : Emision::ESTADO_EMITIDO,
+                            'certificado_path' => $relacion->certificado_path,
+                            'datos' => $variables,
+                            'origen_snapshot' => [
+                                'tipo' => 'evento',
+                                'nombre' => $evento->nombre,
+                                'tipo_evento' => $evento->tipoEvento?->nombre,
+                                'contexto_nombre' => $contexto?->nombre,
+                                'contexto_denominacion' => $contexto?->denominacion,
+                                'institucion' => $contexto?->institucion,
+                                'resolucion' => $contexto?->resolucion,
+                                'lugar' => $contexto?->lugar,
+                                'anio' => $contexto?->anio,
+                            ],
+                            'texto_snapshot' => CertificadoVariables::reemplazar($plantilla?->texto, $variables, false),
+                            'emitida_en' => now(),
+                        ]);
+
+                        $creadas++;
                     }
+                });
+        });
 
-                    $slug = $this->tipoSlug($relacion, $evento);
-                    $tipoId = TipoReconocimiento::where('slug', $slug)->value('tipo_reconocimiento_id');
-
-                    $existente = Emision::query()
-                        ->where('origen_type', Evento::class)
-                        ->where('origen_id', $evento->evento_id)
-                        ->where('participante_id', $participante->participante_id)
-                        ->where('tipo_reconocimiento_id', $tipoId)
-                        ->first();
-
-                    if ($existente) {
-                        $existentes++;
-
-                        continue;
-                    }
-
-                    $contexto = $evento->contexto;
-                    $plantilla = $this->resolverPlantilla($evento, $slug);
-                    $firmantes = CertificadoVariables::firmantesDe($contexto);
-                    $variables = CertificadoVariables::paraEvento($evento, $participante, $contexto, $firmantes);
-
-                    Emision::create([
-                        'participante_id' => $participante->participante_id,
-                        'tipo_reconocimiento_id' => $tipoId,
-                        'origen_type' => Evento::class,
-                        'origen_id' => $evento->evento_id,
-                        'alcance' => 'evento',
-                        'plantilla_id' => $plantilla?->plantilla_id,
-                        'estado' => $relacion->aprobado === false && $evento->por_aprobacion
-                            ? Emision::ESTADO_ANULADO
-                            : Emision::ESTADO_EMITIDO,
-                        'certificado_path' => $relacion->certificado_path,
-                        'datos' => $variables,
-                        'origen_snapshot' => [
-                            'tipo' => 'evento',
-                            'nombre' => $evento->nombre,
-                            'tipo_evento' => $evento->tipoEvento?->nombre,
-                            'contexto_nombre' => $contexto?->nombre,
-                            'contexto_denominacion' => $contexto?->denominacion,
-                            'institucion' => $contexto?->institucion,
-                            'resolucion' => $contexto?->resolucion,
-                            'lugar' => $contexto?->lugar,
-                            'anio' => $contexto?->anio,
-                        ],
-                        'texto_snapshot' => CertificadoVariables::reemplazar($plantilla?->texto, $variables, false),
-                        'emitida_en' => now(),
-                    ]);
-
-                    $creadas++;
-                }
-            });
+        app(AuditoriaService::class)->registrar(
+            'emision',
+            'Backfill de emisiones ejecutado',
+            null,
+            ['creadas' => $creadas, 'existentes' => $existentes],
+            'emisiones.backfill'
+        );
 
         $this->info("Emisiones creadas: {$creadas}. Ya existentes: {$existentes}.");
 

@@ -5,10 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Participacion extends Model
 {
     use HasFactory;
+    use LogsActivity;
+
+    protected static $recordEvents = ['updated', 'deleted'];
 
     public const ESTADO_PENDIENTE = 'pendiente';
 
@@ -38,6 +43,20 @@ class Participacion extends Model
     protected $casts = [
         'aprobado' => 'boolean',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['participante_id', 'origen_type', 'origen_id', 'tipo_reconocimiento_id', 'aprobado', 'estado', 'emision_id'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('participacion')
+            ->setDescriptionForEvent(fn (string $eventName): string => match ($eventName) {
+                'updated' => 'Participación actualizada',
+                'deleted' => 'Participación eliminada',
+                default => "Participación: {$eventName}",
+            });
+    }
 
     protected static function boot()
     {

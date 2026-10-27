@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class InscripcionParticipante extends Model
 {
     use HasFactory;
+    use LogsActivity;
+
+    protected static $recordEvents = ['updated', 'deleted'];
 
     public $timestamps = false;
 
@@ -31,6 +36,20 @@ class InscripcionParticipante extends Model
         'monto' => 'decimal:2',
         'metodo_pago' => 'array',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['planilla_id', 'participante_id', 'rol_id', 'destinatario_id', 'metodo_pago', 'monto', 'fecha_inscripcion', 'asistencia'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('inscripcion')
+            ->setDescriptionForEvent(fn (string $eventName): string => match ($eventName) {
+                'updated' => 'Inscripción actualizada',
+                'deleted' => 'Inscripción eliminada',
+                default => "Inscripción: {$eventName}",
+            });
+    }
 
     public function indicadores()
     {

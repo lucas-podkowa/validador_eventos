@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\ApiCliente;
+use App\Services\AuditoriaService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -127,6 +128,18 @@ class ApiClientes extends Component
             $this->abilities
         );
 
+        app(AuditoriaService::class)->registrar(
+            'api_cliente',
+            'Token de API generado',
+            $cliente,
+            [
+                'token_id' => $token->accessToken->id,
+                'token_name' => $token->accessToken->name,
+                'abilities' => $token->accessToken->abilities,
+            ],
+            'api_cliente.token_generado'
+        );
+
         $this->nuevo_token = $token->plainTextToken;
         $this->token_name = '';
 
@@ -136,7 +149,22 @@ class ApiClientes extends Component
     public function revocarToken(int $tokenId): void
     {
         $cliente = ApiCliente::findOrFail($this->token_cliente_id);
+        $token = $cliente->tokens()->find($tokenId);
         $cliente->tokens()->where('id', $tokenId)->delete();
+
+        if ($token) {
+            app(AuditoriaService::class)->registrar(
+                'api_cliente',
+                'Token de API revocado',
+                $cliente,
+                [
+                    'token_id' => $token->id,
+                    'token_name' => $token->name,
+                    'abilities' => $token->abilities,
+                ],
+                'api_cliente.token_revocado'
+            );
+        }
 
         $this->dispatch('alert', message: 'Token revocado.');
     }

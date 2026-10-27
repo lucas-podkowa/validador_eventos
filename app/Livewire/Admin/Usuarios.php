@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Participante;
 use App\Models\User;
+use App\Services\AuditoriaService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -152,6 +153,18 @@ class Usuarios extends Component
         $participante->user_id = $this->usuario_edit->id;
         $participante->save();
 
+        app(AuditoriaService::class)->registrar(
+            'usuario',
+            'Participante vinculado a usuario',
+            $this->usuario_edit,
+            [
+                'participante_id' => $participante->participante_id,
+                'participante' => trim($participante->apellido.', '.$participante->nombre, ', '),
+                'dni' => $participante->dni,
+            ],
+            'usuario.participante_vinculado'
+        );
+
         $this->cargarParticipanteVinculado($this->usuario_edit->fresh());
         $this->participante_candidato = null;
         $this->busqueda_participante = '';
@@ -169,6 +182,18 @@ class Usuarios extends Component
 
         $participante->user_id = null;
         $participante->save();
+
+        app(AuditoriaService::class)->registrar(
+            'usuario',
+            'Participante desvinculado de usuario',
+            $this->usuario_edit,
+            [
+                'participante_id' => $participante->participante_id,
+                'participante' => trim($participante->apellido.', '.$participante->nombre, ', '),
+                'dni' => $participante->dni,
+            ],
+            'usuario.participante_desvinculado'
+        );
 
         $this->cargarParticipanteVinculado($this->usuario_edit->fresh());
 
@@ -230,8 +255,24 @@ class Usuarios extends Component
         }
         $usuario->save();
 
+        $rolesAnteriores = $usuario->getRoleNames()->all();
         $roles = Role::whereIn('id', $this->roles_selected)->pluck('name')->toArray();
         $usuario->syncRoles($roles);
+        $rolesNuevos = $usuario->getRoleNames()->all();
+
+        if ($rolesAnteriores !== $rolesNuevos) {
+            app(AuditoriaService::class)->registrar(
+                'usuario',
+                'Roles de usuario actualizados',
+                $usuario,
+                [
+                    'roles_anteriores' => $rolesAnteriores,
+                    'roles_nuevos' => $rolesNuevos,
+                ],
+                'usuario.roles_actualizados'
+            );
+        }
+
         $this->open_edit = false;
 
         $this->dispatch('alert', message: 'Usuario actualizado');

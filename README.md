@@ -4,8 +4,8 @@ Sistema web para gestionar el ciclo completo de eventos institucionales de la Fa
 
 ## Tecnología
 
-- PHP 8.2+
-- Laravel 11
+- PHP 8.4.27+
+- Laravel 12
 - Livewire 3
 - Laravel Jetstream 5 con Fortify y Sanctum
 - Spatie Laravel Permission para roles y permisos
@@ -43,6 +43,7 @@ El resultado es un flujo de trabajo consistente, auditable y reutilizable para e
 - Validación pública de participantes y certificados mediante QR.
 - Generación de informes y documentos PDF.
 - Envío de correos de confirmación, credenciales y certificados.
+- Auditoría de acciones de usuarios con filtros por usuario, acción, módulo y fecha, visible solo para Administradores.
 
 ## Roles del sistema
 
@@ -102,9 +103,9 @@ tests/                     # Pruebas automatizadas
 
 ## Requisitos para desarrollo local
 
-- PHP 8.2 o superior con extensiones habituales para Laravel.
-- Composer.
-- Node.js 18 o superior y npm.
+- PHP 8.4.27 o superior con extensiones habituales para Laravel.
+- Composer 2.10 o superior.
+- Node.js 24.22.1 y npm 11 o superior.
 - Base de datos relacional compatible con Laravel.
 
 ## Puesta en marcha local
@@ -137,6 +138,11 @@ php artisan storage:link
 php artisan optimize:clear
 php artisan config:cache
 php artisan view:cache
+composer validate --strict
+composer audit --locked
+vendor/bin/pint --test
+php artisan test
+npm audit
 npm run dev
 npm run build
 ```

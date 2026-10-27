@@ -16,6 +16,7 @@ use App\Models\Responsable;
 use App\Models\Rol;
 use App\Models\TipoEvento;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -283,7 +284,7 @@ class RequisitosDocumentacionTest extends TestCase
             'path' => 'documentos/test/doc.pdf',
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         $requisito->delete();
     }

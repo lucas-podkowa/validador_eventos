@@ -4,11 +4,13 @@ namespace App\Livewire;
 
 use App\Models\Evento;
 use App\Models\PlanillaInscripcion;
+use App\Services\AuditoriaService;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -66,7 +68,7 @@ class HabilitarPlanilla extends Component
             'nro_expediente' => 'required|string|max:255',
         ];
 
-        if ($this->modo === 'crear' || $this->disposicion instanceof \Illuminate\Http\UploadedFile) {
+        if ($this->modo === 'crear' || $this->disposicion instanceof UploadedFile) {
             $rules['disposicion'] = 'required|file|mimes:pdf|max:30720';
         }
 
@@ -231,15 +233,15 @@ class HabilitarPlanilla extends Component
 
         $this->validate();
 
-        if ($this->header instanceof \Illuminate\Http\UploadedFile) {
+        if ($this->header instanceof UploadedFile) {
             $this->header = $this->header->store('images/header', 'public');
         }
-        if ($this->footer instanceof \Illuminate\Http\UploadedFile) {
+        if ($this->footer instanceof UploadedFile) {
             $this->footer = $this->footer->store('images/footer', 'public');
         }
 
         // Verifica si la disposición es un archivo cargado o un archivo ya existente
-        if ($this->disposicion instanceof \Illuminate\Http\UploadedFile) {
+        if ($this->disposicion instanceof UploadedFile) {
             $anio = Carbon::parse($this->evento->fecha_inicio)->year;
             $tipo = Str::slug($this->evento->tipoEvento->nombre);
             $nombreEvento = Str::slug($this->evento->nombre);
@@ -279,8 +281,10 @@ class HabilitarPlanilla extends Component
             $qrSvg = $writer->writeString($inscripcionUrl);
             $qrSvgBase64 = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
 
+            $planillaReiniciada = $this->tiene_planilla_suspendida && $this->accion_planilla_suspendida === 'nueva';
+
             // Si hay planilla suspendida y el usuario elige empezar de cero, la eliminamos (cascade borra inscripciones)
-            if ($this->tiene_planilla_suspendida && $this->accion_planilla_suspendida === 'nueva') {
+            if ($planillaReiniciada) {
                 PlanillaInscripcion::where('evento_id', $this->evento->evento_id)->delete();
             }
 
@@ -299,6 +303,21 @@ class HabilitarPlanilla extends Component
             );
 
             Evento::where('evento_id', $this->evento->evento_id)->update(['estado' => 'En Curso']);
+
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Planilla de inscripción habilitada',
+                $this->evento,
+                [
+                    'estado_anterior' => $this->evento->estado,
+                    'planilla_reiniciada' => $planillaReiniciada,
+                    'nro_expediente' => $this->nro_expediente,
+                    'apertura' => $apertura->toDateTimeString(),
+                    'cierre' => $cierre->toDateTimeString(),
+                ],
+                'evento.planilla_habilitada'
+            );
+
             DB::commit();
 
             $this->reset(['apertura', 'cierre', 'header', 'footer', 'disposicion', 'nro_expediente', 'evento', 'modo']);

@@ -55,7 +55,7 @@ class EventosPendientes extends Component
     {
         $user = auth()->user();
         $eventos = Evento::with(['tipoEvento', 'categoria'])
-            ->where('estado', 'pendiente')
+            ->whereRaw('LOWER(estado) = ?', ['pendiente'])
             ->when($user->hasRole('Gestor'), function ($query) use ($user) {
                 $query->whereHas('gestores', function ($q) use ($user) {
                     $q->where('user_id', $user->id);

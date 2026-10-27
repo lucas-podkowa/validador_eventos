@@ -8,7 +8,7 @@ class WelcomeController extends Controller
 {
     public function index()
     {
-        $eventosEnCurso = Evento::where('estado', 'en curso')->get();
+        $eventosEnCurso = Evento::whereRaw('LOWER(estado) = ?', ['en curso'])->get();
 
         return view('welcome', ['eventosEnCurso' => $eventosEnCurso]);
     }

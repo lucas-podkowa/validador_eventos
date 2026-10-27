@@ -18,9 +18,11 @@ use App\Models\TipoEvento;
 use App\Models\TipoReconocimiento;
 use App\Models\User;
 use App\Services\GenerarCertificadoEvento;
+use App\Support\CertificadoLayout;
 use App\Support\CertificadoVariables;
 use App\Support\FechaCertificado;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
@@ -105,7 +107,7 @@ class CertificadoContextoTest extends TestCase
             ->set('nombre', 'Asistente')
             ->set('tipo_reconocimiento_id', TipoReconocimiento::where('slug', 'asistencia')->value('tipo_reconocimiento_id'))
             ->set('texto', 'ha asistido {formula} {nombre_evento}')
-            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
+            ->set('imagen', UploadedFile::fake()->image('base.png', 1600, 1100))
             ->call('guardar')
             ->assertHasNoErrors();
 
@@ -306,7 +308,7 @@ class CertificadoContextoTest extends TestCase
 
     public function test_estilo_de_bloque_de_texto_incluye_line_height_amplio(): void
     {
-        $style = \App\Support\CertificadoLayout::estilo([
+        $style = CertificadoLayout::estilo([
             'campo' => 'dni', 'x' => 10, 'y' => 10, 'w' => 20, 'h' => 0,
             'size' => 40, 'align' => 'center', 'color' => '#0A1B3A', 'bold' => true, 'italic' => false,
         ]);
@@ -356,7 +358,7 @@ class CertificadoContextoTest extends TestCase
         Livewire::test(ContextoPlantillas::class, ['contextoId' => $contexto->contexto_id])
             ->call('abrirCrear')
             ->set('nombre', 'Asistente')
-            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
+            ->set('imagen', UploadedFile::fake()->image('base.png', 1600, 1100))
             ->call('descargarPdfPrueba')
             ->assertFileDownloaded('certificado-prueba.pdf');
     }
@@ -370,7 +372,7 @@ class CertificadoContextoTest extends TestCase
             ->call('abrirCrear')
             ->set('nombre', 'Hugo Reiner')
             ->set('cargo', 'Vicedecano')
-            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('firma.png'))
+            ->set('imagen', UploadedFile::fake()->image('firma.png'))
             ->call('guardar')
             ->assertHasNoErrors();
 
@@ -429,7 +431,7 @@ class CertificadoContextoTest extends TestCase
             ->call('abrirCrear')
             ->set('nombre', 'Tutor PPS')
             ->set('tipo_reconocimiento_id', TipoReconocimiento::where('slug', 'tutor')->value('tipo_reconocimiento_id'))
-            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
+            ->set('imagen', UploadedFile::fake()->image('base.png', 1600, 1100))
             ->call('guardar')
             ->assertHasNoErrors();
 
@@ -500,7 +502,7 @@ class CertificadoContextoTest extends TestCase
             ->call('abrirCrear')
             ->set('nombre', 'Tutor PPS')
             ->set('tipo_reconocimiento_id', $tipoId)
-            ->set('imagen', \Illuminate\Http\UploadedFile::fake()->image('base.png', 1600, 1100))
+            ->set('imagen', UploadedFile::fake()->image('base.png', 1600, 1100))
             ->call('guardar')
             ->assertHasErrors('nombre');
     }

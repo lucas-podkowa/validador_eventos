@@ -13,6 +13,7 @@ use App\Models\RequisitoDocumentacion;
 use App\Models\Responsable;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
+use App\Services\AuditoriaService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -347,7 +348,7 @@ class CrearEvento extends Component
                 'tipo_evento_id' => $this->tipo_evento_id,
                 'nombre' => $this->nombre_evento,
                 'lugar' => $this->lugar_evento,
-                'fecha_inicio' => Carbon::parse($this->fecha_inicio),
+                'fecha_inicio' => Carbon::parse($this->fecha_inicio)->toDateString(),
                 'cupo' => $this->cupo,
                 'por_aprobacion' => (bool) $this->por_aprobacion,
                 'arancel' => (bool) $this->arancel,
@@ -490,18 +491,29 @@ class CrearEvento extends Component
             return;
         }
 
+        $tienePlanilla = PlanillaInscripcion::where('evento_id', $this->evento_id)->exists();
+        $tieneParticipantes = EventoParticipante::where('evento_id', $this->evento_id)->exists();
+
+        if ($tienePlanilla || $tieneParticipantes) {
+            app(AuditoriaService::class)->registrar(
+                'evento',
+                'Eliminación de evento rechazada',
+                Evento::find($this->evento_id),
+                [
+                    'motivo' => 'Tiene planilla o participantes asociados',
+                    'tiene_planilla' => $tienePlanilla,
+                    'tiene_participantes' => $tieneParticipantes,
+                ],
+                'evento.eliminacion_rechazada'
+            );
+
+            $this->dispatch('oops', message: 'No se puede eliminar. Existen inscripciones activas o planillas asociadas.');
+
+            return;
+        }
+
         DB::beginTransaction();
         try {
-
-            $tienePlanilla = PlanillaInscripcion::where('evento_id', $this->evento_id)->exists();
-            $tieneParticipantes = EventoParticipante::where('evento_id', $this->evento_id)->exists();
-
-            if ($tienePlanilla || $tieneParticipantes) {
-                $this->dispatch('oops', message: 'No se puede eliminar. Existen inscripciones activas o planillas asociadas.');
-
-                return;
-            }
-
             // Eliminar el evento
             Evento::findOrFail($this->evento_id)->delete();
 

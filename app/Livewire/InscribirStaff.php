@@ -12,6 +12,7 @@ use App\Models\Participante;
 use App\Models\Rol;
 use App\Models\User;
 use App\Rules\LargoNombreCertificado;
+use App\Services\AuditoriaService;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -362,6 +363,18 @@ class InscribirStaff extends Component
                     $user->save();
                 }
             }
+
+            app(AuditoriaService::class)->registrar(
+                'inscripcion',
+                'Inscripción de staff',
+                $this->evento,
+                [
+                    'participante_id' => $participante->participante_id,
+                    'rol' => $rol->nombre,
+                    'usuario_creado' => $usuarioNuevo,
+                ],
+                'inscripcion.staff'
+            );
 
             DB::commit();
 

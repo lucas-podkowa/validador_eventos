@@ -2,13 +2,17 @@
 
 namespace App\Livewire;
 
+use App\Actions\EmitirParticipacion;
+use App\Jobs\EmitirParticipacionesJob;
 use App\Models\Contexto;
 use App\Models\Participacion;
 use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\TipoReconocimiento;
+use App\Services\AuditoriaService;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -128,6 +132,19 @@ class EmisionMasiva extends Component
             $this->nuevo_telefono,
         );
 
+        app(AuditoriaService::class)->registrar(
+            'participacion',
+            'Participante agregado para emisión',
+            null,
+            [
+                'dni' => $this->nuevo_dni,
+                'nombre' => trim($this->nuevo_apellido.', '.$this->nuevo_nombre, ', '),
+                'contexto_id' => $this->contexto_id,
+                'tipo_reconocimiento_id' => $this->tipo_reconocimiento_id,
+            ],
+            'participacion.agregada'
+        );
+
         $this->reset(['nuevo_dni', 'nuevo_nombre', 'nuevo_apellido', 'nuevo_mail', 'nuevo_telefono']);
         $this->dispatch('alert', message: 'Persona agregada a la lista.');
     }
@@ -146,7 +163,7 @@ class EmisionMasiva extends Component
         $importados = 0;
         $fila = 0;
 
-        while (($columnas = fgetcsv($handle, 1000, ',')) !== false) {
+        while (($columnas = fgetcsv($handle, 1000, ',', '"', '\\')) !== false) {
             $fila++;
 
             if ($fila === 1 && in_array(mb_strtolower(trim((string) ($columnas[0] ?? ''))), ['dni', 'documento'], true)) {
@@ -169,6 +186,19 @@ class EmisionMasiva extends Component
         }
 
         fclose($handle);
+
+        app(AuditoriaService::class)->registrar(
+            'participacion',
+            'Importación de participantes para emisión',
+            null,
+            [
+                'contexto_id' => $this->contexto_id,
+                'tipo_reconocimiento_id' => $this->tipo_reconocimiento_id,
+                'importados' => $importados,
+            ],
+            'participaciones.importadas'
+        );
+
         $this->reset('csv');
         $this->dispatch('alert', message: "Se importaron {$importados} persona(s).");
     }
@@ -245,7 +275,7 @@ class EmisionMasiva extends Component
                 ->pluck('participacion_id')
                 ->all();
 
-            \App\Jobs\EmitirParticipacionesJob::dispatch($ids, (int) $this->plantilla_id, auth()->id());
+            EmitirParticipacionesJob::dispatch($ids, (int) $this->plantilla_id, auth()->id());
 
             $this->dispatch('alert', message: 'Se encolaron '.count($ids).' emisión(es).');
 
@@ -337,7 +367,7 @@ class EmisionMasiva extends Component
      */
     private function emitirIds(array $ids, PlantillaCertificado $plantilla): void
     {
-        $emitir = app(\App\Actions\EmitirParticipacion::class);
+        $emitir = app(EmitirParticipacion::class);
 
         foreach ($ids as $id) {
             $participacion = Participacion::find($id);
@@ -352,7 +382,7 @@ class EmisionMasiva extends Component
             } catch (\Throwable $e) {
                 $this->errores++;
 
-                \Illuminate\Support\Facades\Log::error('Error en emisión masiva.', [
+                Log::error('Error en emisión masiva.', [
                     'participacion_id' => $id,
                     'message' => $e->getMessage(),
                 ]);
@@ -389,7 +419,7 @@ class EmisionMasiva extends Component
         }
 
         try {
-            app(\App\Actions\EmitirParticipacion::class)->handle($participacion, $plantilla, auth()->id());
+            app(EmitirParticipacion::class)->handle($participacion, $plantilla, auth()->id());
             $this->dispatch('alert', message: 'Certificado emitido.');
         } catch (\Throwable $e) {
             $this->dispatch('oops', message: 'Error: '.$e->getMessage());

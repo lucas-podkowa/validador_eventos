@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Participante;
 use App\Models\SolicitudCorreccionDni;
+use App\Models\User;
 use App\Services\ReemitirCertificadosParticipante;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -64,7 +65,7 @@ class SolicitudesDni extends Component
             if ($participante->user_id) {
                 $user = $participante->user;
                 $ocupadoPorOtro = $user && $user->id !== null
-                    ? \App\Models\User::where('dni', $solicitud->dni_solicitado)->where('id', '!=', $user->id)->exists()
+                    ? User::where('dni', $solicitud->dni_solicitado)->where('id', '!=', $user->id)->exists()
                     : false;
 
                 if ($user && ! $ocupadoPorOtro && ($user->dni === null || (string) $user->dni === (string) $dniAnterior)) {

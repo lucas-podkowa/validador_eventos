@@ -135,7 +135,7 @@
 
             <a href="{{ route('admin.certificados') }}"
                 class="{{ request()->routeIs('admin.certificados') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-circle-check w-5 text-center"></i>
+                <i class="fa-solid fa-scroll w-5 text-center"></i>
                 <span>Certificados emitidos</span>
             </a>
 
@@ -163,6 +163,14 @@
                 <i class="fa-solid fa-user-shield w-5 text-center"></i>
                 <span>Usuarios</span>
             </a>
+
+            @can('ver_auditoria')
+                <a href="{{ route('admin.auditoria') }}"
+                    class="{{ request()->routeIs('admin.auditoria') ? 'active' : '' }}">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                    <span>Auditoría</span>
+                </a>
+            @endcan
             @endrole
         </div>
         @endrole
@@ -205,7 +213,7 @@
 
             <a href="{{ route('admin.certificados_externos') }}"
                 class="{{ request()->routeIs('admin.certificados_externos') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-shield w-5 text-center"></i>
+                <i class="fa-solid fa-file-contract w-5 text-center"></i>
                 <span>Certificados externos</span>
             </a>
         </div>

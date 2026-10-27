@@ -16,7 +16,8 @@ class PdfListadoInscriptosTest extends TestCase
             'inscriptos' => collect(),
         ])->render();
 
-        $this->assertStringContainsString('unam-color.png', $view);
+        $this->assertStringContainsString('logo_fi_azul.png', $view);
+        $this->assertStringContainsString('logo_acreditar_azul.png', $view);
         $this->assertStringNotContainsString('logo-unam-color.png', $view);
     }
 

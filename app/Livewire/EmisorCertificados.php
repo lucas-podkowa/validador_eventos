@@ -140,7 +140,7 @@ class EmisorCertificados extends Component
     private function cargarEventos(): void
     {
         $this->eventos = $this->origen_tipo === 'evento' && $this->contexto_id
-            ? Evento::where('estado', 'Finalizado')
+            ? Evento::whereRaw('LOWER(estado) = ?', ['finalizado'])
                 ->where('contexto_id', $this->contexto_id)
                 ->orderByDesc('fecha_inicio')
                 ->get()

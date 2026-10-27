@@ -97,7 +97,7 @@ class CrearEvent extends Component
                 'lugarEvento',
                 'fileInput',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             DB::rollBack();
             $this->dispatch('oops', message: 'Hubo un error al procesar los datos: '.$e->getMessage());
@@ -135,7 +135,7 @@ class CrearEvent extends Component
 
                 // Saltar la primera línea (cabeceras)
                 // fgetcsv($handle, 1000, ',');
-                $headers = fgetcsv($handle, 1000, ',');
+                $headers = fgetcsv($handle, 1000, ',', '"', '\\');
                 $headers = array_map('strtolower', $headers);
 
                 $expectedHeaders = [
@@ -147,7 +147,7 @@ class CrearEvent extends Component
                 ];
                 $participantes_del_evento = [];
 
-                while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+                while (($data = fgetcsv($handle, 1000, ',', '"', '\\')) !== false) {
                     $mappedData = [];
 
                     foreach ($expectedHeaders as $key => $aliases) {

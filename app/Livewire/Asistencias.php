@@ -39,7 +39,7 @@ class Asistencias extends Component
 
     public function mount()
     {
-        $this->eventos = Evento::where('estado', 'en curso')->get();
+        $this->eventos = Evento::whereRaw('LOWER(estado) = ?', ['en curso'])->get();
 
         // Obtener el ID del rol "Participante" una sola vez
         $rolParticipante = Rol::where('nombre', 'Participante')->first();

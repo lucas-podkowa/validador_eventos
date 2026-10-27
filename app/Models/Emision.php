@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Emision extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     public const ESTADO_EMITIDO = 'emitido';
 
@@ -55,6 +58,36 @@ class Emision extends Model
         'match_detalle' => 'array',
         'emitida_en' => 'datetime',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'participante_id',
+                'tipo_reconocimiento_id',
+                'origen_type',
+                'origen_id',
+                'alcance',
+                'plantilla_id',
+                'codigo_verificacion',
+                'certificado_path',
+                'estado',
+                'api_cliente_id',
+                'external_ref',
+                'match_estado',
+                'emitido_por',
+                'emitida_en',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('emision')
+            ->setDescriptionForEvent(fn (string $eventName): string => match ($eventName) {
+                'created' => 'Emisión creada',
+                'updated' => 'Emisión actualizada',
+                'deleted' => 'Emisión eliminada',
+                default => "Emisión: {$eventName}",
+            });
+    }
 
     protected static function boot()
     {

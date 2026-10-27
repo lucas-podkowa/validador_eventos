@@ -131,6 +131,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // EventoSeeder::class,
             // ParticipanteSeeder::class,
+            AuditoriaPermissionSeeder::class,
         ]);
     }
 }

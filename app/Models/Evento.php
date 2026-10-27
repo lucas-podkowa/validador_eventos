@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Evento extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     public $timestamps = false;
 
@@ -45,6 +48,38 @@ class Evento extends Model
         'arancel' => 'boolean',
         'metodos_pago' => 'array',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'nombre',
+                'lugar',
+                'fecha_inicio',
+                'tipo_evento_id',
+                'categoria_id',
+                'contexto_id',
+                'cupo',
+                'por_aprobacion',
+                'arancel',
+                'link_pago',
+                'metodos_pago',
+                'revisor_id',
+                'revisado',
+                'responsable_id',
+                'certificado_path',
+                'estado',
+            ])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->useLogName('evento')
+            ->setDescriptionForEvent(fn (string $eventName): string => match ($eventName) {
+                'created' => 'Evento creado',
+                'updated' => 'Evento actualizado',
+                'deleted' => 'Evento eliminado',
+                default => "Evento: {$eventName}",
+            });
+    }
 
     protected static function boot()
     {
