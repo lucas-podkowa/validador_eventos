@@ -5,7 +5,9 @@ namespace App\Livewire;
 use App\Actions\VincularParticipante;
 use App\Models\Participante;
 use App\Models\SolicitudCorreccionDni;
+use App\Rules\DocumentoUnico;
 use App\Rules\LargoNombreCertificado;
+use App\Support\DocumentoIdentidad;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -56,7 +58,7 @@ class MisDatos extends Component
         }
 
         $this->validate([
-            'vincular_dni' => ['required', 'digits_between:6,10'],
+            'vincular_dni' => DocumentoIdentidad::reglas(),
         ], [], [
             'vincular_dni' => 'DNI',
         ]);
@@ -112,7 +114,10 @@ class MisDatos extends Component
         }
 
         $this->validate([
-            'nuevo_dni' => ['required', 'digits_between:6,10', Rule::unique('participante', 'dni')->ignore($participante->participante_id, 'participante_id')],
+            'nuevo_dni' => [
+                ...DocumentoIdentidad::reglas(),
+                new DocumentoUnico('participante', 'dni_norm', $participante->participante_id, 'participante_id'),
+            ],
             'motivo' => ['nullable', 'string', 'max:500'],
             'imagen' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ], [], [

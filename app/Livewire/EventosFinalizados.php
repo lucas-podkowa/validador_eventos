@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AuditoriaService;
 use App\Services\GenerarCertificadoEvento;
 use App\Support\CertificadoPdfAssets;
+use App\Support\DocumentoIdentidad;
 use App\Support\Texto;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
@@ -644,8 +645,14 @@ class EventosFinalizados extends Component
                 });
             })
             ->when($this->searchParticipante, function ($query) {
-                $query->whereHas('participantes', function ($q) {
+                $documento = DocumentoIdentidad::normalizar($this->searchParticipante);
+
+                $query->whereHas('participantes', function ($q) use ($documento) {
                     $q->where('dni', 'like', '%'.$this->searchParticipante.'%');
+
+                    if ($documento !== '') {
+                        $q->orWhere('dni_norm', 'like', '%'.$documento.'%');
+                    }
                 });
             })
             ->when($this->searchTipoEvento !== '', function ($query) {

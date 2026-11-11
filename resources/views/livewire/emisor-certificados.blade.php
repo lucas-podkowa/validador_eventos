@@ -93,9 +93,9 @@
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">DNI / Documento</label>
                 <div class="flex gap-2">
-                    <input wire:model="dni" type="text" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                    <input wire:model="dni" type="text" maxlength="20" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
                     <button type="button" wire:click="buscarParticipante"
                         class="shrink-0 rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">Buscar</button>
                 </div>

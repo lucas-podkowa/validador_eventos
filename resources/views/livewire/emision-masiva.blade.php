@@ -40,7 +40,7 @@
         <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
             <h3 class="mb-3 font-semibold text-gray-700">Agregar persona</h3>
             <div class="grid grid-cols-2 gap-3">
-                <input wire:model="nuevo_dni" type="text" placeholder="DNI" class="rounded-md border-gray-300 shadow-sm text-sm">
+                <input wire:model="nuevo_dni" type="text" placeholder="DNI / Documento" maxlength="20" class="rounded-md border-gray-300 shadow-sm text-sm">
                 <input wire:model="nuevo_apellido" type="text" placeholder="Apellido" class="rounded-md border-gray-300 shadow-sm text-sm">
                 <input wire:model="nuevo_nombre" type="text" placeholder="Nombre" class="rounded-md border-gray-300 shadow-sm text-sm">
                 <input wire:model="nuevo_mail" type="email" placeholder="Correo" class="rounded-md border-gray-300 shadow-sm text-sm">
@@ -54,7 +54,7 @@
 
         <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
             <h3 class="mb-3 font-semibold text-gray-700">Importar CSV</h3>
-            <p class="mb-2 text-xs text-gray-500">Columnas: dni, apellido, nombre, mail, telefono.</p>
+            <p class="mb-2 text-xs text-gray-500">Columnas: dni (o documento), apellido, nombre, mail, telefono.</p>
             <input type="file" wire:model="csv" class="block w-full text-sm">
             @error('csv') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
             <div class="mt-3 flex gap-2">

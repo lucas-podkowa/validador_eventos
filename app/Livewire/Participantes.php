@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Models\Participante;
+use App\Rules\DocumentoUnico;
 use App\Rules\LargoNombreCertificado;
+use App\Support\DocumentoIdentidad;
 use App\Support\NormalizadorIdentidad;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -35,7 +37,7 @@ class Participantes extends Component
     protected $rules = [
         'nombre' => 'required|string|max:255',
         'apellido' => 'required|string|max:255',
-        'dni' => 'required|integer|unique:participante,dni',
+        'dni' => ['required', 'string', 'min:3', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9.\-\/]{2,19}$/'],
         'mail' => 'required|email|unique:participante,mail',
         'telefono' => 'required|string|max:20',
     ];
@@ -64,7 +66,7 @@ class Participantes extends Component
         $this->validate([
             'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50', new LargoNombreCertificado($this->nombre)], // letras, espacios, guiones y puntos
             'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
-            'dni' => ['required', 'digits_between:6,10', 'numeric'],
+            'dni' => [...DocumentoIdentidad::reglas(), new DocumentoUnico('participante', 'dni_norm', $this->participante_id, 'participante_id')],
             'mail' => ['required', 'email'],
             'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         ]);
@@ -89,10 +91,16 @@ class Participantes extends Component
         $query = Participante::orderBy('apellido');
 
         if (! empty($this->searchParticipante)) {
-            $query->where(function ($q) {
+            $terminoDocumento = DocumentoIdentidad::normalizar($this->searchParticipante);
+
+            $query->where(function ($q) use ($terminoDocumento) {
                 $q->where('nombre', 'like', "%{$this->searchParticipante}%")
                     ->orWhere('apellido', 'like', "%{$this->searchParticipante}%")
                     ->orWhere('dni', 'like', "%{$this->searchParticipante}%");
+
+                if ($terminoDocumento !== '') {
+                    $q->orWhere('dni_norm', 'like', "%{$terminoDocumento}%");
+                }
             });
         }
 

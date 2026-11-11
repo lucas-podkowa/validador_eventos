@@ -23,11 +23,11 @@
                     <div class="flex flex-col gap-4">
                         <!-- Campo: DNI -->
                         <div class="flex flex-col">
-                            <label for="dni" class="mb-1 lg:mb-0 font-medium">Número
-                                DNI:</label>
+                            <label for="dni" class="mb-1 lg:mb-0 font-medium">Número de
+                                documento:</label>
 
                             <input type="text" wire:model.defer="dni" wire:keydown.enter="buscarParticipante"
-                                wire:keydown.tab="buscarParticipante" wire:blur="buscarParticipante"
+                                wire:keydown.tab="buscarParticipante" wire:blur="buscarParticipante" maxlength="20"
                                 class="w-full lg:flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300" />
 
                             @error('dni')

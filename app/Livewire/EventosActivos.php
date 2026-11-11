@@ -9,6 +9,7 @@ use App\Models\PlanillaInscripcion;
 use App\Models\TipoEvento;
 use App\Models\User;
 use App\Services\AuditoriaService;
+use App\Support\DocumentoIdentidad;
 use App\Support\Texto;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
@@ -443,10 +444,15 @@ class EventosActivos extends Component
 
             if (! empty($this->searchParticipante)) {
                 $searchTerm = $this->searchParticipante;
-                $query->whereHas('participante', function ($q) use ($searchTerm) {
+                $documento = DocumentoIdentidad::normalizar($searchTerm);
+                $query->whereHas('participante', function ($q) use ($searchTerm, $documento) {
                     $q->where('nombre', 'like', "%{$searchTerm}%")
                         ->orWhere('apellido', 'like', "%{$searchTerm}%")
                         ->orWhere('dni', 'like', "%{$searchTerm}%");
+
+                    if ($documento !== '') {
+                        $q->orWhere('dni_norm', 'like', "%{$documento}%");
+                    }
                 });
             }
 
@@ -474,10 +480,15 @@ class EventosActivos extends Component
 
             if (! empty($this->searchDisertante)) {
                 $searchTerm = $this->searchDisertante;
-                $query->whereHas('participante', function ($q) use ($searchTerm) {
+                $documento = DocumentoIdentidad::normalizar($searchTerm);
+                $query->whereHas('participante', function ($q) use ($searchTerm, $documento) {
                     $q->where('nombre', 'like', "%{$searchTerm}%")
                         ->orWhere('apellido', 'like', "%{$searchTerm}%")
                         ->orWhere('dni', 'like', "%{$searchTerm}%");
+
+                    if ($documento !== '') {
+                        $q->orWhere('dni_norm', 'like', "%{$documento}%");
+                    }
                 });
             }
 

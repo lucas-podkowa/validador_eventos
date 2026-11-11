@@ -187,7 +187,7 @@ class CrearEvent extends Component
                             ]);
                         }
 
-                        $participante = Participante::where('dni', $mappedData['dni'])->first();
+                        $participante = Participante::porDocumento($mappedData['dni'])->first();
 
                         // Buscar o crear el participante
 
@@ -318,7 +318,7 @@ class CrearEvent extends Component
                     */
 
                     // Buscar o crear el participante
-                    $participante = Participante::where('dni', $mappedData['dni'])->first();
+                    $participante = Participante::porDocumento($mappedData['dni'])->first();
 
                     if (! $participante) {
                         $participante = Participante::create([

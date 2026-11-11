@@ -15,7 +15,7 @@ class ReemitirCertificadosParticipanteCommand extends Command
     public function handle(): int
     {
         foreach ($this->argument('dni') as $dni) {
-            $participante = Participante::where('dni', $dni)->first();
+            $participante = Participante::porDocumento($dni)->first();
 
             if (! $participante) {
                 $this->warn("No se encontró un participante con DNI {$dni}.");

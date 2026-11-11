@@ -6,6 +6,7 @@ use App\Models\Contexto;
 use App\Models\Emision;
 use App\Models\Evento;
 use App\Models\TipoReconocimiento;
+use App\Support\DocumentoIdentidad;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -123,11 +124,16 @@ class Emisiones extends Component
             })
             ->when($this->search !== '', function ($query) {
                 $busqueda = '%'.$this->search.'%';
-                $query->where(function ($subquery) use ($busqueda) {
-                    $subquery->whereHas('participante', function ($participante) use ($busqueda) {
+                $documento = DocumentoIdentidad::normalizar($this->search);
+                $query->where(function ($subquery) use ($busqueda, $documento) {
+                    $subquery->whereHas('participante', function ($participante) use ($busqueda, $documento) {
                         $participante->where('nombre', 'like', $busqueda)
                             ->orWhere('apellido', 'like', $busqueda)
                             ->orWhere('dni', 'like', $busqueda);
+
+                        if ($documento !== '') {
+                            $participante->orWhere('dni_norm', 'like', '%'.$documento.'%');
+                        }
                     })->orWhere('emision.external_ref', 'like', $busqueda);
                 });
             })

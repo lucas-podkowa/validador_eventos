@@ -75,8 +75,8 @@
 
             </div>
             <div class="mb-4">
-                <label class="block">DNI:</label>
-                <input type="text" wire:model="dni" class="w-full border rounded p-2">
+                <label class="block">DNI / Documento:</label>
+                <input type="text" wire:model="dni" class="w-full border rounded p-2" maxlength="20">
                 @error('dni')
                     <span class="text-red-500">{{ $message }}</span>
                 @enderror

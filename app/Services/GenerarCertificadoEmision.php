@@ -294,7 +294,7 @@ class GenerarCertificadoEmision
             $slugTipo ?: 'general',
             Str::slug((string) $participante->apellido) ?: 'sin-apellido',
             Str::slug((string) $participante->nombre) ?: 'sin-nombre',
-            preg_replace('/\D+/', '', (string) $participante->dni) ?: substr($emision->emision_id, 0, 8)
+            Str::slug((string) $participante->dni, '') ?: substr($emision->emision_id, 0, 8)
         );
     }
 }

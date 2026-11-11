@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\Participante;
 use App\Models\User;
+use App\Support\DocumentoIdentidad;
 
 class VincularParticipante
 {
@@ -23,13 +24,14 @@ class VincularParticipante
     {
         $dni = trim($dni);
         $email = $this->normalizar($user->email);
+        $dniNorm = DocumentoIdentidad::normalizar($dni);
 
-        if ($dni === '' || $email === '') {
+        if ($dniNorm === '' || $email === '') {
             return null;
         }
 
         $participante = Participante::whereNull('user_id')
-            ->where('dni', $dni)
+            ->porDocumento($dni)
             ->get()
             ->first(fn (Participante $p) => $this->normalizar($p->mail) === $email);
 
@@ -62,15 +64,16 @@ class VincularParticipante
 
         $dni = trim((string) $participante->dni);
         $email = $this->normalizar($participante->mail);
+        $dniNorm = DocumentoIdentidad::normalizar($dni);
 
-        if ($dni === '' || $email === '') {
+        if ($dniNorm === '' || $email === '') {
             return null;
         }
 
         $user = User::query()
             ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
             ->get()
-            ->first(fn (User $candidato) => trim((string) $candidato->dni) === $dni);
+            ->first(fn (User $candidato) => DocumentoIdentidad::normalizar($candidato->dni) === $dniNorm);
 
         if (! $user) {
             return null;

@@ -23,11 +23,11 @@
             </div>
 
             <div class="mt-4">
-                <x-label for="dni" value="{{ __('DNI') }}" />
+                <x-label for="dni" value="{{ __('DNI / Documento') }}" />
                 <x-input id="dni" class="block mt-1 w-full" type="text" name="dni" :value="old('dni')" required
-                    inputmode="numeric" autocomplete="off" placeholder="Sin puntos" />
+                    autocomplete="off" placeholder="DNI, pasaporte, etc." />
                 <p class="mt-1 text-xs text-gray-500">
-                    {{ __('Usá el mismo DNI con el que te inscribiste a los eventos.') }}
+                    {{ __('Usá el mismo documento con el que te inscribiste a los eventos.') }}
                 </p>
             </div>
 

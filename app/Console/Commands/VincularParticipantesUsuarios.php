@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Participante;
 use App\Models\User;
+use App\Support\DocumentoIdentidad;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -69,7 +70,7 @@ class VincularParticipantesUsuarios extends Command
                     continue;
                 }
 
-                if ($user->dni !== null && (string) $user->dni !== '' && (string) $user->dni !== (string) $participante->dni) {
+                if ($user->dni !== null && trim((string) $user->dni) !== '' && DocumentoIdentidad::normalizar($user->dni) !== DocumentoIdentidad::normalizar($participante->dni)) {
                     $this->warn("Conflicto: el DNI del usuario {$user->email} ({$user->dni}) no coincide con el del participante ({$participante->dni}). Se omite.");
                     $conflictos++;
 

@@ -4,7 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Models\Participante;
 use App\Models\User;
+use App\Rules\DocumentoUnico;
 use App\Services\AuditoriaService;
+use App\Support\DocumentoIdentidad;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -110,13 +112,18 @@ class Usuarios extends Component
 
         $this->validate(['busqueda_participante' => 'required|string|min:3']);
         $termino = trim($this->busqueda_participante);
+        $terminoDocumento = DocumentoIdentidad::normalizar($termino);
 
         $participante = Participante::whereNull('user_id')
-            ->where(function ($query) use ($termino) {
-                $query->where('dni', $termino)
-                    ->orWhere('mail', 'like', "%{$termino}%")
+            ->where(function ($query) use ($termino, $terminoDocumento) {
+                $query->where('mail', 'like', "%{$termino}%")
                     ->orWhere('apellido', 'like', "%{$termino}%")
                     ->orWhere('nombre', 'like', "%{$termino}%");
+
+                if ($terminoDocumento !== '') {
+                    $query->orWhere('dni_norm', $terminoDocumento)
+                        ->orWhere('dni', 'like', "%{$termino}%");
+                }
             })
             ->orderBy('apellido')
             ->first();
@@ -228,10 +235,16 @@ class Usuarios extends Component
 
     public function actualizar()
     {
+        $this->dni = trim((string) $this->dni);
+        $this->dni = $this->dni === '' ? null : $this->dni;
+
         $this->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($this->usuarioEdit_id)],
-            'dni' => ['nullable', 'digits_between:6,12', Rule::unique('users', 'dni')->ignore($this->usuarioEdit_id)],
+            'dni' => [
+                ...DocumentoIdentidad::reglasOpcionales(),
+                new DocumentoUnico('users', 'dni_norm', $this->usuarioEdit_id, 'id'),
+            ],
             'roles_selected' => 'required|array|min:1',
             'roles_selected.*' => 'exists:roles,id',
             'password' => 'nullable|min:6',

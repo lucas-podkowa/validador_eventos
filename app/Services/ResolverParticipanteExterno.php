@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Actions\BuscarParticipanteSimilar;
 use App\Actions\VincularParticipante;
 use App\Models\Participante;
+use App\Support\DocumentoIdentidad;
 use App\Support\NormalizadorIdentidad;
 
 /**
@@ -43,14 +44,15 @@ class ResolverParticipanteExterno
      */
     public function resolver(array $tutor): array
     {
-        $dni = preg_replace('/\D+/', '', (string) ($tutor['dni'] ?? '')) ?? '';
+        $dni = trim((string) ($tutor['dni'] ?? ''));
+        $dniNorm = DocumentoIdentidad::normalizar($dni);
         $this->mailRaw = (string) ($tutor['email'] ?? ($tutor['mail'] ?? ''));
         $this->mailNorm = NormalizadorIdentidad::mail($this->mailRaw);
         $this->telefonoNorm = NormalizadorIdentidad::telefono($tutor['telefono'] ?? null);
         $apellidoNorm = NormalizadorIdentidad::nombre($tutor['apellido'] ?? null);
 
-        if ($dni !== '') {
-            $participante = Participante::where('dni', $dni)->first();
+        if ($dniNorm !== '') {
+            $participante = Participante::porDocumento($dni)->first();
 
             if ($participante) {
                 if ($this->mailNorm !== '' && NormalizadorIdentidad::mail($participante->mail) === $this->mailNorm) {
@@ -134,7 +136,7 @@ class ResolverParticipanteExterno
         $participante = Participante::create([
             'apellido' => (string) ($tutor['apellido'] ?? ''),
             'nombre' => (string) ($tutor['nombres'] ?? ($tutor['nombre'] ?? '')),
-            'dni' => (int) $dni,
+            'dni' => $dni,
             'mail' => $this->mailRaw,
             'telefono' => (string) ($tutor['telefono'] ?? ''),
         ]);

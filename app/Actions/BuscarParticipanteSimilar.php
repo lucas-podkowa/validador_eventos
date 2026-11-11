@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Models\Participante;
+use App\Support\DocumentoIdentidad;
 use App\Support\NormalizadorIdentidad;
 
 class BuscarParticipanteSimilar
@@ -18,13 +19,14 @@ class BuscarParticipanteSimilar
         ?string $nombre,
         ?string $telefono,
         ?string $mail = null,
-        ?int $dniExcluir = null,
+        ?string $dniExcluir = null,
         ?string $participanteExcluir = null
     ): ?Participante {
         $apellidoNorm = NormalizadorIdentidad::nombre($apellido);
         $nombreNorm = NormalizadorIdentidad::nombre($nombre);
         $telefonoNorm = NormalizadorIdentidad::telefono($telefono);
         $mailNorm = NormalizadorIdentidad::mail($mail);
+        $dniNormExcluir = DocumentoIdentidad::normalizar($dniExcluir);
 
         $tieneNombreTelefono = $apellidoNorm !== '' && $nombreNorm !== '' && $telefonoNorm !== '';
         $tieneMail = $mailNorm !== '';
@@ -47,7 +49,7 @@ class BuscarParticipanteSimilar
                     });
                 }
             })
-            ->when($dniExcluir, fn ($query) => $query->where('dni', '!=', $dniExcluir))
+            ->when($dniNormExcluir !== '', fn ($query) => $query->where('dni_norm', '!=', $dniNormExcluir))
             ->when($participanteExcluir, fn ($query) => $query->where('participante_id', '!=', $participanteExcluir))
             ->orderByRaw(
                 '(apellido_norm = ? AND nombre_norm = ? AND telefono_norm = ?) DESC',

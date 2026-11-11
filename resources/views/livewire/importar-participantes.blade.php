@@ -40,7 +40,7 @@
                         <thead>
                             <tr class="bg-blue-600">
                                 <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
-                                    DNI</th>
+                                    DNI / DOCUMENTO</th>
                                 <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
                                     APELLIDO</th>
                                 <th class="text-white font-bold text-sm p-3 border-r border-blue-400 whitespace-nowrap">
@@ -147,7 +147,7 @@
                 <table class="min-w-full text-sm border border-gray-200">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="p-2 border">DNI</th>
+                            <th class="p-2 border">DNI / Documento</th>
                             <th class="p-2 border">Estado</th>
                         </tr>
                     </thead>

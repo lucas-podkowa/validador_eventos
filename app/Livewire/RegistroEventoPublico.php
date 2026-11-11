@@ -14,6 +14,7 @@ use App\Models\PlanillaInscripcion;
 use App\Models\RequisitoDocumentacion;
 use App\Models\Rol;
 use App\Rules\LargoNombreCertificado;
+use App\Support\DocumentoIdentidad;
 use App\Support\NormalizadorIdentidad;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -77,7 +78,7 @@ class RegistroEventoPublico extends Component
     protected $rules = [
         'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'], // letras, espacios, guiones y puntos
         'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
-        'dni' => ['required', 'digits_between:6,10', 'numeric'],
+        'dni' => ['required', 'string', 'min:3', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9.\-\/]{2,19}$/'],
         'mail' => ['required', 'email'],
         'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
     ];
@@ -129,7 +130,7 @@ class RegistroEventoPublico extends Component
     public function buscarParticipante()
     {
         if ($this->dni) {
-            $this->participante = Participante::where('dni', $this->dni)->first()?->toArray();
+            $this->participante = Participante::porDocumento($this->dni)->first()?->toArray();
 
             if ($this->participante) {
                 $this->nombre = $this->participante['nombre'];
@@ -152,7 +153,7 @@ class RegistroEventoPublico extends Component
             nombre: (string) $this->nombre,
             telefono: (string) $this->telefono,
             mail: (string) $this->mail,
-            dniExcluir: $this->dni !== null && $this->dni !== '' ? (int) $this->dni : null,
+            dniExcluir: $this->dni !== null && $this->dni !== '' ? (string) $this->dni : null,
         );
 
         if ($candidato) {
@@ -195,7 +196,7 @@ class RegistroEventoPublico extends Component
         $reglas = [
             'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50', new LargoNombreCertificado($this->nombre)],
             'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
-            'dni' => ['required', 'digits_between:6,10', 'numeric'],
+            'dni' => DocumentoIdentidad::reglas(),
             'mail' => ['required', 'email'],
             'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         ];
@@ -281,7 +282,7 @@ class RegistroEventoPublico extends Component
                     'decision' => 'misma_persona',
                 ]);
             } else {
-                $participante = Participante::where('dni', $this->dni)->first();
+                $participante = Participante::porDocumento($this->dni)->first();
 
                 if (! $participante) {
                     // Verificar si el email ya existe en otro participante

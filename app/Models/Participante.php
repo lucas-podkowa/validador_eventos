@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MantieneDocumentoNormalizado;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,7 @@ class Participante extends Model
 {
     use HasFactory;
     use LogsActivity;
+    use MantieneDocumentoNormalizado;
 
     protected static $recordEvents = ['updated', 'deleted'];
 

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Emision;
 use App\Models\Participante;
 use App\Models\User;
+use App\Support\DocumentoIdentidad;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -90,12 +91,17 @@ class CertificadosExternos extends Component
             ->when($this->solo_revision, fn ($query) => $query->where('match_estado', Emision::MATCH_REVISAR))
             ->when($this->search, function ($query) {
                 $busqueda = '%'.$this->search.'%';
-                $query->where(function ($q) use ($busqueda) {
+                $documento = DocumentoIdentidad::normalizar($this->search);
+                $query->where(function ($q) use ($busqueda, $documento) {
                     $q->where('external_ref', 'like', $busqueda)
-                        ->orWhereHas('participante', function ($p) use ($busqueda) {
+                        ->orWhereHas('participante', function ($p) use ($busqueda, $documento) {
                             $p->where('nombre', 'like', $busqueda)
                                 ->orWhere('apellido', 'like', $busqueda)
                                 ->orWhere('dni', 'like', $busqueda);
+
+                            if ($documento !== '') {
+                                $p->orWhere('dni_norm', 'like', '%'.$documento.'%');
+                            }
                         });
                 });
             })

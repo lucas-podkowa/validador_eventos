@@ -14,9 +14,9 @@
 
             <form wire:submit.prevent="vincularCuenta" class="mt-4 max-w-md space-y-3">
                 <div>
-                    <x-label for="vincular_dni" value="DNI con el que te inscribiste" />
-                    <x-input id="vincular_dni" class="mt-1 block w-full" type="text" inputmode="numeric"
-                        wire:model="vincular_dni" placeholder="Sin puntos" />
+                    <x-label for="vincular_dni" value="DNI / Documento con el que te inscribiste" />
+                    <x-input id="vincular_dni" class="mt-1 block w-full" type="text"
+                        wire:model="vincular_dni" placeholder="DNI, pasaporte, etc." maxlength="20" />
                     @error('vincular_dni')
                         <span class="text-sm text-red-600">{{ $message }}</span>
                     @enderror
@@ -81,8 +81,8 @@
 
                 <form wire:submit.prevent="solicitarCorreccion" class="space-y-4">
                     <div>
-                        <x-label for="nuevo_dni" value="DNI correcto" />
-                        <x-input id="nuevo_dni" class="mt-1 block w-full" type="text" inputmode="numeric" wire:model="nuevo_dni" placeholder="Sin puntos" />
+                        <x-label for="nuevo_dni" value="Documento correcto" />
+                        <x-input id="nuevo_dni" class="mt-1 block w-full" type="text" wire:model="nuevo_dni" placeholder="DNI, pasaporte, etc." maxlength="20" />
                         @error('nuevo_dni')
                             <span class="text-sm text-red-600">{{ $message }}</span>
                         @enderror

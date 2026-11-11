@@ -7,6 +7,7 @@ use App\Models\Evento;
 use App\Models\InscripcionParticipante;
 use App\Models\Rol;
 use App\Models\SesionEvento;
+use App\Support\DocumentoIdentidad;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -112,10 +113,15 @@ class Asistencias extends Component
         // Filtro de búsqueda por nombre, apellido o DNI
         if (! empty($this->searchParticipante)) {
             $searchTerm = $this->searchParticipante;
-            $query->whereHas('participante', function ($q) use ($searchTerm) {
+            $documento = DocumentoIdentidad::normalizar($searchTerm);
+            $query->whereHas('participante', function ($q) use ($searchTerm, $documento) {
                 $q->where('nombre', 'like', '%'.$searchTerm.'%')
                     ->orWhere('apellido', 'like', '%'.$searchTerm.'%')
                     ->orWhere('dni', 'like', '%'.$searchTerm.'%');
+
+                if ($documento !== '') {
+                    $q->orWhere('dni_norm', 'like', '%'.$documento.'%');
+                }
             });
         }
 

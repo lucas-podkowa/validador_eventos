@@ -87,9 +87,9 @@
                 </div>
 
                 <div class="mt-4">
-                    <label>DNI</label>
-                    <input wire:model="dni" type="text" inputmode="numeric" class="w-full border p-2 rounded"
-                        placeholder="Solo números">
+                    <label>DNI / Documento</label>
+                    <input wire:model="dni" type="text" class="w-full border p-2 rounded" maxlength="20"
+                        placeholder="DNI, pasaporte, etc.">
                     @error('dni')
                         <span class="text-red-500">{{ $message }}</span>
                     @enderror

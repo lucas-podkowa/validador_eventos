@@ -16,6 +16,7 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class GenerarCertificadoEvento
 {
@@ -270,7 +271,8 @@ class GenerarCertificadoEvento
         $year = now()->year;
         $tipoEvento = $evento->tipoEvento->nombre;
         $nombreEvento = $evento->nombre;
+        $documento = Str::slug((string) $participante->dni, '') ?: 'sin-documento';
 
-        return "certificados/{$year}/{$tipoEvento}/{$nombreEvento}/{$participante->apellido}_{$participante->nombre} ({$participante->dni}).pdf";
+        return "certificados/{$year}/{$tipoEvento}/{$nombreEvento}/{$participante->apellido}_{$participante->nombre} ({$documento}).pdf";
     }
 }

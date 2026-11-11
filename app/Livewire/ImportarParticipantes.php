@@ -10,6 +10,7 @@ use App\Models\Participante;
 use App\Models\PlanillaInscripcion;
 use App\Models\Rol;
 use App\Services\AuditoriaService;
+use App\Support\DocumentoIdentidad;
 use App\Support\NombreCertificado;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Collection;
@@ -114,7 +115,13 @@ class ImportarParticipantes extends Component
 
                     continue;
                 }
-                $rows->push(array_combine($header, $row));
+                $filas = array_combine($header, $row);
+
+                if (! isset($filas['dni']) && isset($filas['documento'])) {
+                    $filas['dni'] = $filas['documento'];
+                }
+
+                $rows->push($filas);
             }
 
             fclose($handle);
@@ -136,7 +143,7 @@ class ImportarParticipantes extends Component
                 $row = array_change_key_case((array) $row, CASE_LOWER);
 
                 return [
-                    'dni' => trim($row['dni'] ?? ''),
+                    'dni' => trim((string) ($row['dni'] ?? $row['documento'] ?? '')),
                     'apellido' => trim($row['apellido'] ?? ''),
                     'nombre' => trim($row['nombre'] ?? ''),
                     'mail' => trim($row['mail'] ?? $row['email'] ?? ''),
@@ -173,6 +180,16 @@ class ImportarParticipantes extends Component
                         continue;
                     }
 
+                    if (! DocumentoIdentidad::esValido($fila['dni'])) {
+                        $this->errores++;
+                        $this->resultados[] = [
+                            'dni' => $fila['dni'],
+                            'estado' => 'Error: número de documento inválido (3 a 20 caracteres, letras, números, puntos, guiones o barras)',
+                        ];
+
+                        continue;
+                    }
+
                     // Validar largo para el certificado (apellido + ", " + nombre <= 36)
                     if (NombreCertificado::excede($fila['apellido'], $fila['nombre'])) {
                         $this->errores++;
@@ -185,7 +202,7 @@ class ImportarParticipantes extends Component
                     }
 
                     // Buscar o crear participante (evitando crear posibles duplicados)
-                    $participante = Participante::where('dni', $fila['dni'])->first();
+                    $participante = Participante::porDocumento($fila['dni'])->first();
 
                     if (! $participante) {
                         $similar = app(BuscarParticipanteSimilar::class)->buscar(
@@ -193,7 +210,7 @@ class ImportarParticipantes extends Component
                             nombre: $fila['nombre'],
                             telefono: $fila['telefono'] ?? '',
                             mail: $fila['mail'] ?? '',
-                            dniExcluir: (int) $fila['dni'],
+                            dniExcluir: (string) $fila['dni'],
                         );
 
                         if ($similar) {

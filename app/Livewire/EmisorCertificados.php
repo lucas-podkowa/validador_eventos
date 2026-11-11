@@ -13,6 +13,7 @@ use App\Models\PlantillaCertificado;
 use App\Models\TipoReconocimiento;
 use App\Rules\LargoNombreCertificado;
 use App\Services\GenerarCertificadoEmision;
+use App\Support\DocumentoIdentidad;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -195,7 +196,7 @@ class EmisorCertificados extends Component
     public function buscarParticipante(): void
     {
         if ($this->dni) {
-            $this->participanteExistente = Participante::where('dni', $this->dni)->first()?->toArray();
+            $this->participanteExistente = Participante::porDocumento($this->dni)->first()?->toArray();
 
             if ($this->participanteExistente) {
                 $this->nombre = $this->participanteExistente['nombre'];
@@ -218,7 +219,7 @@ class EmisorCertificados extends Component
             nombre: (string) $this->nombre,
             telefono: (string) $this->telefono,
             mail: (string) $this->mail,
-            dniExcluir: $this->dni !== null && $this->dni !== '' ? (int) $this->dni : null,
+            dniExcluir: $this->dni !== null && $this->dni !== '' ? (string) $this->dni : null,
         );
 
         if ($candidato) {
@@ -246,7 +247,7 @@ class EmisorCertificados extends Component
     public function emitir(): void
     {
         $this->validate([
-            'dni' => 'required|string|max:15',
+            'dni' => DocumentoIdentidad::reglas(),
             'nombre' => 'required|string|max:100',
             'apellido' => ['required', 'string', 'max:100', new LargoNombreCertificado($this->nombre)],
             'telefono' => 'required|string|min:6|max:15',
@@ -339,7 +340,7 @@ class EmisorCertificados extends Component
             return $participante;
         }
 
-        $participante = Participante::where('dni', $this->dni)->first();
+        $participante = Participante::porDocumento($this->dni)->first();
 
         if ($participante) {
             $participante->update([

@@ -68,7 +68,7 @@ class InscribirStaff extends Component
     protected $rules = [
         'apellido' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
         'nombre' => ['required', 'regex:/^[\pL\s\-\.]+$/u', 'min:2', 'max:50'],
-        'dni' => ['required', 'digits_between:6,10', 'numeric'],
+        'dni' => ['required', 'string', 'min:3', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9.\-\/]{2,19}$/'],
         'mail' => ['required', 'email'],
         'telefono' => ['required', 'regex:/^\d+$/', 'min:6', 'max:20'],
         'rol_seleccionado' => ['required', 'in:Disertante,Colaborador'],
@@ -85,9 +85,10 @@ class InscribirStaff extends Component
         'nombre.min' => 'El nombre debe tener al menos 2 caracteres.',
         'nombre.max' => 'El nombre no puede superar los 50 caracteres.',
 
-        'dni.required' => 'El DNI es obligatorio.',
-        'dni.digits_between' => 'El DNI debe tener entre 6 y 10 dígitos.',
-        'dni.numeric' => 'El DNI solo puede contener números.',
+        'dni.required' => 'El número de documento es obligatorio.',
+        'dni.regex' => 'El número de documento solo puede contener letras, números, puntos, guiones y barras.',
+        'dni.min' => 'El número de documento debe tener al menos 3 caracteres.',
+        'dni.max' => 'El número de documento no puede superar los 20 caracteres.',
 
         'mail.required' => 'El email es obligatorio.',
         'mail.email' => 'Debe ingresar un email válido.',
@@ -124,7 +125,7 @@ class InscribirStaff extends Component
         }
 
         $participanteAnterior = $this->participante;
-        $this->participante = Participante::where('dni', $this->dni)->first()?->toArray();
+        $this->participante = Participante::porDocumento($this->dni)->first()?->toArray();
 
         if ($this->participante) {
             $this->nombre = $this->participante['nombre'];
@@ -154,7 +155,7 @@ class InscribirStaff extends Component
             nombre: (string) $this->nombre,
             telefono: (string) $this->telefono,
             mail: (string) $this->mail,
-            dniExcluir: $this->dni !== null && $this->dni !== '' ? (int) $this->dni : null,
+            dniExcluir: $this->dni !== null && $this->dni !== '' ? (string) $this->dni : null,
         );
 
         if ($candidato) {
@@ -243,7 +244,7 @@ class InscribirStaff extends Component
                     'decision' => 'misma_persona',
                 ]);
             } else {
-                $participante = Participante::where('dni', $this->dni)->first();
+                $participante = Participante::porDocumento($this->dni)->first();
 
                 if (! $participante) {
                     // Verificar que el email no exista

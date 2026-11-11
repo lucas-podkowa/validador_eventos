@@ -6,6 +6,7 @@ use App\Models\Participante;
 use App\Models\SolicitudCorreccionDni;
 use App\Models\User;
 use App\Services\ReemitirCertificadosParticipante;
+use App\Support\DocumentoIdentidad;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -45,7 +46,7 @@ class SolicitudesDni extends Component
             return;
         }
 
-        $ocupado = Participante::where('dni', $solicitud->dni_solicitado)
+        $ocupado = Participante::porDocumento($solicitud->dni_solicitado)
             ->where('participante_id', '!=', $solicitud->participante_id)
             ->exists();
 
@@ -65,10 +66,10 @@ class SolicitudesDni extends Component
             if ($participante->user_id) {
                 $user = $participante->user;
                 $ocupadoPorOtro = $user && $user->id !== null
-                    ? User::where('dni', $solicitud->dni_solicitado)->where('id', '!=', $user->id)->exists()
+                    ? User::porDocumento($solicitud->dni_solicitado)->where('id', '!=', $user->id)->exists()
                     : false;
 
-                if ($user && ! $ocupadoPorOtro && ($user->dni === null || (string) $user->dni === (string) $dniAnterior)) {
+                if ($user && ! $ocupadoPorOtro && ($user->dni === null || DocumentoIdentidad::normalizar($user->dni) === DocumentoIdentidad::normalizar($dniAnterior))) {
                     $user->dni = $solicitud->dni_solicitado;
                     $user->save();
                 }

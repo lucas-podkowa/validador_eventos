@@ -10,6 +10,7 @@ use App\Models\Participante;
 use App\Models\PlantillaCertificado;
 use App\Models\TipoReconocimiento;
 use App\Services\AuditoriaService;
+use App\Support\DocumentoIdentidad;
 use App\Support\NormalizadorIdentidad;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -111,7 +112,7 @@ class EmisionMasiva extends Component
     public function agregarParticipacion(): void
     {
         $this->validate([
-            'nuevo_dni' => 'required|string|max:15',
+            'nuevo_dni' => DocumentoIdentidad::reglas(),
             'nuevo_nombre' => 'required|string|max:100',
             'nuevo_apellido' => 'required|string|max:100',
             'nuevo_mail' => 'required|email|max:100',
@@ -174,6 +175,10 @@ class EmisionMasiva extends Component
                 continue;
             }
 
+            if (! DocumentoIdentidad::esValido(trim((string) $columnas[0]))) {
+                continue;
+            }
+
             $this->registrarParticipacion(
                 trim((string) $columnas[0]),
                 trim((string) $columnas[2]),
@@ -215,7 +220,7 @@ class EmisionMasiva extends Component
     private function registrarParticipacion(string $dni, string $apellido, string $nombre, string $mail, string $telefono): void
     {
         DB::transaction(function () use ($dni, $apellido, $nombre, $mail, $telefono) {
-            $participante = Participante::where('dni', $dni)->first()
+            $participante = Participante::porDocumento($dni)->first()
                 ?? Participante::create([
                     'nombre' => NormalizadorIdentidad::titulo($nombre),
                     'apellido' => NormalizadorIdentidad::titulo($apellido),
@@ -439,10 +444,15 @@ class EmisionMasiva extends Component
             ->with(['participante', 'emision'])
             ->when($this->search, function ($q) {
                 $busqueda = '%'.$this->search.'%';
-                $q->whereHas('participante', function ($p) use ($busqueda) {
+                $documento = DocumentoIdentidad::normalizar($this->search);
+                $q->whereHas('participante', function ($p) use ($busqueda, $documento) {
                     $p->where('nombre', 'like', $busqueda)
                         ->orWhere('apellido', 'like', $busqueda)
                         ->orWhere('dni', 'like', $busqueda);
+
+                    if ($documento !== '') {
+                        $p->orWhere('dni_norm', 'like', '%'.$documento.'%');
+                    }
                 });
             })
             ->orderByDesc('created_at')
