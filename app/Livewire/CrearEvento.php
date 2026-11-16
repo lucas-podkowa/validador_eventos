@@ -14,9 +14,11 @@ use App\Models\Responsable;
 use App\Models\TipoEvento;
 use App\Models\TipoIndicador;
 use App\Services\AuditoriaService;
+use App\Support\Texto;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -83,6 +85,10 @@ class CrearEvento extends Component
     public $open_responsable = false;
 
     public $modal_responsable_id = null;
+
+    public $modal_responsable_busqueda = '';
+
+    public $modal_responsable_resultados = [];
 
     public $modal_responsable_dni = null;
 
@@ -539,6 +545,8 @@ class CrearEvento extends Component
     public function abrirSelectorResponsable()
     {
         $this->resetValidation();
+        $this->modal_responsable_busqueda = '';
+        $this->modal_responsable_resultados = [];
         $this->modal_responsable_id = $this->responsable_id;
         $this->modal_responsable_dni = $this->responsable_dni;
         $this->modal_responsable_nombre = $this->responsable_nombre;
@@ -554,6 +562,23 @@ class CrearEvento extends Component
         $this->open_responsable = false;
     }
 
+    public function updatedModalResponsableBusqueda()
+    {
+        $this->modal_responsable_id = null;
+        $this->modal_responsable_dni = null;
+        $this->modal_responsable_nombre = null;
+        $this->modal_responsable_apellido = null;
+        $this->modal_responsable_encontrado = false;
+        $this->modal_responsable_buscado = false;
+        $this->modal_responsable_resultados = [];
+        $this->resetErrorBag([
+            'modal_responsable_busqueda',
+            'modal_responsable_dni',
+            'modal_responsable_nombre',
+            'modal_responsable_apellido',
+        ]);
+    }
+
     public function updatedModalResponsableDni($value)
     {
         $dniSanitizado = preg_replace('/\D+/', '', (string) $value);
@@ -562,54 +587,118 @@ class CrearEvento extends Component
             $this->modal_responsable_dni = $dniSanitizado;
         }
 
-        $this->modal_responsable_id = null;
-        $this->modal_responsable_nombre = null;
-        $this->modal_responsable_apellido = null;
-        $this->modal_responsable_encontrado = false;
-        $this->modal_responsable_buscado = false;
+        $this->resetErrorBag('modal_responsable_dni');
+    }
+
+    public function buscarResponsable()
+    {
         $this->resetErrorBag([
             'modal_responsable_dni',
             'modal_responsable_nombre',
             'modal_responsable_apellido',
         ]);
-    }
 
-    public function buscarResponsable()
-    {
-        $datos = $this->validate([
-            'modal_responsable_dni' => ['bail', 'required', 'regex:/^\d+$/', 'digits_between:7,10'],
-        ]);
+        $termino = trim((string) $this->modal_responsable_busqueda);
+        $esDni = preg_match('/^\d+$/', $termino) === 1;
 
-        $responsable = Responsable::where('dni', $datos['modal_responsable_dni'])->first();
+        if ($esDni) {
+            $this->validate([
+                'modal_responsable_busqueda' => ['bail', 'required', 'regex:/^\d+$/', 'digits_between:7,10'],
+            ], [], [
+                'modal_responsable_busqueda' => 'DNI',
+            ]);
+        } else {
+            $this->validate([
+                'modal_responsable_busqueda' => ['bail', 'required', 'string', 'min:3', 'max:255'],
+            ], [
+                'modal_responsable_busqueda.min' => 'Ingrese al menos 3 caracteres para buscar por nombre o apellido.',
+            ], [
+                'modal_responsable_busqueda' => 'término de búsqueda',
+            ]);
+        }
+
+        $consulta = Responsable::query();
+
+        if ($esDni) {
+            $consulta->where('dni', 'like', $termino.'%');
+        } else {
+            Texto::aplicarFiltroLikeEspanol($consulta, ['nombre', 'apellido'], $termino);
+        }
+
+        $responsables = $consulta
+            ->orderBy('apellido')
+            ->orderBy('nombre')
+            ->limit(25)
+            ->get();
 
         $this->modal_responsable_buscado = true;
+        $this->modal_responsable_resultados = $responsables->map(fn (Responsable $responsable) => [
+            'id' => $responsable->responsable_id,
+            'dni' => $responsable->dni,
+            'nombre' => $responsable->nombre,
+            'apellido' => $responsable->apellido,
+        ])->all();
 
-        if ($responsable) {
-            $this->modal_responsable_id = $responsable->responsable_id;
-            $this->modal_responsable_dni = $responsable->dni;
-            $this->modal_responsable_nombre = $responsable->nombre;
-            $this->modal_responsable_apellido = $responsable->apellido;
-            $this->modal_responsable_encontrado = true;
+        if ($responsables->count() === 1) {
+            $this->hidratarResponsableSeleccionado($responsables->first());
         } else {
             $this->modal_responsable_id = null;
+            $this->modal_responsable_dni = null;
             $this->modal_responsable_nombre = null;
             $this->modal_responsable_apellido = null;
             $this->modal_responsable_encontrado = false;
         }
     }
 
+    public function seleccionarResultadoResponsable($responsableId)
+    {
+        $responsable = Responsable::find($responsableId);
+
+        if (! $responsable) {
+            $this->addError('modal_responsable_busqueda', 'El responsable seleccionado ya no está disponible.');
+
+            return;
+        }
+
+        $this->hidratarResponsableSeleccionado($responsable);
+    }
+
+    protected function hidratarResponsableSeleccionado(Responsable $responsable): void
+    {
+        $this->modal_responsable_id = $responsable->responsable_id;
+        $this->modal_responsable_dni = $responsable->dni;
+        $this->modal_responsable_nombre = $responsable->nombre;
+        $this->modal_responsable_apellido = $responsable->apellido;
+        $this->modal_responsable_encontrado = true;
+        $this->modal_responsable_buscado = true;
+    }
+
     public function seleccionarResponsable()
     {
         if (! $this->modal_responsable_buscado) {
-            $this->addError('modal_responsable_dni', 'Busque un DNI válido antes de continuar.');
+            $this->addError('modal_responsable_busqueda', 'Busque un responsable antes de continuar.');
+
+            return;
+        }
+
+        if (! $this->modal_responsable_encontrado && count($this->modal_responsable_resultados) > 0) {
+            $this->addError('modal_responsable_busqueda', 'Seleccione un responsable de la lista.');
 
             return;
         }
 
         $datos = $this->validate([
-            'modal_responsable_dni' => ['bail', 'required', 'regex:/^\d+$/', 'digits_between:7,10'],
+            'modal_responsable_dni' => [
+                'bail',
+                'required',
+                'regex:/^\d+$/',
+                'digits_between:7,10',
+                Rule::unique('responsable', 'dni')->ignore($this->modal_responsable_id, 'responsable_id'),
+            ],
             'modal_responsable_nombre' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\pL\s]+$/u'],
             'modal_responsable_apellido' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\pL\s]+$/u'],
+        ], [
+            'modal_responsable_dni.unique' => 'Ya existe un responsable con ese DNI.',
         ]);
 
         if ($this->modal_responsable_encontrado && $this->modal_responsable_id) {

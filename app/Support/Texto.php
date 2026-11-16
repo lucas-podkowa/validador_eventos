@@ -21,6 +21,13 @@ class Texto
 
     private const MIN_CARACTERES = 3;
 
+    private const MAPA_ESPANOL = [
+        'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u',
+        'ü' => 'u', 'ñ' => 'n',
+        'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u',
+        'Ü' => 'u', 'Ñ' => 'n',
+    ];
+
     /**
      * Normaliza un texto: minúsculas, sin tildes ni diacríticos.
      */
@@ -36,9 +43,24 @@ class Texto
      */
     public static function expresionNormalizada(string $columna): string
     {
+        return self::expresionNormalizadaConMapa($columna, self::MAPA);
+    }
+
+    /**
+     * Igual que aplicarFiltroLike, pero con un mapa reducido a los caracteres
+     * del español. Evita superar el límite de anidamiento de expresiones de
+     * SQLite al normalizar varias columnas.
+     */
+    public static function aplicarFiltroLikeEspanol(Builder $query, array|string $columnas, ?string $termino): bool
+    {
+        return self::aplicarFiltroConMapa($query, $columnas, $termino, self::MAPA_ESPANOL);
+    }
+
+    private static function expresionNormalizadaConMapa(string $columna, array $mapa): string
+    {
         $expresion = $columna;
 
-        foreach (self::MAPA as $de => $a) {
+        foreach ($mapa as $de => $a) {
             $de = str_replace("'", "''", $de);
             $expresion = "REPLACE({$expresion}, '{$de}', '{$a}')";
         }
@@ -54,6 +76,11 @@ class Texto
      */
     public static function aplicarFiltroLike(Builder $query, array|string $columnas, ?string $termino): bool
     {
+        return self::aplicarFiltroConMapa($query, $columnas, $termino, self::MAPA);
+    }
+
+    private static function aplicarFiltroConMapa(Builder $query, array|string $columnas, ?string $termino, array $mapa): bool
+    {
         $columnas = (array) $columnas;
         $termino = trim((string) $termino);
 
@@ -65,10 +92,10 @@ class Texto
 
         $esMysql = in_array($query->getConnection()->getDriverName(), ['mysql', 'mariadb']);
 
-        $query->where(function (Builder $q) use ($columnas, $terminoSql, $esMysql) {
+        $query->where(function (Builder $q) use ($columnas, $terminoSql, $esMysql, $mapa) {
             foreach ($columnas as $i => $columna) {
                 // MySQL: el collation utf8mb4_unicode_ci ya ignora mayúsculas y tildes.
-                $expresion = $esMysql ? $columna : self::expresionNormalizada($columna);
+                $expresion = $esMysql ? $columna : self::expresionNormalizadaConMapa($columna, $mapa);
 
                 if ($i === 0) {
                     $q->whereRaw("{$expresion} LIKE ?", [$terminoSql]);
